@@ -1,0 +1,62 @@
+﻿/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+	-moz-appearance: textfield;
+}
+
+.sollwerte {
+	display: grid;
+	grid-template-columns: 30rem 7rem 3rem 7rem 3rem;
+}
+
+	.sollwerte > * {
+		padding: 0.5rem;
+		margin: 1px 0px;
+		font-size: 1.2em;
+	}
+
+	.sollwerte div {
+		background-color: grey;
+	}
+
+	.sollwerte label {
+		background-color: lightgrey;
+		color: black;
+	}
+
+	.sollwerte input + span {
+		background-color: white;
+		color: black;
+	}
+
+	.sollwerte input:disabled + span {
+		background-color: black;
+		color: white;
+	}
+
+	.sollwerte input:disabled {
+		background-color: black;
+		color: white;
+	}
+
+	.sollwerte input:enabled {
+		background-color: white;
+		color: black;
+	}
+
+	.sollwerte input {
+		text-align: right;
+		border: 0px solid grey;
+	}
+
+.ist {
+	fill: white;
+	font-size: 1em;
+	text-anchor: start
+}
