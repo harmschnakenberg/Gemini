@@ -8,6 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Update="wwwroot\css\atmos.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Update="wwwroot\css\input.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
