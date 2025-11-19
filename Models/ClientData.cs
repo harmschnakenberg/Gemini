@@ -2,7 +2,6 @@
 // Klassen für Datenaustausch und JSON Source Generation
 
 // Das Datenmodell für den Austausch
-using Gemini.Models;
 using System.Text.Json.Serialization;
 
 namespace Gemini.Models
@@ -28,6 +27,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(double))]
 [JsonSerializable(typeof(int))]
+[JsonSerializable(typeof(Int16))]
 [JsonSerializable(typeof(bool))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext { }
 
