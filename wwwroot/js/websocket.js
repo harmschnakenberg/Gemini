@@ -69,7 +69,7 @@ function initWebsocket() {
         // Empfangene Daten (Text) als JSON-Objekt parsen
         try {
             const updatedObject = JSON.parse(event.data);
-            console.log('⬇️ Update vom Server empfangen:', updatedObject);
+            //console.log('⬇️ Update vom Server empfangen:', updatedObject);
             drawTags(updatedObject);
             // Test: Daten auch an Chart übergeben
             if (typeof (addChartData) === typeof (Function))
@@ -97,4 +97,6 @@ window.onload = () => {
     initUnits();
     initWebsocket();
 }
-    
+
+
+

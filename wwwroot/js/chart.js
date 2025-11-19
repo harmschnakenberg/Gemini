@@ -1,4 +1,5 @@
-﻿const ctx = document.getElementById('myChart').getContext('2d');
+﻿
+let lineChart;
 const datasetsMap = {}; // Name -> datasetIndex
 const colors = [
     'rgba(75, 192, 192, 1)',
@@ -9,36 +10,59 @@ const colors = [
     'rgba(255, 159, 64, 1)'
 ];
 
+function initCharts() {
+    let c = document.getElementsByTagName("canvas");
 
-var lineChart = new Chart(ctx, {
-    type: "line",
-    data: {
-        labels: [],
-        datasets: []
-    },
-    options: {
-        interaction: {
-            mode: 'nearest',
-            axis: 'x',
-            intersect: false
+    for (let i = 0; i < c.length; i++) {
+        console.info("initiiere => " + c[i].Id);
+        initChart(c[i].Id);
+    }
+}
+
+window.onload = () => {
+    initCharts();
+}
+
+function initChart(chartId) {
+    console.info('initChart(' + chartId + ')');
+    const ctx = document.getElementById("myChart").getContext('2d');
+    
+    lineChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: []
         },
-        plugins: {
-            legend: { display: true, position: 'bottom' }
-        },
-        scales: {
-            x: {
-                type: 'time',
-                time: {
-                    displayFormats: {
-                        quarter: 'HH:mm DD.MMM.YYYY'
+        options: {
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            plugins: {
+                legend: { display: true, position: 'bottom' }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            quarter: 'HH:mm DD.MMM.YYYY'
+                        }
                     }
                 }
             }
         }
-    }
-});
+    });
+}
 
 function addChartData(arr) {
+
+    if (typeof lineChart === 'undefined') { 
+        console.warn("lineChart ist nicht definiert!");
+        initCharts();
+    }
+
     arr.forEach((item) => {
         const dsIdx = ensureDataset(item.N);
         const ds = lineChart.data.datasets[dsIdx];
@@ -89,3 +113,4 @@ function removeData(chart) {
     });
     chart.update('none'); //ohne Animation
 }
+

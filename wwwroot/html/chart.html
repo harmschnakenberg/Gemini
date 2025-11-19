@@ -9,7 +9,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
     <link rel='stylesheet' href='/css/atmos.css'>
     <link rel='stylesheet' href='/css/input.css'>
-    
+    <script src='/js/chart.js'></script>
+    <script src='/js/websocket.js'></script>
 </head>
 <body>
     <h1>ASP.NET Core Minimal API WebSocket Trend Test</h1>
@@ -17,11 +18,7 @@
     <input type="hidden" data-name='A01_DB10_DBW2'>
     <input type="hidden" data-name='A01_DB10_DBW4'>
     <input type="hidden" data-name='A01_DB10_DBW6'>
-    <canvas id="myChart" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;"></canvas>
-
-    <script src='/js/chart.js'></script>
-    <script src='/js/websocket.js'></script>
-
+    <canvas id="myChart" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;" ></canvas>
 
 </body>
 </html>
