@@ -1,5 +1,6 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
+using System.Buffers;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -30,8 +31,8 @@ namespace Gemini.Middleware
                 await _next(context);
             }
         }
- 
-        private async Task ReadTagsLoop(WebSocket webSocket)
+
+        private static async Task ReadTagsLoop(WebSocket webSocket)
         {
             // Empfang der initialen Tags (erwartet: JsonTag[]; N im Format "ip|address")
             var buffer = new byte[1024 * 8];
@@ -67,12 +68,61 @@ namespace Gemini.Middleware
                                 return;
                             }
 
-                            var responseJson = JsonSerializer.Serialize(tagsToSend, AppJsonSerializerContext.Default.JsonTagArray);
-                            var responseBytes = Encoding.UTF8.GetBytes(responseJson);
+                            // Serialize into pooled buffer using Utf8JsonWriter via an IBufferWriter wrapper over the rented array.
+                            var pool = ArrayPool<byte>.Shared;
+                            byte[]? rented = null;
+                            int bufferSize = 4096;
 
-                            //Console.WriteLine("Sending to client " + clientId + ": \r\n" + responseJson);
+                            try
+                            {
+                                while (true)
+                                {
+                                    rented = pool.Rent(bufferSize);
+                                    var bufferWriter = new PooledArrayBufferWriter(rented);
 
-                            await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                                    try
+                                    {
+                                        var writerOptions = new JsonWriterOptions { Indented = false, SkipValidation = false };
+                                        using var jsonWriter = new Utf8JsonWriter(bufferWriter, writerOptions);
+
+                                        JsonSerializer.Serialize(jsonWriter, tagsToSend, AppJsonSerializerContext.Default.JsonTagArray);
+                                        jsonWriter.Flush();
+
+                                        int bytesUsed = bufferWriter.WrittenCount;
+                                        if (bytesUsed == 0)
+                                        {
+                                            // nothing serialized -> return
+                                            break;
+                                        }
+
+                                        // Send only the used portion
+                                        await webSocket.SendAsync(new ArraySegment<byte>(rented, 0, bytesUsed), WebSocketMessageType.Text, true, CancellationToken.None);
+                                        break;
+                                    }
+                                    catch (ArgumentException)
+                                    {
+                                        // buffer too small for writer -> retry with larger buffer
+                                        // ensure returned to pool and try larger size
+                                        pool.Return(rented, clearArray: true);
+                                        rented = null;
+                                        bufferSize *= 2;
+                                        if (bufferSize > 8 * 1024 * 1024) // safety cap 8MB
+                                            throw;
+                                        continue;
+                                    }
+                                    finally
+                                    {
+                                        // nothing here: rented returned in outer finally
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                if (rented != null)
+                                {
+                                    try { pool.Return(rented, clearArray: true); } catch { }
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -136,10 +186,42 @@ namespace Gemini.Middleware
                         }
                     }
                 }
-            
+
                 Console.WriteLine("WebSocket connection closed or invalid initial message.");
             }
         }
-    
+
+        // Small IBufferWriter<byte> implementation that writes into a pre-rented byte[].
+        // Throws ArgumentException when insufficient space is requested so caller can enlarge buffer.
+        private sealed class PooledArrayBufferWriter(byte[] buffer) : IBufferWriter<byte>
+        {
+            private readonly byte[] _buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
+            private int _position = 0;
+
+            public void Advance(int count)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(count);
+                checked
+                {
+                    _position += count;
+                }
+                if (_position > _buffer.Length) throw new ArgumentException("Advanced past the end of the buffer.");
+            }
+
+            public Memory<byte> GetMemory(int sizeHint = 0)
+            {
+                int available = _buffer.Length - _position;
+                if (sizeHint > available)
+                    throw new ArgumentException("Buffer too small for requested memory.");
+                return new Memory<byte>(_buffer, _position, available);
+            }
+
+            public Span<byte> GetSpan(int sizeHint = 0)
+            {
+                return GetMemory(sizeHint).Span;
+            }
+
+            public int WrittenCount => _position;
+        }
     }
 }

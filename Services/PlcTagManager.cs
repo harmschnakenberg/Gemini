@@ -6,17 +6,43 @@ using System.Text;
 using S7.Net;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
 
 namespace Gemini.Services
 {
+
+
+
+
+
     /// <summary>
     /// Singleton: verwaltet alle angemeldeten Clients & Tags, pollt SPSen periodisch und sendet Änderungen.
     /// Batch-Read-Optimierung: gruppiert Tags pro PLC-Key und DB, liest zusammenhängende Byte-Blöcke per ReadBytes und extrahiert einzelne Tag-Werte.
     /// Erwartet JsonTag.N im Format "A{int}_DB{n}_DB{TYPE}{offset}" (z. B. "A1_DB1_DBW10").
     /// PLC-Mapping A{int} -> Host/Cpu/Rack/Slot wird aus appsettings.json Sektion "Plcs" geladen.
     /// </summary>
-    public sealed class PlcTagManager : IDisposable
+    public sealed partial class PlcTagManager : IDisposable
     {
+        // Precompiled regexes to avoid recompilation/allocation on each call     
+        [GeneratedRegex(@"^DB(\d+)\.DBX(\d+)\.(\d+)$", RegexOptions.IgnoreCase)]
+        private static partial Regex DbxRegex();
+
+        [GeneratedRegex(@"^DB(\d+)\.DBB(\d+)$", RegexOptions.IgnoreCase)]
+        private static partial Regex DbbRegex();
+
+        [GeneratedRegex(@"^DB(\d+)\.DBW(\d+)$", RegexOptions.IgnoreCase)]
+        private static partial Regex DbwRegex();
+
+        [GeneratedRegex(@"^DB(\d+)\.DBD(\d+)$", RegexOptions.IgnoreCase)]
+        private static partial Regex DbdRegex();
+
+        [GeneratedRegex(@"^DB(\d+)\.(DBB|DBW|DBD|DBX)(\d+)(?:\.(\d+))?$", RegexOptions.IgnoreCase)]
+        private static partial Regex GenericRegex();
+
+
+        // Cache parsed addresses by tag name to avoid repeated regex parsing
+        private readonly ConcurrentDictionary<string, ParsedAddress?> _parseCache = new(StringComparer.Ordinal);
+
         public static PlcTagManager Instance { get; } = new PlcTagManager();
 
         private readonly ConcurrentDictionary<Guid, ClientEntry> _clients = new();
@@ -35,12 +61,12 @@ namespace Gemini.Services
 
             //Console.WriteLine($"{_plcConfigs.Count} SPS-Konfigurationen geladen.");
 
-#if DEBUG
+    #if DEBUG
             foreach (var item in _plcConfigs)
             {
                 Console.WriteLine($"SPS {item.Key}: {item.Value.CPU} {item.Value.IP}");
             }
-#endif
+    #endif
             _pollTask = Task.Run(PollLoop);
         }
 
@@ -70,14 +96,14 @@ namespace Gemini.Services
                         case "S71200":
                             cpuType = CpuType.S71200;
                             break;
-                            case "S7300":
-                                cpuType = CpuType.S7300;
+                        case "S7300":
+                            cpuType = CpuType.S7300;
                             break;
-                            case "S7400":
-                                cpuType = CpuType.S7400;
+                        case "S7400":
+                            cpuType = CpuType.S7400;
                             break;
-                            case "S71500":
-                                cpuType = CpuType.S71500;
+                        case "S71500":
+                            cpuType = CpuType.S71500;
                             break;             
                     }
 
@@ -99,7 +125,13 @@ namespace Gemini.Services
 
         public void AddOrUpdateClient(Guid clientId, JsonTag[] tags, Func<JsonTag[], Task> sendCallback)
         {
-            //Console.WriteLine($"AddOrUpdateClient(Guid {clientId}, JsonTag[] {tags.ToString()}, Func<JsonTag[], Task> sendCallback)");
+            // Invalidate cache entries for tags belonging to this client to avoid stale mapping if config changed
+            foreach (var t in tags)
+            {
+                if (!string.IsNullOrEmpty(t?.N))
+                    _parseCache.TryRemove(t.N, out _);
+            }
+
             var entry = new ClientEntry(sendCallback, tags);
             _clients.AddOrUpdate(clientId, entry, (_, __) => entry);
         }
@@ -129,25 +161,20 @@ namespace Gemini.Services
                 var clientId = kv.Key;
                 var entry = kv.Value;
 
-                //Console.WriteLine($"PollLoop() Client {clientId}");
-
                 foreach (var t in entry.Tags)
                 {
-                    ParsedAddress? parsed = TryParseTag(t);
-                    string ip = parsed?.Ip ?? string.Empty;
-                    //Console.Write($"Lese {t.N}, IP: '{ip}' Parsed is null ? {parsed is null} ");
+                    ParsedAddress? parsed = ParseTagCached(t);
+                    if (parsed == null) continue;
 
-                    if (parsed != null)
+                    string ip = parsed.Value.Ip;
+
+                    if (!byIp.TryGetValue(ip, out var list))
                     {
-
-                        if (!byIp.TryGetValue(ip, out var list))
-                        {
-                            list = [];
-                            byIp[ip] = list;
-                        }
-                        //Console.WriteLine($" -> Parsed: IP={parsed.Value.Ip}, DB={parsed.Value.Db}, Offset={parsed.Value.Offset}, Type={parsed.Value.DataType}, Size={parsed.Value.Size}");
-                        list.Add((clientId, t, parsed.Value));
+                        list = [];
+                        byIp[ip] = list;
                     }
+
+                    list.Add((clientId, t, parsed.Value));
                 }
             }
 
@@ -162,17 +189,14 @@ namespace Gemini.Services
                 {
 
                     // Sammle alle benötigten (ip, db, requests)
-                    //var byIp = new Dictionary<string, List<(Guid clientId, JsonTag tag, ParsedAddress parsed)>>();
                     var byIp = GetTagsForClient();
 
-                    //Console.WriteLine($"\r\n IPs {byIp.Count}");
                     foreach (var kv in byIp)
                     {
                         var ip = kv.Key;
                         var requests = kv.Value;
 
                         var plc = GetOrCreatePlc(ip);
-                        //Console.WriteLine($"Ip-Adresse SPS: {plc?.IP} aus ({ip}, {requests})");
 
                         var plcLock = _plcLocks.GetOrAdd(ip, _ => new SemaphoreSlim(1, 1));
 
@@ -189,9 +213,9 @@ namespace Gemini.Services
                             if (!plc.IsConnected)
                             {
                                 try { plc.Open(); }
-                                catch { 
+                                catch {
                                     Console.WriteLine($"Verbindung zur SPS {ip} konnte nicht hergestellt werden.");
-                                    continue; 
+                                    continue;
                                 }
                             }
 
@@ -204,7 +228,6 @@ namespace Gemini.Services
 
                             // Gruppiere requests pro DB-Nummer
                             var byDb = requests.GroupBy(r => r.parsed.Db);
-                            //Console.WriteLine($"Abfrage aufgeteilt in {byDb.Count()} DBs.");
 
                             foreach (var dbGroup in byDb)
                             {
@@ -243,7 +266,9 @@ namespace Gemini.Services
                                         if (tentativeLength > MaxBlockBytes)
                                         {
                                             // block would grow too big -> start new block
+#if DEBUG
                                             Console.WriteLine("block would grow too big -> start new block");
+#endif
                                             break;
                                         }
 
@@ -286,31 +311,41 @@ namespace Gemini.Services
                                         try
                                         {
                                             newValue = ExtractValue(blockBytes, relOffset, parsed);
+#if DEBUG
                                             Console.WriteLine($"Gelesener Wert für Tag {tag.N}: {newValue}");
+#endif
                                         }
                                         catch
                                         {
+#if DEBUG
                                             Console.WriteLine($"Extrahieren des Werte für {tag.N} nicht möglich.");
+#endif
                                             continue;
                                         }
 
                                         if (newValue == null)
                                         {
+#if DEBUG
                                             Console.WriteLine($"Kein Wert für Tag {tag.N} extrahiert.");
+#endif
                                             continue;
                                         }
 
                                         // Vergleiche und ggf. senden
                                         if (!_clients.TryGetValue(clientId, out var clientEntry))
                                         {
+#if DEBUG
                                             Console.WriteLine($"Client {clientId} nicht mehr vorhanden.");
+#endif
                                             continue;
                                         }
 
                                         var existingIndex = Array.FindIndex(clientEntry.Tags, x => x.N == tag.N);
                                         if (existingIndex < 0)
                                         {
+#if DEBUG
                                             Console.WriteLine($"Tag {tag.N} nicht mehr im Client {clientId} vorhanden.");
+#endif
                                             continue;
                                         }
 
@@ -329,11 +364,16 @@ namespace Gemini.Services
                                             catch
                                             {
                                                 // Fehler beim Senden -> entferne Client defensiv
+#if DEBUG
                                                 Console.WriteLine($"Fehler beim Senden an {clientId}");
+#endif
                                                 RemoveClient(clientId);
                                             }
                                         }                                
                                     }
+
+
+
                                 }
                             }
                         }
@@ -346,9 +386,9 @@ namespace Gemini.Services
                 catch
                 {
                     // Swallow exceptions to keep loop alive; ergänzen Sie Logging bei Bedarf.
-#if DEBUG
+    #if DEBUG
                     Console.WriteLine("Fehler in PollLoop().");
-#endif
+    #endif
                 }
 
                 try
@@ -368,30 +408,29 @@ namespace Gemini.Services
             return a.Equals(b);
         }
 
-        private ParsedAddress? TryParseTag(JsonTag tag)
-        {            
-            //Console.WriteLine($"\r\nTryParseTag(JsonTag {tag.N})");
+        // New cached parse entry point
+        private ParsedAddress? ParseTagCached(JsonTag tag)
+        {
+            if (tag == null || string.IsNullOrWhiteSpace(tag.N)) return null;
+            return _parseCache.GetOrAdd(tag.N, key => ParseTagNoCache(key));
+        }
 
-            // Erwartet N im Format "ip|DB{n}.DBW{offset}" oder "ip|DB{n}.DBX{byte}.{bit}" etc.
-            if (string.IsNullOrWhiteSpace(tag.N)) return null;
-            var parts = tag.N.Split('_', 2);
-            // Console.WriteLine($"  Teile in {parts.Length} Teile");
+        // Original parsing logic refactored to accept tag.N string
+        private ParsedAddress? ParseTagNoCache(string tagName)
+        {
+            var parts = tagName.Split('_', 2);
             if (parts.Length != 2) return null;
             var plcName = parts[0].Trim();
             var addr = parts[1].Trim().Replace('_', '.');
-            //Console.WriteLine($"  PLC Name: '{plcName}', Addr. {addr}");
 
             if (!_plcConfigs.TryGetValue(plcName, out Plc? plc))
             {
-                Console.WriteLine($"SPS '{plcName}' nicht in der Konfiguration gefunden.");
                 return null;
             }
 
             var ip = plc.IP;
-            //Console.WriteLine($"\r\nGefundene SPS IP: '{ip}'");
 
-            // DBX (bit): DB1.DBX0.1
-            var dbxMatch = System.Text.RegularExpressions.Regex.Match(addr, @"^DB(\d+)\.DBX(\d+)\.(\d+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var dbxMatch = DbxRegex().Match(addr);
             if (dbxMatch.Success)
             {
                 int db = int.Parse(dbxMatch.Groups[1].Value);
@@ -400,8 +439,7 @@ namespace Gemini.Services
                 return new ParsedAddress(ip, db, byteOffset, TagDataType.Bit, size: 1, bit: bit);
             }
 
-            // DBB: DB1.DBB10
-            var dbbMatch = System.Text.RegularExpressions.Regex.Match(addr, @"^DB(\d+)\.DBB(\d+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var dbbMatch = DbbRegex().Match(addr);
             if (dbbMatch.Success)
             {
                 int db = int.Parse(dbbMatch.Groups[1].Value);
@@ -409,19 +447,15 @@ namespace Gemini.Services
                 return new ParsedAddress(ip, db, offset, TagDataType.Byte, size: 1);
             }
 
-            // DBW: DB1.DBW10
-            var dbwMatch = System.Text.RegularExpressions.Regex.Match(addr, @"^DB(\d+)\.DBW(\d+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var dbwMatch = DbwRegex().Match(addr);
             if (dbwMatch.Success)
             {
                 int db = int.Parse(dbwMatch.Groups[1].Value);
                 int offset = int.Parse(dbwMatch.Groups[2].Value);
-
-                //Console.WriteLine($"  Gefundene DBW: DB={db}, Offset={offset}");
                 return new ParsedAddress(ip, db, offset, TagDataType.Int16, size: 2);
             }
 
-            // DBD: DB1.DBD10
-            var dbdMatch = System.Text.RegularExpressions.Regex.Match(addr, @"^DB(\d+)\.DBD(\d+)$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var dbdMatch = DbdRegex().Match(addr);
             if (dbdMatch.Success)
             {
                 int db = int.Parse(dbdMatch.Groups[1].Value);
@@ -429,8 +463,7 @@ namespace Gemini.Services
                 return new ParsedAddress(ip, db, offset, TagDataType.Int32, size: 4);
             }
 
-            // Fallback: try "DB{n}.{TYPE}{offset}" generic
-            var genericMatch = System.Text.RegularExpressions.Regex.Match(addr, @"^DB(\d+)\.(DBB|DBW|DBD|DBX)(\d+)(?:\.(\d+))?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            var genericMatch = GenericRegex().Match(addr);
             if (genericMatch.Success)
             {
                 int db = int.Parse(genericMatch.Groups[1].Value);
@@ -439,14 +472,12 @@ namespace Gemini.Services
                 if (t == "DBB") return new ParsedAddress(ip, db, offset, TagDataType.Byte, size: 1);
                 if (t == "DBW") return new ParsedAddress(ip, db, offset, TagDataType.Int16, size: 2);
                 if (t == "DBD") return new ParsedAddress(ip, db, offset, TagDataType.Int32, size: 4);
-                // DBX with bit handled above
             }
 
-            Console.WriteLine($"TryParseTag() konnte {tag.N} nicht auslesen.");
             return null;
         }
 
-        private object? ExtractValue(byte[] blockBytes, int relOffset, ParsedAddress parsed)
+        private static object? ExtractValue(byte[] blockBytes, int relOffset, ParsedAddress parsed)
         {
             // relOffset: Offset innerhalb des blockBytes
             if (relOffset < 0 || relOffset >= blockBytes.Length) return null;
@@ -488,7 +519,6 @@ namespace Gemini.Services
                 try
                 {
                     // Default: S7-1500 (S71500) Rack 0 Slot 0; passen Sie bei Bedarf an.
-                    var plc = new Plc(CpuType.S71500, key, 0, 0);
                     return new Plc(CpuType.S71500, key, 0, 0);
                 }
                 catch
@@ -516,26 +546,14 @@ namespace Gemini.Services
             public JsonTag[] Tags { get; set; } = tags;
         }
 
-        private readonly struct ParsedAddress
+        private readonly struct ParsedAddress(string ip, int db, int offset, PlcTagManager.TagDataType dataType, int size, int? bit = null)
         {
-            public string Ip { get; }
-            public int Db { get; }
-            public int Offset { get; }
-            public TagDataType DataType { get; }
-            public int Size { get; }
-            public int? Bit { get; }
-
-            public ParsedAddress(string ip, int db, int offset, TagDataType dataType, int size, int? bit = null)
-            {
-                Ip = ip;
-                Db = db;
-                Offset = offset;
-                DataType = dataType;
-                Size = size;
-                Bit = bit;
-
-                //Console.WriteLine("ParsedAddress() " + Ip);
-            }
+            public string Ip { get; } = ip;
+            public int Db { get; } = db;
+            public int Offset { get; } = offset;
+            public TagDataType DataType { get; } = dataType;
+            public int Size { get; } = size;
+            public int? Bit { get; } = bit;
         }
 
         private enum TagDataType
