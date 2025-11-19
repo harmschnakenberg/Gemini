@@ -312,7 +312,7 @@ namespace Gemini.Services
                                         {
                                             newValue = ExtractValue(blockBytes, relOffset, parsed);
 #if DEBUG
-                                            Console.WriteLine($"Gelesener Wert für Tag {tag.N}: {newValue}");
+                                           // Console.WriteLine($"Gelesener Wert für Tag {tag.N}: {newValue}");
 #endif
                                         }
                                         catch

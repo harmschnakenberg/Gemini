@@ -30,4 +30,13 @@ app.MapGet("/", async ctx =>
     await ctx.Response.CompleteAsync();
 });
 
+app.MapGet("/chart", async ctx =>
+{
+    ctx.Response.StatusCode = 200;
+    ctx.Response.ContentType = "text/html";
+    var file = File.ReadAllText("wwwroot/html/chart.html", Encoding.UTF8);
+    await ctx.Response.WriteAsync(file);
+    await ctx.Response.CompleteAsync();
+});
+
 app.Run();
