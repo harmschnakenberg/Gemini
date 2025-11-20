@@ -123,6 +123,9 @@ namespace Gemini.Services
         }
 
 
+        
+
+
         public void AddOrUpdateClient(Guid clientId, JsonTag[] tags, Func<JsonTag[], Task> sendCallback)
         {
             // Invalidate cache entries for tags belonging to this client to avoid stale mapping if config changed
@@ -134,6 +137,19 @@ namespace Gemini.Services
 
             var entry = new ClientEntry(sendCallback, tags);
             _clients.AddOrUpdate(clientId, entry, (_, __) => entry);
+
+#if DEBUG
+            List<string> x = [];
+            foreach (var client in _clients)
+            {
+                foreach (var tag in client.Value.Tags)
+                {
+                    x.Add(tag.N);
+                }                
+            }
+
+            Console.WriteLine($"{string.Join("\r\n", x.Order())}");
+#endif
         }
 
         public void RemoveClient(Guid clientId)
@@ -238,6 +254,7 @@ namespace Gemini.Services
                                 var ranges = list
                                     .Select(r => new { r.clientId, r.tag, r.parsed, start = r.parsed.Offset, end = r.parsed.Offset + r.parsed.Size - 1 })
                                     .OrderBy(x => x.start)
+                                    //.DistinctBy(g => g.tag.N) // TEST: Datenpunkte nicht doppelt abfragen funktionietr nicht, da unterschiedliche Clients unterschiedliche Tags mit gleicher Adresse haben können
                                     .ToList();
 
                                 // Merge zu Blöcken, begrenze Größe durch MaxBlockBytes

@@ -7,16 +7,10 @@ using System.Text.Json.Serialization;
 namespace Gemini.Models
 {
 
-    //public class ClientData(Guid guid, JsonTag[] jsonTags)
-    //{
-    //    public Guid ClinetId { get; set; } = guid;
-    //    public JsonTag[] Tags { get; set; } = jsonTags;
-    //}
-
-    public class JsonTag(string n, object v, DateTime t)
-    {
+    public class JsonTag(string n, object? v, DateTime t)
+    {        
         public string N { get; set; } = n;
-        public object V { get; set; } = v;
+        public object? V { get; set; } = v;
         public DateTime T { get; set; } = t;
 
     }

@@ -1,13 +1,19 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Gemini.Models;
+using Microsoft.Data.Sqlite;
 
 namespace Gemini.Db
 {
     internal partial class Db
     {
+          
+
+
         #region Logging
 
         internal static async void DbLogInfo(string message)
         {
+            CreateMasterDatabaseAsync();
+
             await using var connection = new SqliteConnection(MasterDbSource);
             await connection.OpenAsync();
 

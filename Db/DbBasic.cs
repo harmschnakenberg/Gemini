@@ -10,10 +10,35 @@ namespace Gemini.Db
 
     internal partial class Db
     {
+       
+
+
         #region Pfade
         private static readonly string AppFolder = AppDomain.CurrentDomain.BaseDirectory;
-        private static readonly string MasterDbSource = "Data Source=" + Path.Combine(AppFolder, "db", "Master.db");
+        private static readonly string masterDbPath = Path.Combine(AppFolder, "db", "Master.db");
+        private static readonly string MasterDbSource = "Data Source=" + masterDbPath;
         private static readonly string DayDbSource = "Data Source=" + GetDayDbPath(DateTime.UtcNow);
+
+        public Db()
+        {
+            //Stelle sicher, dass die Datenbankordner existieren
+            string dbFolder = Path.Combine(AppFolder, "db");
+            if (!Directory.Exists(dbFolder))
+            {
+                Directory.CreateDirectory(dbFolder);
+            }
+            //Master-Datenbank erstellen, falls nicht vorhanden
+            if (!File.Exists(masterDbPath))
+            {
+                CreateMasterDatabaseAsync();
+            }
+            //Tages-Datenbank erstellen, falls nicht vorhanden
+            string dayDbPath = GetDayDbPath(DateTime.UtcNow);
+            if (!File.Exists(dayDbPath))
+            {
+                CreateDayDatabaseAsync();
+            }
+        }
 
         static string GetDayDbPath(DateTime date)
         {
@@ -27,6 +52,9 @@ namespace Gemini.Db
 
         private static async void CreateMasterDatabaseAsync()
         {
+            if (File.Exists(masterDbPath))
+                return;
+
             await using var connection = new SqliteConnection(MasterDbSource);
             connection.Open();
             using var command = connection.CreateCommand();
@@ -64,7 +92,7 @@ namespace Gemini.Db
             //Tabellen mit Default-Daten füllen
             command.CommandText =
             $@"
-                    INSERT INTO Log (Category, Content) VALUES ('System', 'Datenbank neu erstellt.'); 
+                    INSERT INTO Log (Category, Message) VALUES ('System', 'Datenbank neu erstellt.'); 
                     INSERT INTO User (Name, IsAdmin, Password) VALUES ('admin', 1, '{Encrypt("admin")}'); 
                     INSERT INTO Source (Name, Ip) VALUES ('A01', '192.168.0.10'); ";
             _ = command.ExecuteNonQuery();
@@ -72,6 +100,9 @@ namespace Gemini.Db
 
         private static async void CreateDayDatabaseAsync()
         {
+            if (File.Exists(GetDayDbPath(DateTime.UtcNow)))
+                return;
+
             await using var connection = new SqliteConnection(DayDbSource);
             connection.Open();
             using var command = connection.CreateCommand();
@@ -90,17 +121,19 @@ namespace Gemini.Db
                           TagId INT NOT NULL,
                           TagValue NUMERIC,
 
-                          CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES TagNames (Id) ON DELETE NO ACTION
+                          CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
                           ); 
                     ";
             int result = command.ExecuteNonQuery();
 
-            if (result < 1) //Keine Änderungen geschrieben
+            Console.WriteLine("Tagestabelle erstellt. Ergebnis: " + result);
+
+            if (result > 0) //Keine Änderungen geschrieben. Warum 0?
                 return;
 
             #region Tabelle Tag mit TagNames aus der letzten Tabelle füllen
 
-            DataTable dt = new();
+            
             DateTime date = DateTime.UtcNow;
             int counter = 10; // limitieren, wie weit in die Vergangenheit geschaut werden soll
 
@@ -115,10 +148,12 @@ namespace Gemini.Db
                 if (!File.Exists(dbPath))
                 {
 #if DEBUG
-                    Console.WriteLine($"Tagestabelle: Datei {dbPath} nicht gefunden.");
+                    Db.DbLogInfo($"Tagestabelle: Datei {dbPath} nicht gefunden.");
 #endif
                     continue;
                 }
+
+                Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
 
                 command.CommandText = $@"
                         ATTACH DATABASE '{dbPath}' AS old_db; 
@@ -127,58 +162,18 @@ namespace Gemini.Db
 
                 result = command.ExecuteNonQuery();
 
-                if (result > 0) //Es wurden Tags übernommen                         
+                if (result > 0) //Es wurden Tags übernommen
+                {
                     Db.DbLogInfo($"Tagestabelle erstellt; Übernehme {result} Tags aus {dbPath}");
+                    return;
+                }
             }
 
+            Console.WriteLine("Tagestabelle erstellt; Keine Tags übernommen.");
             #endregion
 
         }
 
 
-
-
-        internal static async void InsertTags(JsonTag[] jsonTags)
-        {
-            CreateDayDatabaseAsync();
-
-            await using var connection = new SqliteConnection(DayDbSource);
-            await connection.OpenAsync();
-            await using var transaction = connection.BeginTransaction();
-
-            try
-            {
-                var command = connection.CreateCommand();
-                command.Transaction = transaction; // <- Wichtig: Command muss die Transaktion nutzen!
-                command.CommandText =
-                    @$"
-                      INSERT OR IGNORE INTO Tag (Name) VALUES (@TagName); 
-                      INSERT INTO Data (TagId, TagValue) VALUES (
-                        (SELECT Id FROM Tag WHERE Name = @TagName)
-                        ,@TagValue
-                      );";
-
-                var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
-                var valueParam = command.Parameters.Add("@TagValue", SqliteType.Blob);
-
-                // 3. Iteriere und führe den Command für jedes Objekt aus
-                foreach (var tag in jsonTags)
-                {
-                    nameParam.Value = tag.N;
-                    valueParam.Value = tag.V;
-                    await command.ExecuteNonQueryAsync();
-                }
-
-                // 4. Committe die Transaktion (Hier erfolgt der I/O-Schreibvorgang auf die Platte)
-                await transaction.CommitAsync();
-            }
-            catch (Exception ex)
-            {
-                // Bei einem Fehler: Rollback der Transaktion
-                transaction.Rollback();
-                // Logging des Fehlers (in einem echten Fall)
-                Db.DbLogInfo($"Fehler beim Batch-Insert. {ex}" );                
-            }
-        }
     }
 }

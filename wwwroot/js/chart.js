@@ -56,6 +56,21 @@ function initChart(chartId) {
     });
 }
 
+async function addChartDataDb() {
+    const response = await fetch('/db');
+    if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+    }
+    const json = await response.json();
+
+    //console.info("Daten aus /db => " + json);
+    //const arr = JSON.parse(json);
+
+    addChartData(json);
+}
+
+
+
 function addChartData(arr) {
 
     if (typeof lineChart === 'undefined') { 
