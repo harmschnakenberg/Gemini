@@ -25,7 +25,7 @@ window.onload = () => {
 
 function initChart(chartId) {
     console.info('initChart(' + chartId + ')');
-    const ctx = document.getElementById("myChart0").getContext('2d');
+    const ctx = document.getElementById("myChart").getContext('2d');
 
     lineChart = new Chart(ctx, {
         type: "line",
@@ -56,15 +56,22 @@ function initChart(chartId) {
     });
 }
 
-async function addChartDataDb() {
-    const response = await fetch('/db');
+async function addChartDataDb(tagnames, start, end) {
+
+    let s = new Date(start);
+    let e = new Date(end);
+
+    const params = new URLSearchParams();
+
+    params.append("tagnames", tagnames);
+    params.append("start", s.toISOString());
+    params.append("end", e.toISOString());
+
+    const response = await fetch(`/db?${params}`);
     if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
     }
     const json = await response.json();
-
-    //console.info("Daten aus /db => " + json);
-    //const arr = JSON.parse(json);
 
     addChartData(json);
 }
