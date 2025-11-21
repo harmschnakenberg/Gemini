@@ -85,7 +85,7 @@ namespace Gemini.Services
                 {
                     var key = child.Key;
                     var host = child.GetValue<string>("Host");
-                    var cpu = child.GetValue<string>("Cpu") ?? "S71200";
+                    var cpu = child.GetValue<string>("Cpu") ?? "S71500";
                     var rack = child.GetValue<short?>("Rack") ?? 0;
                     var slot = child.GetValue<short?>("Slot") ?? 1;
 
@@ -93,18 +93,18 @@ namespace Gemini.Services
 
                     switch (cpu)
                     {
+                        case "S71500":
+                            cpuType = CpuType.S71500;
+                            break;
                         case "S71200":
                             cpuType = CpuType.S71200;
+                            break;                        
+                        case "S7400":
+                            cpuType = CpuType.S7400;
                             break;
                         case "S7300":
                             cpuType = CpuType.S7300;
                             break;
-                        case "S7400":
-                            cpuType = CpuType.S7400;
-                            break;
-                        case "S71500":
-                            cpuType = CpuType.S71500;
-                            break;             
                     }
 
 
@@ -148,7 +148,7 @@ namespace Gemini.Services
                 }                
             }
 
-            Console.WriteLine($"{string.Join("\r\n", x.Order())}");
+            Console.WriteLine($"{string.Join(", ", x.Order())}");
 #endif
         }
 

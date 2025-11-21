@@ -50,13 +50,31 @@ app.MapGet("/chart", async ctx =>
 
 app.MapGet("/db", async ctx =>
 {
+    string[]? tagNames = [];
+    DateTime start = DateTime.UtcNow.AddHours(-8);
+    DateTime end = DateTime.UtcNow;
+
+    if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
+        tagNames = JsonSerializer.Deserialize(tagNamesStr!, AppJsonSerializerContext.Default.StringArray);
+
+    if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))
+    {        
+        start = s.ToUniversalTime(); //lokale Zeit in UTC
+        //Console.WriteLine($"Parsed start time {startStr} to {start}");
+    }
+
+    if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))
+    {
+        end = e.ToUniversalTime();
+        //Console.WriteLine($"Parsed end time {endStr} to {end}");
+    }  
+
+    //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
+    JsonTag[] obj = await Db.GetDataSet(tagNames!, start, end);
+
+    //Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
     ctx.Response.StatusCode = 200;
     ctx.Response.ContentType = "application/json";
-
-    string[] tagNames = ["A01_DB10_DBW2", "A01_DB10_DBW4", "A01_DB10_DBW6"];
-
-    JsonTag[] obj = await Db.GetDataSet(tagNames, DateTime.UtcNow.AddDays(-2), DateTime.UtcNow);
- 
     await ctx.Response.WriteAsJsonAsync(obj, AppJsonSerializerContext.Default.JsonTagArray);
     await ctx.Response.CompleteAsync();
 });

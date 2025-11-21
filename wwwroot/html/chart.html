@@ -15,11 +15,34 @@
 <body>
     <h1>ASP.NET Core Minimal API WebSocket Trend Test</h1>
 
-    <input type="hidden" data-name='A01_DB10_DBW2'>
-    <input type="hidden" data-name='A01_DB10_DBW4'>
-    <input type="hidden" data-name='A01_DB10_DBW6'>
-    <canvas id="myChart" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;" ></canvas>
+    <input type="number" data-name='A01_DB10_DBW2'>
+    <input type="number" data-name='A01_DB10_DBW4'>
+    <input type="number" data-name='A01_DB10_DBW6'>
 
-    <button onclick="addChartDataDb();">Lade aus Datenbank</button>
+    <canvas id="myChart0" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;"></canvas>
+    <input type="datetime-local" id="start" name="start" onfocusout="loadChart(0);">
+    <input type="datetime-local" id="end" name="end" onfocusout="loadChart(0);">
+
+    
+
+    <script>
+        function loadChart(n) {
+            const start = new Date(document.getElementById('start').value);
+            const end = new Date(document.getElementById('end').value);
+
+            tagNames = [
+                'A01_DB10_DBW2',
+                'A01_DB10_DBW4',
+                'A01_DB10_DBW6'
+            ]
+
+            addChartDataDb(n, tagNames, start, end);
+        }
+
+        const date = new Date();
+        document.getElementById('start').value = date.setDate(date.getDate() - 1);
+        document.getElementById('end').value = date;
+
+    </script>
 </body>
 </html>

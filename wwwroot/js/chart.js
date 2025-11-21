@@ -25,8 +25,8 @@ window.onload = () => {
 
 function initChart(chartId) {
     console.info('initChart(' + chartId + ')');
-    const ctx = document.getElementById("myChart").getContext('2d');
-    
+    const ctx = document.getElementById("myChart0").getContext('2d');
+
     lineChart = new Chart(ctx, {
         type: "line",
         data: {
@@ -73,7 +73,7 @@ async function addChartDataDb() {
 
 function addChartData(arr) {
 
-    if (typeof lineChart === 'undefined') { 
+    if (typeof lineChart === 'undefined') {
         console.warn("lineChart ist nicht definiert!");
         initCharts();
     }
@@ -128,4 +128,3 @@ function removeData(chart) {
     });
     chart.update('none'); //ohne Animation
 }
-

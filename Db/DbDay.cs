@@ -3,9 +3,11 @@ using Gemini.Services;
 using Microsoft.Data.Sqlite;
 using System.Buffers;
 using System.Data;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text.Json;
 using static Gemini.Middleware.WebSocketMiddleware;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.Db
 {
@@ -125,13 +127,52 @@ namespace Gemini.Db
 
             try
             {
-                var command = connection.CreateCommand();
-                command.CommandText =
-                    "SELECT Time, TagValue FROM Data WHERE TagId = (SELECT Id FROM Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End;";
+                #region Query zusammenbauen
+                
+                List<string> attach = [];
+                List<string> query = [];
+                List<string> dettach = [];
 
+                var command = connection.CreateCommand();
+                var dbNameParam = command.Parameters.Add("@DbName", SqliteType.Text);
+                var dbPathParam = command.Parameters.Add("@DbPath", SqliteType.Text);
                 var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
                 var startParam = command.Parameters.Add("@Start", SqliteType.Text);
                 var endParam = command.Parameters.Add("@End", SqliteType.Text);
+
+                for (DateTime day = start; day <= end; day = day.AddDays(1))
+                {
+                    string dbPath = GetDayDbPath(day);
+                    string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
+                    //Console.WriteLine($"DB {dbPath} heißt {dbName}.");
+
+                    if (day.Date == DateTime.Now.Date)
+                        query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                    else
+                    {
+                        attach.Add($" ATTACH DATABASE @DbPath AS {dbName};");
+                        query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                        dettach.Add($" DETACH DATABASE {dbName};");
+                    }
+
+                    dbPathParam.Value = dbPath;
+                    dbNameParam.Value = dbName;
+                }
+
+                #endregion
+
+                #region Datenbanken anhängen
+
+                command.CommandText = string.Join(' ', attach);
+                //Console.WriteLine(command.CommandText);
+                command.ExecuteNonQuery();
+
+                #endregion
+
+                #region Abfrage ausführen
+
+                command.CommandText = string.Join(" UNION ", query);
+                //Console.WriteLine(command.CommandText);
 
                 foreach (var tagName in tagNames)
                 {
@@ -139,10 +180,13 @@ namespace Gemini.Db
                     startParam.Value = start.ToString("o");
                     endParam.Value = end.ToString("o");
 
+                    //Console.WriteLine($"GetDataSet() {dbName} Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
+
                     await using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
-                    {                        
+                    {
                         string v = reader.GetString(1);
+                        //Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
                         object? value = null;
 
                         if (double.TryParse(v, out double floatValue))
@@ -152,13 +196,24 @@ namespace Gemini.Db
                         else if (bool.TryParse(v, out bool boolValue))
                             value = boolValue;
 
-                        items.Add(new JsonTag(tagName, value, reader.GetDateTime(0)));
+                        items.Add(new JsonTag(tagName, value, reader.GetDateTime(0).ToLocalTime()));
                     }
                 }
+
+                #endregion
+
+                #region Datenbanken wieder lösen (notwendig?)
+
+                command.CommandText = string.Join(' ', dettach);
+                Console.WriteLine(command.CommandText);
+                command.ExecuteNonQuery();
+
+                #endregion
+
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"GetDataSet() Fehler beim Auslesen des Datensatzes für Tags {string.Join(' ', tagNames)}: {ex}");
+                Console.WriteLine($"GetDataSet() Fehler beim Auslesen des Datensatzes für Tags {string.Join(' ', tagNames)}:\r\n{ex}");
             }
 
             return [.. items];

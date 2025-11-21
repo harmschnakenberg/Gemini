@@ -18,6 +18,7 @@ namespace Gemini.Models
 }
 
 // Source Generator Context
+[JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(double))]
 [JsonSerializable(typeof(int))]
