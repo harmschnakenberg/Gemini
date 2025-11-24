@@ -50,7 +50,9 @@ function drawTags(arr) {
     }
 }
 
-function initWebsocket() {
+function initWebsocket(tags) {
+    if (tags.length == 0)
+        return;
 
     const socketUrl = 'ws://' + window.location.host + '/ws';
     const websocket = new WebSocket(socketUrl);
@@ -58,8 +60,6 @@ function initWebsocket() {
     websocket.onopen = () => {
         console.log('✅ WebSocket-Verbindung hergestellt.');
 
-        // Objekt als JSON-String an den Server senden
-        const tags = initTags();
         const jsonString = JSON.stringify(tags);
         websocket.send(jsonString);
         console.log('⬆️ Initiales Objekt an Server gesendet:', tags);
@@ -72,8 +72,8 @@ function initWebsocket() {
             //console.log('⬇️ Update vom Server empfangen:', updatedObject);
             drawTags(updatedObject);
             // Test: Daten auch an Chart übergeben
-            if (typeof (addChartData) === typeof (Function))
-                addChartData(updatedObject);
+            //if (typeof (addChartData) === typeof (Function))
+            //    addChartData(updatedObject);
 
         } catch (e) {
             console.error('Fehler beim Parsen der Nachricht:', e);
@@ -84,7 +84,7 @@ function initWebsocket() {
         if (event.wasClean) {
             console.log(`❌ Verbindung sauber geschlossen, Code=${event.code} Grund=${event.reason}`);
         } else {
-            console.error('❌ Verbindung unerwartet unterbrochen.');
+            console.error('❌ Verbindung unerwartet unterbrochen. ' + event.error);
         }
     };
 
@@ -95,7 +95,7 @@ function initWebsocket() {
 
 window.onload = () => {
     initUnits();
-    initWebsocket();
+    initWebsocket(initTags());
 }
 
 

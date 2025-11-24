@@ -1,5 +1,6 @@
 ﻿
-let lineChart;
+//let lineChart;
+const chartsMap = {}; // chartId -> Chart
 const datasetsMap = {}; // Name -> datasetIndex
 const colors = [
     'rgba(75, 192, 192, 1)',
@@ -10,24 +11,50 @@ const colors = [
     'rgba(255, 159, 64, 1)'
 ];
 
-function initCharts() {
-    let c = document.getElementsByTagName("canvas");
-
-    for (let i = 0; i < c.length; i++) {
-        console.info("initiiere => " + c[i].Id);
-        initChart(c[i].Id);
-    }
-}
-
 window.onload = () => {
     initCharts();
 }
 
+function initCharts() {
+    console.log("initCharts()");
+
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const MM = d.getMonth();
+    const dd = d.getDate();
+    const HH = d.getHours();
+    const mm = d.getMinutes();
+    const ss = d.getSeconds();
+
+    const s = new Date(yyyy, MM, dd, HH - 8, mm, ss);
+    const e = new Date(yyyy, MM, dd, HH, mm, ss);
+    document.getElementById('start').value = new Date(s).toLocaleString('sv').replace(' ', 'T').slice(0, -3);
+    document.getElementById('end').value = e.toLocaleString('sv').replace(' ', 'T').slice(0,-3);
+
+    let c = document.getElementsByClassName("chart");
+    console.log(`initCharts() ${c.length} Charts gefunden.`);
+    for (let i = 0; i < c.length; i++) {
+        if (chartsMap.hasOwnProperty(c[i].id)) 
+            continue;
+
+        console.log(`initCharts() Chart ${c[i].id} wirt iniitiert.`);
+        chartsMap[c[i].id] = initChart(c[i].id);           
+    }
+}
+
+
 function initChart(chartId) {
     console.info('initChart(' + chartId + ')');
-    const ctx = document.getElementById("myChart").getContext('2d');
+    const elm = document.getElementById(chartId);
 
-    lineChart = new Chart(ctx, {
+    if (!elm) {
+        console.warn(`Element mit Id ${chartId} existiert nicht.`);
+        return;
+    }
+
+    const ctx = elm.getContext('2d');
+
+    return new Chart(ctx, {
         type: "line",
         data: {
             labels: [],
@@ -56,10 +83,17 @@ function initChart(chartId) {
     });
 }
 
-async function addChartDataDb(tagnames, start, end) {
 
+async function addChartDataDb(chartId, tagnames, start, end) {
+
+    console.info(`Start ${start}, End ${end}`)
     let s = new Date(start);
     let e = new Date(end);
+
+    if (isNaN(s) || isNaN(e)) {
+        console.error(`Chart Zeitbereich ${s} bis ${e} ist ungültig.`);
+        return;
+    }
 
     const params = new URLSearchParams();
 
@@ -73,20 +107,29 @@ async function addChartDataDb(tagnames, start, end) {
     }
     const json = await response.json();
 
-    addChartData(json);
+    addChartData(chartId, json);
 }
 
 
 
-function addChartData(arr) {
+function addChartData(chartId, arr) {
 
-    if (typeof lineChart === 'undefined') {
-        console.warn("lineChart ist nicht definiert!");
-        initCharts();
-    }
+    //if (typeof lineChart === 'undefined') {
+    //    console.warn("lineChart ist nicht definiert!");
+    //    initCharts();
+    //}
+    //else
+    //    console.info(`lineChart ist vom Typ ${typeof lineChart}`);
+
+   
+
+    if (!chartsMap.hasOwnProperty(chartId))
+        chartsMap[chartId] = initChart(chartId);
+
+    let lineChart = chartsMap[chartId];
 
     arr.forEach((item) => {
-        const dsIdx = ensureDataset(item.N);
+        const dsIdx = ensureDataset(lineChart, item.N);
         const ds = lineChart.data.datasets[dsIdx];
         ds.data.push({ x: item.T, y: item.V });
     });
@@ -95,7 +138,7 @@ function addChartData(arr) {
 }
 
 // neuen Stift erstellen, wenn Dataset nicht existiert 
-function ensureDataset(name) {
+function ensureDataset(lineChart, name) {
     if (datasetsMap.hasOwnProperty(name)) {
         return datasetsMap[name];
     }
@@ -128,10 +171,17 @@ function toDate(ts) {
 }
 
 //für später: Datensätze entfernen
-function removeData(chart) {
+function removeData(chartId) {
+    if (!chartsMap.hasOwnProperty(chartId)) {
+        console.warn(`Chart ${chartId} gibt es nicht.`)
+        return;
+    }
+
+    const chart = chartsMap[chartId];
     chart.data.labels.pop();
     chart.data.datasets.forEach((dataset) => {
         dataset.data.pop();
     });
-    chart.update('none'); //ohne Animation
+    //chart.update('none'); //ohne Animation
+    chart.update(); 
 }

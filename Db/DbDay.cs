@@ -124,7 +124,7 @@ namespace Gemini.Db
 
             await using var connection = new SqliteConnection(DayDbSource);
             await connection.OpenAsync();
-
+            
             try
             {
                 #region Query zusammenbauen
@@ -143,10 +143,18 @@ namespace Gemini.Db
                 for (DateTime day = start; day <= end; day = day.AddDays(1))
                 {
                     string dbPath = GetDayDbPath(day);
+                    if (!File.Exists(dbPath))
+                    {
+#if DEBUG
+                        //Console.WriteLine($"Datenbank {dbPath} für Tag {day:yyyy-MM-dd} existiert nicht.");
+#endif
+                        continue;
+                    }
+
                     string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
                     //Console.WriteLine($"DB {dbPath} heißt {dbName}.");
 
-                    if (day.Date == DateTime.Now.Date)
+                    if (day.Date == DateTime.UtcNow.Date)
                         query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                     else
                     {
@@ -177,16 +185,16 @@ namespace Gemini.Db
                 foreach (var tagName in tagNames)
                 {
                     nameParam.Value = tagName;
-                    startParam.Value = start.ToString("o");
-                    endParam.Value = end.ToString("o");
+                    startParam.Value = start.ToString("yyyy-MM-dd HH:mm:ss");
+                    endParam.Value = end.ToString("yyyy-MM-dd HH:mm:ss");
 
-                    //Console.WriteLine($"GetDataSet() {dbName} Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
-
+                    // Console.WriteLine($"GetDataSet() Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
+                 
                     await using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {
                         string v = reader.GetString(1);
-                        //Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
+                        ///Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
                         object? value = null;
 
                         if (double.TryParse(v, out double floatValue))
@@ -205,7 +213,7 @@ namespace Gemini.Db
                 #region Datenbanken wieder lösen (notwendig?)
 
                 command.CommandText = string.Join(' ', dettach);
-                Console.WriteLine(command.CommandText);
+                //Console.WriteLine(command.CommandText);
                 command.ExecuteNonQuery();
 
                 #endregion
@@ -215,6 +223,8 @@ namespace Gemini.Db
             {
                 Console.WriteLine($"GetDataSet() Fehler beim Auslesen des Datensatzes für Tags {string.Join(' ', tagNames)}:\r\n{ex}");
             }
+
+            //Console.WriteLine($"GetDataSet() {items.Count} Ergebnisse: " + string.Join(' ', items.Select(n => n.V)));
 
             return [.. items];
         }

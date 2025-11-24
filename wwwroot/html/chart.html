@@ -19,16 +19,19 @@
     <input type="number" data-name='A01_DB10_DBW4'>
     <input type="number" data-name='A01_DB10_DBW6'>
 
-    <canvas id="myChart" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;"></canvas>
+    <canvas id="myChart" class="chart" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;"></canvas>
     <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart');">
     <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart');">
 
-    
-
-    <script>
+    <script>        
         function loadChart(chartId) {
             const start = new Date(document.getElementById('start').value);
-            const end = new Date(document.getElementById('end').value);
+            const end = new Date (document.getElementById('end').value);
+
+            if (isNaN(start) || isNaN(end)) {
+                console.error(`Zeitbereich ${start} bis ${end} ist ungültig.`);
+                return;
+            }
 
             tagNames = [
                 'A01_DB10_DBW2',
@@ -36,13 +39,13 @@
                 'A01_DB10_DBW6'
             ]
 
-            addChartDataDb(tagNames, start, end);
+            removeData(chartId);
+            addChartDataDb(chartId, tagNames, start, end);
         }
 
-        const date = new Date();
-        document.getElementById('start').value = date.setDate(date.getDate() - 1);
-        document.getElementById('end').value = date;
-
+       // loadChart(myChart); 
     </script>
+
+
 </body>
 </html>

@@ -1,11 +1,7 @@
-using Gemini.Middleware;
-using Gemini.Services;
 using Gemini.Db;
-using System.Net.WebSockets;
-using System.Reflection;
-using System.Text;
-using System.Text.Json;
+using Gemini.Middleware;
 using Gemini.Models;
+using System.Text;
 
 Gemini.Db.Db db = new();//Datenbanken initialisieren
 
@@ -54,8 +50,11 @@ app.MapGet("/db", async ctx =>
     DateTime start = DateTime.UtcNow.AddHours(-8);
     DateTime end = DateTime.UtcNow;
 
+    Console.WriteLine($"DB Request received with query: {ctx.Request.QueryString}");
+
+
     if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
-        tagNames = JsonSerializer.Deserialize(tagNamesStr!, AppJsonSerializerContext.Default.StringArray);
+        tagNames = tagNamesStr.ToString().Split(',');  
 
     if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))
     {        

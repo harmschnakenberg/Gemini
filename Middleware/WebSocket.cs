@@ -19,7 +19,7 @@ namespace Gemini.Middleware
                 if (context.WebSockets.IsWebSocketRequest)
                 {
                     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-
+                    Console.WriteLine("WebSocket wird geöffnet.");
                     await ReadTagsLoop(webSocket);
                 }
                 else
@@ -210,6 +210,7 @@ namespace Gemini.Middleware
                 return;
             }
 
+            Console.WriteLine("Initialnachricht: " + jsonString);
             JsonTag[]? clientData = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray);
 
             if (clientData is null || clientData?.Length == 0)
