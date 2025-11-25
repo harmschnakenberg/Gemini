@@ -34,11 +34,15 @@ function initCharts() {
     let c = document.getElementsByClassName("chart");
     console.log(`initCharts() ${c.length} Charts gefunden.`);
     for (let i = 0; i < c.length; i++) {
-        if (chartsMap.hasOwnProperty(c[i].id)) 
-            continue;
+        const chartId = c[i].id;
 
-        console.log(`initCharts() Chart ${c[i].id} wirt iniitiert.`);
-        chartsMap[c[i].id] = initChart(c[i].id);           
+        if (chartsMap.hasOwnProperty(chartId)) {
+            console.warn(`Chart ${chartId} gibt es schon.`)
+            continue;
+        }
+            
+        chartsMap[chartId] = initChart(chartId);   
+        console.log(`initCharts() Chart ${chartId} wirt iniitiert. ${chartMap.size}`);
     }
 }
 
@@ -48,7 +52,7 @@ function initChart(chartId) {
     const elm = document.getElementById(chartId);
 
     if (!elm) {
-        console.warn(`Element mit Id ${chartId} existiert nicht.`);
+        console.warn(`HTML-Element mit Id ${chartId} existiert nicht.`);
         return;
     }
 
@@ -66,8 +70,16 @@ function initChart(chartId) {
                 axis: 'x',
                 intersect: false
             },
+            animation: false,
+            spanGaps: true,
+            datasets: {
+                line: {
+                    pointRadius: 0
+                }
+            },
             plugins: {
-                legend: { display: true, position: 'bottom' }
+                legend: { display: true, position: 'bottom' },
+                customCanvasBackgroundColor: { color: 'lightGreen' }
             },
             scales: {
                 x: {
@@ -86,7 +98,7 @@ function initChart(chartId) {
 
 async function addChartDataDb(chartId, tagnames, start, end) {
 
-    console.info(`Start ${start}, End ${end}`)
+    console.info(`Chart ${chartId}; Start ${start}, End ${end}`)
     let s = new Date(start);
     let e = new Date(end);
 
@@ -114,35 +126,35 @@ async function addChartDataDb(chartId, tagnames, start, end) {
 
 function addChartData(chartId, arr) {
 
-    //if (typeof lineChart === 'undefined') {
-    //    console.warn("lineChart ist nicht definiert!");
-    //    initCharts();
-    //}
-    //else
-    //    console.info(`lineChart ist vom Typ ${typeof lineChart}`);
-
-   
-
-    if (!chartsMap.hasOwnProperty(chartId))
+    if (!chartsMap.hasOwnProperty(chartId)) {
+        console.info(`addChartData(${chartId}, arr) initiiert Chart.`);
         chartsMap[chartId] = initChart(chartId);
+    }
 
     let lineChart = chartsMap[chartId];
 
     arr.forEach((item) => {
-        const dsIdx = ensureDataset(lineChart, item.N);
-        const ds = lineChart.data.datasets[dsIdx];
+        const dsIdx = ensureDataset(chartId, item.N);
+        console.info(`${chartId} ${item.N} dsIdx: ${dsIdx}/${chartsMap[chartId].data.datasets.length}`)
+        const ds = chartsMap[chartId].data.datasets[dsIdx];
         ds.data.push({ x: item.T, y: item.V });
     });
 
-    lineChart.update('none');
+    chartsMap[chartId].update('none');
 }
 
 // neuen Stift erstellen, wenn Dataset nicht existiert 
-function ensureDataset(lineChart, name) {
+function ensureDataset(chartId, name) {
     if (datasetsMap.hasOwnProperty(name)) {
         return datasetsMap[name];
     }
 
+    if (!chartsMap.hasOwnProperty(chartId)) {
+        console.info(`ensureDataset(${chartId}, name) initiiert Chart.`);
+        chartsMap[chartId] = initChart(chartId);
+    }
+
+    const lineChart = chartsMap[chartId];
     const color = colors[Object.keys(datasetsMap).length % colors.length];
     const ds = {
         label: name,
@@ -158,30 +170,27 @@ function ensureDataset(lineChart, name) {
 
     const idx = lineChart.data.datasets.length - 1;
     datasetsMap[name] = idx;
+    console.log(`Chart ${chartId}; datasetsMap[${name}] = ${idx};`)
     return idx;
 }
 
 // Hilfsfunktion: Datum aus Zeitstempeln 
-function toDate(ts) {
-    if (ts instanceof Date)
-        return ts;
-    const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
+//function toDate(ts) {
+//    if (ts instanceof Date)
+//        return ts;
+//    const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
 
-    return isNaN(d.getTime()) ? null : d;
-}
+//    return isNaN(d.getTime()) ? null : d;
+//}
 
-//für später: Datensätze entfernen
 function removeData(chartId) {
     if (!chartsMap.hasOwnProperty(chartId)) {
-        console.warn(`Chart ${chartId} gibt es nicht.`)
+        console.warn(`removeData(): Chart ${chartId} gibt es nicht.`)
         return;
     }
-
-    const chart = chartsMap[chartId];
-    chart.data.labels.pop();
-    chart.data.datasets.forEach((dataset) => {
-        dataset.data.pop();
-    });
-    //chart.update('none'); //ohne Animation
-    chart.update(); 
+    console.info("Lösche Daten aus " + chartId);
+   
+    chartsMap.delete(chartId);
+    chartsMap[chartId] = initChart(chartId);
+    chartsMap[chartId].update();
 }

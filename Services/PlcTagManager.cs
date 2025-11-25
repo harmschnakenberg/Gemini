@@ -123,9 +123,6 @@ namespace Gemini.Services
         }
 
 
-        
-
-
         public void AddOrUpdateClient(Guid clientId, JsonTag[] tags, Func<JsonTag[], Task> sendCallback)
         {
             // Invalidate cache entries for tags belonging to this client to avoid stale mapping if config changed
@@ -148,7 +145,7 @@ namespace Gemini.Services
                 }                
             }
 
-            Console.WriteLine($"{string.Join(", ", x.Order())}");
+            //Console.WriteLine($"{string.Join(", ", x.Order())}");
 #endif
         }
 
@@ -526,6 +523,11 @@ namespace Gemini.Services
                 default:
                     return null;
             }
+        }
+
+        internal Dictionary<string, Plc> GetAllPlcs()
+        {
+            return _plcConfigs.ToDictionary<string, Plc>();
         }
 
         private Plc? GetOrCreatePlc(string plcName)

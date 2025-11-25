@@ -3,8 +3,8 @@
   "profiles": {
     "http": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
-      "launchBrowser": true,
+      "dotnetRunMessages": false,
+      "launchBrowser": false,
       "launchUrl": "chart",
       "applicationUrl": "http://localhost:5222",
       "environmentVariables": {

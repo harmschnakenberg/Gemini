@@ -210,7 +210,7 @@ namespace Gemini.Middleware
                 return;
             }
 
-            Console.WriteLine("Initialnachricht: " + jsonString);
+            //Console.WriteLine("Initialnachricht: " + jsonString);
             JsonTag[]? clientData = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray);
 
             if (clientData is null || clientData?.Length == 0)

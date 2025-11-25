@@ -14,7 +14,7 @@ namespace Gemini.Db
 
 
         #region Pfade
-        private static readonly string AppFolder = AppDomain.CurrentDomain.BaseDirectory;
+        internal static readonly string AppFolder = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string masterDbPath = Path.Combine(AppFolder, "db", "Master.db");
         private static readonly string MasterDbSource = "Data Source=" + masterDbPath;
         private static readonly string DayDbSource = "Data Source=" + GetDayDbPath(DateTime.UtcNow);
@@ -153,7 +153,7 @@ namespace Gemini.Db
                     continue;
                 }
 
-                Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
+                //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
 
                 command.CommandText = $@"
                         ATTACH DATABASE '{dbPath}' AS old_db; 

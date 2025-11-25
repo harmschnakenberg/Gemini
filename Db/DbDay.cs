@@ -1,13 +1,10 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
 using Microsoft.Data.Sqlite;
-using System.Buffers;
-using System.Data;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Text.Json;
-using static Gemini.Middleware.WebSocketMiddleware;
+using S7.Net.Types;
+using System.Collections;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using DateTime = System.DateTime;
 
 namespace Gemini.Db
 {
@@ -15,21 +12,23 @@ namespace Gemini.Db
     {
         internal static void InitiateDbWriting()
         {
-            JsonTag[] dummyData = [
-                new JsonTag("A01_DB10_DBW2", null, DateTime.UtcNow),
-                new JsonTag("A01_DB10_DBW4", null, DateTime.UtcNow),
-                new JsonTag("A01_DB10_DBW6", null, DateTime.UtcNow)
-            ];
+            JsonTag[] dummyData = [];
+
+            //Dictionary<string, string> x = GetDbTagNames(DateTime.UtcNow).Result;
+
+            //Console.WriteLine($"Gefundene Tags in der DB: {x.Count}");
+
+            //Lade alle Tag - Namen aus der Datenbank
+            GetDbTagNames(DateTime.UtcNow).ContinueWith(t =>
+            {
+                foreach (var kvp in t.Result)
+                {
+                    dummyData = [.. dummyData, new JsonTag(kvp.Key, null, DateTime.UtcNow)];
+                }
+            }).Wait();
 
             var dbClientId = Guid.NewGuid(); //Datenbank wie jeden anderen Client im PlcTagManager anmelden.
-
-            //// Callback meldet Updates an den Client                    
-            //Func<Models.JsonTag[], Task> sendCallback = (tagsToSend) =>
-            //    SendDbUpdateAsync(dbClientId, tagsToSend);
-
-            //// Registriere Client und seine Tags beim globalen Manager
-            //PlcTagManager.Instance.AddOrUpdateClient(dbClientId, dummyData, sendCallback);
-
+            Console.WriteLine($"Die Datenbank loggt sich ein als Clinet {dbClientId}");
 
 
             async Task SendDbUpdateCallback(Models.JsonTag[] tagsToSend)
@@ -41,9 +40,10 @@ namespace Gemini.Db
 
             PlcTagManager.Instance.AddOrUpdateClient(dbClientId, dummyData, SendDbUpdateCallback);
 
-
         }
 
+
+        private static List<JsonTag> TagsWriteBuffer { get; set; } = new List<JsonTag>();
 
         /// <summary>
         /// Schreibt die geänderten Tags in die Datenbank
@@ -53,13 +53,16 @@ namespace Gemini.Db
             Guid clientId,
             JsonTag[] tagsToSend)
         {
+            //Sammel-Insert für weniger Schreibvorgänge. Ideale Umsetzung wäre hier ein Bulk-Insert,
+            TagsWriteBuffer.AddRange(tagsToSend);
+
+            if (TagsWriteBuffer.Count < 50)
+                return;
 
             try
-            {
-                //TODO: Sammel-Insert für bessere Performance implementieren
-
-                Db.InsertTags(tagsToSend); // Schreibe die Tags in die Datenbank
-
+            {               
+                Db.InsertTagsBulk(TagsWriteBuffer.ToArray()); // Schreibe die Tags aus dem Buffer in die Datenbank
+                TagsWriteBuffer.Clear();
             }
             catch (Exception ex)
             {
@@ -70,12 +73,64 @@ namespace Gemini.Db
         }
 
 
+        /// <summary>
+        /// Liest alle Tag-Namen aus der Tagesdatenbank mit dem Datum <date>. Wenn keine Tags gefunden werden, wird für max. <counter> Tage zurückgegangen, um Tag-Namen zu finden.
+        /// </summary>
+        /// <param name="date"></param>
+        /// <param name="counter"></param>
+        /// <returns></returns>
+        public static async Task<Dictionary<string, string>> GetDbTagNames(DateTime date, int counter = 10)
+        {
+            Dictionary<string, string> tagNames = [];
+
+            await using var connection = new SqliteConnection(DayDbSource);
+            await connection.OpenAsync();
+            var command = connection.CreateCommand();
+    
+            while (counter-- > 0)
+            {                
+                string dbPath = GetDayDbPath(date);
+                date = date.AddDays(-1);
+
+                if (!File.Exists(dbPath))
+                {
+#if DEBUG
+                    Db.DbLogInfo($"Tagestabelle: Datei {dbPath} nicht gefunden.");
+#endif
+                    continue;
+                }
+
+                //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
+
+                if (date.Date == DateTime.UtcNow.Date)
+                    command.CommandText = @"SELECT Name, Comment FROM Tag WHERE ChartFlag == 1;";
+                else
+                    command.CommandText = $@"
+                        ATTACH DATABASE '{dbPath}' AS old_db; 
+                        SELECT Name, Comment FROM Tag WHERE ChartFlag == 1; 
+                        DETACH DATABASE old_db; ";
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    string tagName = await reader.IsDBNullAsync(0) ? string.Empty : reader.GetString(0);
+                    string tagComment = await reader.IsDBNullAsync(1) ? string.Empty : reader.GetString(1);    
+                    //Console.WriteLine($"Tagestabelle: Gefundener TagName {tagName} mit Kommentar {tagComment}.");
+                    tagNames.Add(tagName, tagComment);
+                }
+
+                if (tagNames.Count > 0)
+                    break;              
+            }
+            return tagNames;
+        }
+
 
         /// <summary>
         /// Schreibe die Tags in die Datenbank
         /// </summary>
         /// <param name="jsonTags">Tags zum Schreiben in die Datenbank</param>
-        internal static async void InsertTags(JsonTag[] jsonTags)
+        internal static async void InsertTagsBulk(JsonTag[] jsonTags)
         {
             CreateDayDatabaseAsync();
 
@@ -118,7 +173,7 @@ namespace Gemini.Db
         }
 
 
-        public static async Task<JsonTag[]> GetDataSet(string[] tagNames, DateTime start, DateTime end)
+        public static async Task<JsonTag[]> GetDataSet(string[] tagNames, System.DateTime start, System.DateTime end)
         {
             List<JsonTag> items = [];
 
@@ -229,5 +284,39 @@ namespace Gemini.Db
             return [.. items];
         }
 
+
+        /// <summary>
+        /// Findet TagNames anhand des Kommentars in der Datenbank. (Wenn der TagName schon übergeben wurde, unverändert ausgeben.)
+        /// </summary>
+        /// <param name="comments">Liste von Tag-Kommentarten</param>
+        /// <returns>Liste von TagNames</returns>
+        internal static async Task<Dictionary<string, string>> GetTagNamesFromComments(string[] comments)
+        {
+            Dictionary<string, string> tags = [];
+
+            await using var connection = new SqliteConnection(DayDbSource);
+            await connection.OpenAsync();
+            var command = connection.CreateCommand();
+
+            command.CommandText = @"
+                SELECT Name FROM TAG WHERE Comment = @Comment OR Name = @Comment;
+            ";
+
+            var commentParam = command.Parameters.Add("@Comment", SqliteType.Text);
+
+            foreach (var comment in comments)
+            {
+                commentParam.Value = comment;
+
+                await using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    string tagName = reader.GetString(0);
+                    tags.Add(tagName, comment);
+                }
+            }
+
+            return tags;
+        }
     }
 }
