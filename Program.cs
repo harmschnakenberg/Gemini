@@ -108,7 +108,7 @@ app.UseMiddleware<WebSocketMiddleware>();
 
         string[] comments = tagsAndCommnets.OrderBy(t => t.Key).ToDictionary().Values.ToArray();        
         Dictionary<string, string> tagNamesAndComment = await Db.GetTagNamesFromComments(comments);
-        responseTxt += string.Join(", ", comments);
+        //responseTxt += string.Join(", ", comments);
 
 
         JsonTag[] obj = await Db.GetDataSet(tagNamesAndComment.Keys.ToArray()!, start, end);
