@@ -3,6 +3,9 @@ using Gemini.DynContent;
 using Gemini.Middleware;
 using Gemini.Models;
 using System.Collections.Specialized;
+using System.IO;
+using System.Net;
+using System.Net.Mime;
 using System.Text;
 
 Gemini.Db.Db db = new();//Datenbanken initialisieren
@@ -83,22 +86,27 @@ app.UseMiddleware<WebSocketMiddleware>();
     app.MapGet("/all", async ctx =>
     {
         ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = "text/html";
-        var file = File.ReadAllText("wwwroot/html/index.html", Encoding.UTF8);
+        ctx.Response.ContentType = "text/html";       
         await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
         await ctx.Response.CompleteAsync();
     });
 
     app.MapPost("/excel", async ctx =>
     {
-        string responseTxt = string.Empty;
 
-        if (!DateTime.TryParse(ctx.Request.Form["start"], out DateTime start))
-            responseTxt += $"Startzeit {ctx.Request.Form["start"]} ung&uuml;ltig.\r\n";
-        if (!DateTime.TryParse(ctx.Request.Form["end"], out DateTime end))
-            responseTxt += $"Endzeit {ctx.Request.Form["end"]} ung&uuml;ltig.\r\n";
+        if (
+        !DateTime.TryParse(ctx.Request.Form["start"], out DateTime start) ||
+        !DateTime.TryParse(ctx.Request.Form["end"], out DateTime end) ||
+        !int.TryParse(ctx.Request.Form["interval"], out int interval)
+        )
+        {
+            string msg = "Mindestens ein Übergabeparameter war nicht korrekt.";
+            await ctx.Response.WriteAsync(msg);
+            await ctx.Response.CompleteAsync();
+            return;
+        }
 
-        Dictionary<int, string> tagsAndCommnets = new Dictionary<int, string>();
+        Dictionary<int, string> tagsAndCommnets = [];
 
         for (int i = 0; i < ctx.Request.Form.Count; i++)
         {
@@ -106,27 +114,19 @@ app.UseMiddleware<WebSocketMiddleware>();
                 tagsAndCommnets.Add(i, tag.ToString());                            
         }
 
-        string[] comments = tagsAndCommnets.OrderBy(t => t.Key).ToDictionary().Values.ToArray();        
-        Dictionary<string, string> tagNamesAndComment = await Db.GetTagNamesFromComments(comments);
-        //responseTxt += string.Join(", ", comments);
+        string[] comments = [.. tagsAndCommnets.OrderBy(t => t.Key).ToDictionary().Values];
+        Dictionary<string, string> tagNamesAndComment = await Db.GetTagNamesFromComments(comments);        
+        JsonTag[] obj = await Db.GetDataSet(tagNamesAndComment.Keys.ToArray()!, start, end);   
+        MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagNamesAndComment, obj);
+        
+        string excelFileName = $"Werte_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.Microsecond:000}.xlsx";
 
+        ctx.Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        ctx.Response.Headers.ContentDisposition = $"attachment; filename={excelFileName}";        
+        ctx.Response.ContentLength = fileStream.Length;
 
-        JsonTag[] obj = await Db.GetDataSet(tagNamesAndComment.Keys.ToArray()!, start, end);
-
-        foreach (var item in obj)
-        {
-            responseTxt += $"\r\n{item.T}\t{item.N} = {item.V}";
-        }
-
-
-        responseTxt += $"\r\nLänge {obj.Length}";
-
-        var excel = new Gemini.DynContent.Excel();
-        excel.CreateExcelWb(start, end, tagNamesAndComment, obj);
-
-        await ctx.Response.WriteAsync(responseTxt);
+        await fileStream.CopyToAsync(ctx.Response.Body);
         await ctx.Response.CompleteAsync();
-
     });
 
 while (true)

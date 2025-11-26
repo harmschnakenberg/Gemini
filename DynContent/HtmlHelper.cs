@@ -26,7 +26,7 @@ namespace Gemini.DynContent
             sb.Append("<h2>Daten exportieren</h2>");
 
             Dictionary<string, string> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 1);
-            StringBuilder tagList = new StringBuilder("<datalist id='comments'>");
+            StringBuilder tagList = new("<datalist id='comments'>");
 
             foreach (string tagName in allTags.Keys)
             {
@@ -43,6 +43,17 @@ namespace Gemini.DynContent
                   <input class='colForTable' style='display:inline-block;' type='datetime-local' id='start' name='start'>
                   <label for='end'>Ende</label>
                   <input class='colForTable' style='display:inline-block;' type='datetime-local' id='end' name='end'>
+                  <label for='interval'>Werteintervall</label>
+                  <select class='colForTable' style='display:inline-block;' id='interval' name='interval'>
+                    <option value='0'>Sekunde</option>
+                    <option value='1' selected>Minute</option>
+                    <option value='2'>Stunde</option>
+                    <option value='3'>Tag</option>
+                    <option value='4'>Monat</option>
+                    <option value='5'>Jahr</option>
+                  </select>
+
+
                   <hr/>
                   <ol type='A'>
                    <li><span class='colForTable'>Zeitspalte</span></li>

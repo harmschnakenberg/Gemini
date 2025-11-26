@@ -43,7 +43,7 @@ namespace Gemini.Db
         }
 
 
-        private static List<JsonTag> TagsWriteBuffer { get; set; } = new List<JsonTag>();
+        private static List<JsonTag> TagsWriteBuffer { get; set; } = [];
 
         /// <summary>
         /// Schreibt die geänderten Tags in die Datenbank
@@ -61,7 +61,7 @@ namespace Gemini.Db
 
             try
             {               
-                Db.InsertTagsBulk(TagsWriteBuffer.ToArray()); // Schreibe die Tags aus dem Buffer in die Datenbank
+                Db.InsertTagsBulk([.. TagsWriteBuffer]); // Schreibe die Tags aus dem Buffer in die Datenbank
                 TagsWriteBuffer.Clear();
             }
             catch (Exception ex)
