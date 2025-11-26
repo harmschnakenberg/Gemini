@@ -1,9 +1,6 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
 using Microsoft.Data.Sqlite;
-using S7.Net.Types;
-using System.Collections;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using DateTime = System.DateTime;
 
 namespace Gemini.Db
@@ -13,10 +10,6 @@ namespace Gemini.Db
         internal static void InitiateDbWriting()
         {
             JsonTag[] dummyData = [];
-
-            //Dictionary<string, string> x = GetDbTagNames(DateTime.UtcNow).Result;
-
-            //Console.WriteLine($"Gefundene Tags in der DB: {x.Count}");
 
             //Lade alle Tag - Namen aus der Datenbank
             GetDbTagNames(DateTime.UtcNow).ContinueWith(t =>
@@ -77,9 +70,9 @@ namespace Gemini.Db
         /// Liest alle Tag-Namen aus der Tagesdatenbank mit dem Datum <date>. Wenn keine Tags gefunden werden, wird für max. <counter> Tage zurückgegangen, um Tag-Namen zu finden.
         /// </summary>
         /// <param name="date"></param>
-        /// <param name="counter"></param>
+        /// <param name="lookBackDays"></param>
         /// <returns></returns>
-        public static async Task<Dictionary<string, string>> GetDbTagNames(DateTime date, int counter = 10)
+        public static async Task<Dictionary<string, string>> GetDbTagNames(DateTime date, int lookBackDays = 10)
         {
             Dictionary<string, string> tagNames = [];
 
@@ -87,7 +80,7 @@ namespace Gemini.Db
             await connection.OpenAsync();
             var command = connection.CreateCommand();
     
-            while (counter-- > 0)
+            while (lookBackDays-- > 0)
             {                
                 string dbPath = GetDayDbPath(date);
                 date = date.AddDays(-1);
@@ -145,19 +138,22 @@ namespace Gemini.Db
                 command.CommandText =
                     @$"
                       INSERT OR IGNORE INTO Tag (Name) VALUES (@TagName); 
-                      INSERT INTO Data (TagId, TagValue) VALUES (
-                        (SELECT Id FROM Tag WHERE Name = @TagName)
+                      INSERT INTO Data (Time, TagId, TagValue) VALUES (
+                        @TagTime
+                        ,(SELECT Id FROM Tag WHERE Name = @TagName)
                         ,@TagValue
                       );";
 
                 var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
                 var valueParam = command.Parameters.Add("@TagValue", SqliteType.Blob);
+                var timeParam = command.Parameters.Add("@TagTime", SqliteType.Text);
 
                 // 3. Iteriere und führe den Command für jedes Objekt aus
                 foreach (var tag in jsonTags)
                 {
                     nameParam.Value = tag.N;
                     valueParam.Value = tag.V;
+                    timeParam.Value = tag.T.ToString("yyyy-MM-dd HH:mm:ss");
                     await command.ExecuteNonQueryAsync();
                 }
 

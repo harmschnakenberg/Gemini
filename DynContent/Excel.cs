@@ -77,7 +77,7 @@ namespace Gemini.DynContent
                     timeFormat = "yyyy-MM";
                     break;
                 case Interval.Jahr:
-                    timeFormat = "yyyy";
+                    timeFormat = "yyyy-MM";
                     break;
             }
 
@@ -85,7 +85,7 @@ namespace Gemini.DynContent
 
             #region Add Data
 
-            var groups = jsonTags.GroupBy(t => DateTime.Parse(t.T.ToString(timeFormat)));
+            var groups = jsonTags.GroupBy(t => DateTime.Parse(t.T.ToString(timeFormat))).OrderBy(o => o.Key);
            
             int row = 1;
             foreach (var group in groups)

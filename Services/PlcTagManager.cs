@@ -136,7 +136,7 @@ namespace Gemini.Services
             _clients.AddOrUpdate(clientId, entry, (_, __) => entry);
 
 #if DEBUG
-            List<string> x = [];
+         /*   List<string> x = [];
             foreach (var client in _clients)
             {
                 foreach (var tag in client.Value.Tags)
@@ -145,7 +145,7 @@ namespace Gemini.Services
                 }                
             }
 
-            //Console.WriteLine($"{string.Join(", ", x.Order())}");
+            Console.WriteLine($"{string.Join(", ", x.Order())}"); //*/
 #endif
         }
 
@@ -366,7 +366,7 @@ namespace Gemini.Services
                                         var existingTag = clientEntry.Tags[existingIndex];
                                         var oldVal = existingTag.V;
 
-                                        if (!AreEqual(oldVal, newValue))
+                                        if (!AreEqual(oldVal, newValue)) //ToDO: evtl. einen Offset einbauen (LogDeepBand)
                                         {
                                             var updated = new JsonTag(existingTag.N, newValue, DateTime.UtcNow);
                                             clientEntry.Tags[existingIndex] = updated;

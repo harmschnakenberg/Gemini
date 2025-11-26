@@ -91,6 +91,16 @@ app.UseMiddleware<WebSocketMiddleware>();
         await ctx.Response.CompleteAsync();
     });
 
+    app.MapGet("/excel", async ()=>
+    {
+        string html = await HtmlHelper.RequestExcelForm();
+        return Results.Content(html, "text/html", Encoding.UTF8, 200);
+        //ctx.Response.StatusCode = 200;
+        //ctx.Response.ContentType = "text/html";
+        //await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
+        //await ctx.Response.CompleteAsync();
+    });
+
     app.MapPost("/excel", async ctx =>
     {
 
@@ -127,6 +137,12 @@ app.UseMiddleware<WebSocketMiddleware>();
 
         await fileStream.CopyToAsync(ctx.Response.Body);
         await ctx.Response.CompleteAsync();
+    });
+
+    app.MapGet("/", async () => {
+     
+        return Results.File("wwwroot/html/menu.html", "text/html");
+    
     });
 
 while (true)
