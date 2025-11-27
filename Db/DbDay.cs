@@ -197,13 +197,13 @@ namespace Gemini.Db
                     if (!File.Exists(dbPath))
                     {
 #if DEBUG
-                        //Console.WriteLine($"Datenbank {dbPath} für Tag {day:yyyy-MM-dd} existiert nicht.");
+                      //  Console.WriteLine($"Datenbank {dbPath} für Tag {day:yyyy-MM-dd} existiert nicht.");
 #endif
                         continue;
                     }
 
                     string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
-                    //Console.WriteLine($"DB {dbPath} heißt {dbName}.");
+                    //Console.WriteLine($"{day.Date} DB {dbPath} heißt {dbName}. {(day.Date == DateTime.UtcNow.Date)}");
 
                     if (day.Date == DateTime.UtcNow.Date)
                         query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
@@ -239,8 +239,8 @@ namespace Gemini.Db
                     startParam.Value = start.ToString("yyyy-MM-dd HH:mm:ss");
                     endParam.Value = end.ToString("yyyy-MM-dd HH:mm:ss");
 
-                    // Console.WriteLine($"GetDataSet() Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
-                 
+                    //Console.WriteLine($"GetDataSet() Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
+                  
                     await using var reader = await command.ExecuteReaderAsync();
                     while (await reader.ReadAsync())
                     {

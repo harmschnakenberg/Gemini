@@ -1,5 +1,8 @@
 ﻿
 //let lineChart;
+let startDate = new Date();
+//startDate.setHours(0);
+
 const chartsMap = {}; // chartId -> Chart
 const datasetsMap = {}; // Name -> datasetIndex
 const colors = [
@@ -16,20 +19,15 @@ window.onload = () => {
 }
 
 function initCharts() {
-    console.log("initCharts()");
+    //console.log("initCharts()");
 
-    const d = new Date();
-    const yyyy = d.getFullYear();
-    const MM = d.getMonth();
-    const dd = d.getDate();
-    const HH = d.getHours();
-    const mm = d.getMinutes();
-    const ss = d.getSeconds();
-
-    const s = new Date(yyyy, MM, dd, HH - 8, mm, ss);
-    const e = new Date(yyyy, MM, dd, HH, mm, ss);
-    document.getElementById('start').value = new Date(s).toLocaleString('sv').replace(' ', 'T').slice(0, -3);
-    document.getElementById('end').value = e.toLocaleString('sv').replace(' ', 'T').slice(0,-3);
+    //const d = new Date();
+    //const yyyy = d.getFullYear();
+    //const MM = d.getMonth();
+    //const dd = d.getDate();
+    //const HH = d.getHours();
+    //const mm = d.getMinutes();
+    //const ss = d.getSeconds();
 
     let c = document.getElementsByClassName("chart");
     console.log(`initCharts() ${c.length} Charts gefunden.`);
@@ -48,7 +46,7 @@ function initCharts() {
 
 
 function initChart(chartId) {
-    console.info('initChart(' + chartId + ')');
+    //console.info('initChart(' + chartId + ')');
     const elm = document.getElementById(chartId);
 
     if (!elm) {
@@ -57,14 +55,19 @@ function initChart(chartId) {
     }
 
     const ctx = elm.getContext('2d');
-
+       
     return new Chart(ctx, {
         type: "line",
+        //defaults: {
+        //    color: '#ffffff',
+        //    borderColor: '#ffffff'
+        //},      
         data: {
             labels: [],
             datasets: []
         },
         options: {
+            //responsive: true,
             interaction: {
                 mode: 'nearest',
                 axis: 'x',
@@ -78,20 +81,61 @@ function initChart(chartId) {
                 }
             },
             plugins: {
-                legend: { display: true, position: 'bottom' },
-                customCanvasBackgroundColor: { color: 'lightGreen' }
+                legend: {
+                    labels: {
+                        color: '#ffffff'
+                    },
+                    display: true,
+                    position: 'bottom'
+                }
+                //,tooltip: {
+                //    titleColor: '#00ff00', // Tooltip-Titel grün
+                //    bodyColor: '#0000ff'   // Tooltip-Text blau
+                //}
+                //, colors: {
+                //    forceOverride: true
+                //}
             },
             scales: {
                 x: {
+                    title: {
+                        color: '#ffffff',
+                        display: true,
+                        text: 'Zeit'
+                    },
                     type: 'time',
                     time: {
+                        unit: 'minute',
                         displayFormats: {
-                            quarter: 'HH:mm DD.MMM.YYYY'
-                        }
+                            minute: 'HH:mm '
+                        },
+                        tooltipFormat: 'dd.MM.yyyy HH:mm'                        
+                    },
+                    min: startDate,
+                    ticks: {
+                        source: 'data',                        
+                        //minRotation: 90,   
+                        major: { enabled: true },
+                        stepSize: 15,
+                        color: '#ffffff'
+                    },
+                    grid: {
+                        display: true,
+                        drawTicks: true,
+                        color: '#666666'
+                    }
+                    
+                },
+                y: {
+                    ticks: {
+                        color: '#ffffff'
+                    },
+                    grid: {
+                        color: '#888888'
                     }
                 }
             }
-        }
+        }        
     });
 }
 
@@ -122,35 +166,40 @@ async function addChartDataDb(chartId, tagnames, start, end) {
         return;
     }
 
+    startDate = rundeZeitAufViertelstunde(s);
+
     var x = document.getElementById("rawDataLink");
     x.setAttribute('href', link);
     x.innerHTML = `Rohdaten ${s.toLocaleString()} bis ${e.toLocaleString()}`;
  
     const json = await response.json();
-
     addChartData(chartId, json);
 }
 
 
-
 function addChartData(chartId, arr) {
-
     if (!chartsMap.hasOwnProperty(chartId)) {
         console.info(`addChartData(${chartId}, arr) initiiert Chart.`);
         chartsMap[chartId] = initChart(chartId);
     }
 
-    //let lineChart = chartsMap[chartId];
-
     arr.forEach((item) => {
         const dsIdx = ensureDataset(chartId, item.N);
-        //console.info(`${chartId} ${item.N} dsIdx: ${dsIdx}/${chartsMap[chartId].data.datasets.length}`)
         const ds = chartsMap[chartId].data.datasets[dsIdx];
         ds.data.push({ x: item.T, y: item.V });
     });
 
     chartsMap[chartId].update('none');
 }
+
+function changeLabels(chartId, map) {
+    chartsMap[chartId].data.datasets.forEach((set) => {
+        set.data.labels.forEach((label => {
+            label = map[label];
+        }));
+    });   
+}
+
 
 // neuen Stift erstellen, wenn Dataset nicht existiert 
 function ensureDataset(chartId, name) {
@@ -183,7 +232,7 @@ function ensureDataset(chartId, name) {
     return idx;
 }
 
-// Hilfsfunktion: Datum aus Zeitstempeln 
+// Hilfsfunktion: Datum aus Zeitstempeln
 //function toDate(ts) {
 //    if (ts instanceof Date)
 //        return ts;
@@ -192,16 +241,84 @@ function ensureDataset(chartId, name) {
 //    return isNaN(d.getTime()) ? null : d;
 //}
 
+function rundeZeitAufViertelstunde(date) {
+    // Zeit in Minuten umwandeln
+    let minuten = date.getMinutes();
+    let stunden = date.getHours();
+
+    // Auf die nächste Viertelstunde abrunden
+    let gerundeteMinuten = Math.floor(minuten / 15) * 15;
+
+    // Stunden anpassen, falls Aufrundung über 60 Minuten führt
+    let gerundeteStunden = stunden + Math.floor(gerundeteMinuten / 60);
+    gerundeteMinuten = gerundeteMinuten % 60;
+
+    // Neue Date-Objekt mit gerundeter Zeit erstellen
+    let neueDatum = new Date(date.getFullYear(), date.getMonth(), date.getDate(), gerundeteStunden, gerundeteMinuten);
+
+    console.info("gerundete Zeit ist " + neueDatum);
+    return neueDatum;
+}
+
+
 function removeData(chartId) {
     if (!chartsMap.hasOwnProperty(chartId)) {
-        //console.warn(`removeData(): Chart ${chartId} gibt es nicht.`)
         return;
     }
-    console.info("Lösche Daten aus " + chartId);
+    //console.info("Lösche Daten aus " + chartId);
 
     chartsMap[chartId].data.datasets.forEach((ds) => {
         ds.data = [];
     });
 
     chartsMap[chartId].update();
+}
+
+
+function loadChart(chartId, startId, endId, tagNames) {
+    //ToDo: in Backgroundworker auslagern
+    const start = new Date(document.getElementById(startId).value);
+    const end = new Date(document.getElementById(endId).value);
+
+    if (isNaN(start) || isNaN(end)) {
+        console.error(`Zeitbereich ${start} bis ${end} ist ungültig.`);
+        return;
+    }
+
+    const id = document.getElementById(chartId).id;
+    removeData(id);
+    addChartDataDb(id, tagNames, start, end);
+}
+
+function setDates(startId, endId, std) {
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById(endId).value = now.toISOString().slice(0, 16);
+
+    var begin = new Date();
+    begin.setUTCHours(begin.getHours() - std);
+    document.getElementById(startId).value = begin.toISOString().slice(0, 16);
+}
+
+function post(path, params, method = 'post') {
+
+    // The rest of this code assumes you are not using a library.
+    // It can be made less verbose if you use one.
+    const form = document.createElement('form');
+    form.method = method;
+    form.action = path;
+
+    for (const key in params) {
+        if (params.hasOwnProperty(key)) {
+            const hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = key;
+            hiddenField.value = params[key];
+
+            form.appendChild(hiddenField);
+        }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }
