@@ -5,6 +5,10 @@ using System.IO;
 
 namespace Gemini.DynContent
 {
+    /// <summary>
+    /// Alternative? Bibliothek: https://github.com/mini-software/MiniExcel
+    /// 
+    /// </summary>
     public class Excel
     {
         public enum Interval

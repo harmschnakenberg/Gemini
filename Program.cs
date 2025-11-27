@@ -3,10 +3,12 @@ using Gemini.DynContent;
 using Gemini.Middleware;
 using Gemini.Models;
 using System.Collections.Specialized;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Net;
 using System.Net.Mime;
 using System.Text;
+using static Gemini.DynContent.Excel;
 
 Gemini.Db.Db db = new();//Datenbanken initialisieren
 
@@ -137,6 +139,27 @@ app.UseMiddleware<WebSocketMiddleware>();
 
         await fileStream.CopyToAsync(ctx.Response.Body);
         await ctx.Response.CompleteAsync();
+    });
+
+    app.MapPost("/excel2", async (FormPost post) => {
+        // Basic validation
+        if (post.TagsAndComments?.Count == 0)
+        {
+            return Results.BadRequest(new { message = "Keine Datenpunkte angegeben." });
+        }
+        
+        DateTime start = post.Start;
+        DateTime end = post.End;
+        Excel.Interval interval = post.Interval;
+        Dictionary<string, string> tagsAndCommnets = post.TagsAndComments ?? [];
+        JsonTag[] obj = await Db.GetDataSet(tagsAndCommnets.Keys.ToArray()!, start, end);
+        MemoryStream fileStream = await Excel.CreateExcelWb(interval, tagsAndCommnets, obj);
+        string excelFileName = $"Werte_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.Microsecond:000}.xlsx";
+
+        string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        fileStream.Position = 0; // Reset stream position before returning
+        return Results.File(fileStream, contentType, excelFileName);
+      
     });
 
     app.MapGet("/", async ctx =>

@@ -26,7 +26,7 @@
         <input type="button" onclick="setDates('start', 'end', 8); loadChart('myChart', 'start', 'end', tags);" value="8 Stunden" />
         <input type="button" onclick="setDates('start', 'end',24); loadChart('myChart', 'start', 'end', tags);" value="24 Stunden" />
         <input type="button" onclick="removeData('myChart');" value="löschen" />
-        <input type="button" onclick="excelExport();" value="Excel Export" disabled/>
+        <input type="button" onclick="excelExport('start', 'end', tags);" value="Excel Export"/>
      
     </span>
         <a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;"></a>
@@ -45,7 +45,7 @@
             const s = document.getElementById(startId).value;
             const e = document.getElementById(endId).value;
 
-            post('/excel', { start: s, end: e, tagnames: getTagNames()}); //ToDo: Endpoint anpassen
+            post('/excel2', { start: s, end: e, tagnames: tags}); //ToDo: Endpoint anpassen
         }
        
 

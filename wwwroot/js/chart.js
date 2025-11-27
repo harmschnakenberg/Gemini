@@ -1,8 +1,4 @@
-﻿
-//let lineChart;
-let startDate = new Date();
-//startDate.setHours(0);
-
+﻿let startDate = new Date();
 const chartsMap = {}; // chartId -> Chart
 const datasetsMap = {}; // Name -> datasetIndex
 const colors = [
@@ -43,7 +39,6 @@ function initCharts() {
         console.log(`initCharts() Chart ${chartId} wirt iniitiert. ${chartMap.size}`);
     }
 }
-
 
 function initChart(chartId) {
     //console.info('initChart(' + chartId + ')');
@@ -139,7 +134,6 @@ function initChart(chartId) {
     });
 }
 
-
 async function addChartDataDb(chartId, tags, start, end) {
 
     console.info(`Chart ${chartId}; Start ${start}, End ${end}`)
@@ -159,7 +153,6 @@ async function addChartDataDb(chartId, tags, start, end) {
 
     const link = `/db?${params}`;
     const response = await fetch(link);
-    //console.log(`/db?${params}`);
 
     if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
@@ -173,14 +166,12 @@ async function addChartDataDb(chartId, tags, start, end) {
     x.innerHTML = `Rohdaten ${s.toLocaleString()} bis ${e.toLocaleString()}`;
  
     const json = await response.json();
-    addChartData(chartId, json, tags);
-    
+    addChartData(chartId, json, tags);    
 }
-
 
 function addChartData(chartId, arr, tags) {
     if (!chartsMap.hasOwnProperty(chartId)) {
-        console.info(`addChartData(${chartId}, arr) initiiert Chart.`);
+        //nsole.info(`addChartData(${chartId}, arr) initiiert Chart.`);
         chartsMap[chartId] = initChart(chartId);
     }
 
@@ -193,16 +184,6 @@ function addChartData(chartId, arr, tags) {
     chartsMap[chartId].update('none');
 }
 
-function changeLabels(chartId, map) {
-    console.info("Label" + chartsMap[chartId].config.data.labels);
-    console.info("Keys " + Array.from(map.values()).toString());
-    //chartsMap[chartId].data.labels.forEach((label) => {
-    //    console.info("Label" + chartsMap[chartId].data.labels);
-    //        label = map.get(label);
-    //});
-}
-
-
 // neuen Stift erstellen, wenn Dataset nicht existiert 
 function ensureDataset(chartId, name, tags) {
     if (datasetsMap.hasOwnProperty(name)) {
@@ -210,7 +191,7 @@ function ensureDataset(chartId, name, tags) {
     }
 
     if (!chartsMap.hasOwnProperty(chartId)) {
-        console.info(`ensureDataset(${chartId}, name) initiiert Chart.`);
+        //console.info(`ensureDataset(${chartId}, name) initiiert Chart.`);
         chartsMap[chartId] = initChart(chartId);
     }
 
@@ -234,15 +215,6 @@ function ensureDataset(chartId, name, tags) {
     return idx;
 }
 
-// Hilfsfunktion: Datum aus Zeitstempeln
-//function toDate(ts) {
-//    if (ts instanceof Date)
-//        return ts;
-//    const d = typeof ts === 'number' ? new Date(ts) : new Date(ts);
-
-//    return isNaN(d.getTime()) ? null : d;
-//}
-
 function rundeZeitAufViertelstunde(date) {
     // Zeit in Minuten umwandeln
     let minuten = date.getMinutes();
@@ -258,10 +230,9 @@ function rundeZeitAufViertelstunde(date) {
     // Neue Date-Objekt mit gerundeter Zeit erstellen
     let neueDatum = new Date(date.getFullYear(), date.getMonth(), date.getDate(), gerundeteStunden, gerundeteMinuten);
 
-    console.info("gerundete Zeit ist " + neueDatum);
+    //console.info("gerundete Zeit ist " + neueDatum);
     return neueDatum;
 }
-
 
 function removeData(chartId) {
     if (!chartsMap.hasOwnProperty(chartId)) {
@@ -275,7 +246,6 @@ function removeData(chartId) {
 
     chartsMap[chartId].update();
 }
-
 
 function loadChart(chartId, startId, endId, tags) {
     //ToDo: in Backgroundworker auslagern
