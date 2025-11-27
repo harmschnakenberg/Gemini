@@ -21,10 +21,10 @@
 
     <canvas id="myChart" class="chart" style="background-color: rgb(70, 70, 70); min-width: 30rem; max-width: 100vw; height: 40vh; max-height: 50vh; "></canvas>
     <span style="max-width: fit-content; margin-left: auto; margin-right: auto;">
-        <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart', 'start', 'end', getTagNames());">
-        <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart', 'start', 'end', getTagNames());">
-        <input type="button" onclick="setDates('start', 'end', 8); loadChart('myChart', 'start', 'end', getTagNames());" value="8 Stunden" />
-        <input type="button" onclick="setDates('start', 'end',24); loadChart('myChart', 'start', 'end', getTagNames());" value="24 Stunden" />
+        <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart', 'start', 'end', tags);">
+        <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart', 'start', 'end', tags);">
+        <input type="button" onclick="setDates('start', 'end', 8); loadChart('myChart', 'start', 'end', tags);" value="8 Stunden" />
+        <input type="button" onclick="setDates('start', 'end',24); loadChart('myChart', 'start', 'end', tags);" value="24 Stunden" />
         <input type="button" onclick="removeData('myChart');" value="löschen" />
         <input type="button" onclick="excelExport();" value="Excel Export" disabled/>
      
@@ -32,14 +32,15 @@
         <a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;"></a>
     <script>
         //Todo: Stiftbeschriftung mitgeben
-        function getTagNames() {
-            return [
-                'A01_DB10_DBW2',
-                'A01_DB10_DBW4',
-                'A01_DB10_DBW6'
-            ]
-        }
 
+     
+        const tags = new Map([
+            ['A01_DB10_DBW2', 'Stunden'],
+            ['A01_DB10_DBW4', 'Minuten'],
+            ['A01_DB10_DBW6', 'Sekunden']
+        ]);
+
+    
         function excelExport(startId, endId, tagNames) {
             const s = document.getElementById(startId).value;
             const e = document.getElementById(endId).value;
@@ -49,7 +50,7 @@
        
 
         setDates('start', 'end', 8);
-        loadChart('myChart', 'start', 'end', getTagNames());
+        loadChart('myChart', 'start', 'end', tags);
     </script>
     <style>
         input {

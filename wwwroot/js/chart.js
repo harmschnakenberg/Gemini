@@ -140,7 +140,7 @@ function initChart(chartId) {
 }
 
 
-async function addChartDataDb(chartId, tagnames, start, end) {
+async function addChartDataDb(chartId, tags, start, end) {
 
     console.info(`Chart ${chartId}; Start ${start}, End ${end}`)
     let s = new Date(start);
@@ -152,7 +152,7 @@ async function addChartDataDb(chartId, tagnames, start, end) {
     }
 
     const params = new URLSearchParams();
-
+    const tagnames = Array.from(tags.keys());
     params.append("tagnames", tagnames);
     params.append("start", s.toISOString());
     params.append("end", e.toISOString());
@@ -173,18 +173,19 @@ async function addChartDataDb(chartId, tagnames, start, end) {
     x.innerHTML = `Rohdaten ${s.toLocaleString()} bis ${e.toLocaleString()}`;
  
     const json = await response.json();
-    addChartData(chartId, json);
+    addChartData(chartId, json, tags);
+    
 }
 
 
-function addChartData(chartId, arr) {
+function addChartData(chartId, arr, tags) {
     if (!chartsMap.hasOwnProperty(chartId)) {
         console.info(`addChartData(${chartId}, arr) initiiert Chart.`);
         chartsMap[chartId] = initChart(chartId);
     }
 
     arr.forEach((item) => {
-        const dsIdx = ensureDataset(chartId, item.N);
+        const dsIdx = ensureDataset(chartId, item.N, tags);
         const ds = chartsMap[chartId].data.datasets[dsIdx];
         ds.data.push({ x: item.T, y: item.V });
     });
@@ -193,16 +194,17 @@ function addChartData(chartId, arr) {
 }
 
 function changeLabels(chartId, map) {
-    chartsMap[chartId].data.datasets.forEach((set) => {
-        set.data.labels.forEach((label => {
-            label = map[label];
-        }));
-    });   
+    console.info("Label" + chartsMap[chartId].config.data.labels);
+    console.info("Keys " + Array.from(map.values()).toString());
+    //chartsMap[chartId].data.labels.forEach((label) => {
+    //    console.info("Label" + chartsMap[chartId].data.labels);
+    //        label = map.get(label);
+    //});
 }
 
 
 // neuen Stift erstellen, wenn Dataset nicht existiert 
-function ensureDataset(chartId, name) {
+function ensureDataset(chartId, name, tags) {
     if (datasetsMap.hasOwnProperty(name)) {
         return datasetsMap[name];
     }
@@ -215,7 +217,7 @@ function ensureDataset(chartId, name) {
     const lineChart = chartsMap[chartId];
     const color = colors[Object.keys(datasetsMap).length % colors.length];
     const ds = {
-        label: name,
+        label: tags.get(name),
         data: [], // {x: Date, y: Number} 
         borderColor: color,
         backgroundColor: color,
@@ -228,7 +230,7 @@ function ensureDataset(chartId, name) {
 
     const idx = lineChart.data.datasets.length - 1;
     datasetsMap[name] = idx;
-    console.log(`Chart ${chartId}; datasetsMap[${name}] = ${idx};`)
+    //console.log(`Chart ${chartId}; datasetsMap[${name}] = ${idx};`)
     return idx;
 }
 
@@ -275,7 +277,7 @@ function removeData(chartId) {
 }
 
 
-function loadChart(chartId, startId, endId, tagNames) {
+function loadChart(chartId, startId, endId, tags) {
     //ToDo: in Backgroundworker auslagern
     const start = new Date(document.getElementById(startId).value);
     const end = new Date(document.getElementById(endId).value);
@@ -287,7 +289,7 @@ function loadChart(chartId, startId, endId, tagNames) {
 
     const id = document.getElementById(chartId).id;
     removeData(id);
-    addChartDataDb(id, tagNames, start, end);
+    addChartDataDb(id, tags, start, end);
 }
 
 function setDates(startId, endId, std) {
