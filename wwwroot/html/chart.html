@@ -20,13 +20,17 @@
     <input type="number" data-name='A01_DB10_DBW6'>
 
     <canvas id="myChart" class="chart" style="background-color:white;max-width:50rem;height:40vh;max-height:50vh;"></canvas>
-    <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart');">
-    <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart');">
-    <input type="button" onclick="removeData('myChart');" value="löschen"/>
-    <script>        
+        <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart');">
+        <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart');">
+        <input type="button" onclick="setDates(8);loadChart('myChart');" value="8 Stunden" />
+        <input type="button" onclick="setDates(24);loadChart('myChart');" value="24 Stunden" />
+        <input type="button" onclick="removeData('myChart');" value="löschen" />
+    
+        <a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;"></a>
+    <script>
         function loadChart(chartId) {
             const start = new Date(document.getElementById('start').value);
-            const end = new Date (document.getElementById('end').value);
+            const end = new Date(document.getElementById('end').value);
 
             if (isNaN(start) || isNaN(end)) {
                 console.error(`Zeitbereich ${start} bis ${end} ist ungültig.`);
@@ -43,7 +47,18 @@
             addChartDataDb("myChart", tagNames, start, end);
         }
 
-        loadChart(myChart); 
+        function setDates(std) {
+            var now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('end').value = now.toISOString().slice(0, 16);
+
+            var begin = new Date();
+            begin.setUTCHours(begin.getHours()-std);
+            document.getElementById('start').value = begin.toISOString().slice(0, 16);
+        }
+
+        setDates(8);
+        loadChart('myChart');
     </script>
 
 

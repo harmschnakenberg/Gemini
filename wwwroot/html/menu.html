@@ -12,10 +12,32 @@
 <body>
     <h1>ASP.NET Core Minimal API</h1>
 
-    <a href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a>
-    <a href="/soll">Demo Sollwertfenster</a>
-    <a href="/chart">Demo Kurvendarstellung</a>
-    <a href="/excel">Demo Datenexport via Excel</a>
+    <ul>
+        <li><a href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a></li>
+        <li><a href="/soll">Demo Sollwertfenster</a></li>
+        <li><a href="/chart">Demo Kurvendarstellung</a></li>
+        <li><a href="/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=2025-11-24T08%3A17%3A00.000Z&end=2025-11-29T08%3A17%3A00.000Z">Demo Json Rohdaten abfragen</a></li>
+        <li><a href="/excel">Demo Datenexport via Excel</a></li>         
+    </ul>
+    <style>
+        ul {
+            list-style-type: none;
+        }
 
+        a:link, a:visited {
+            background-color: slategrey;
+            color: white;
+            padding: 14px 25px;
+            
+            text-decoration: none;
+            margin: 1px;
+            width: 50vw;
+            display: inline-block;
+        }
+
+        a:hover, a:active {
+            background-color: blue;
+        }
+    </style>
 </body>
 </html>

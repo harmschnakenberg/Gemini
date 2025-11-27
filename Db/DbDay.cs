@@ -191,7 +191,7 @@ namespace Gemini.Db
                 var startParam = command.Parameters.Add("@Start", SqliteType.Text);
                 var endParam = command.Parameters.Add("@End", SqliteType.Text);
 
-                for (DateTime day = start; day <= end; day = day.AddDays(1))
+                for (DateTime day = start; day.Date <= end.Date; day = day.AddDays(1))
                 {
                     string dbPath = GetDayDbPath(day);
                     if (!File.Exists(dbPath))

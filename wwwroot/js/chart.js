@@ -113,10 +113,19 @@ async function addChartDataDb(chartId, tagnames, start, end) {
     params.append("start", s.toISOString());
     params.append("end", e.toISOString());
 
-    const response = await fetch(`/db?${params}`);
+    const link = `/db?${params}`;
+    const response = await fetch(link);
+    //console.log(`/db?${params}`);
+
     if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
+        return;
     }
+
+    var x = document.getElementById("rawDataLink");
+    x.setAttribute('href', link);
+    x.innerHTML = `Rohdaten ${s.toLocaleString()} bis ${e.toLocaleString()}`;
+ 
     const json = await response.json();
 
     addChartData(chartId, json);
@@ -131,11 +140,11 @@ function addChartData(chartId, arr) {
         chartsMap[chartId] = initChart(chartId);
     }
 
-    let lineChart = chartsMap[chartId];
+    //let lineChart = chartsMap[chartId];
 
     arr.forEach((item) => {
         const dsIdx = ensureDataset(chartId, item.N);
-        console.info(`${chartId} ${item.N} dsIdx: ${dsIdx}/${chartsMap[chartId].data.datasets.length}`)
+        //console.info(`${chartId} ${item.N} dsIdx: ${dsIdx}/${chartsMap[chartId].data.datasets.length}`)
         const ds = chartsMap[chartId].data.datasets[dsIdx];
         ds.data.push({ x: item.T, y: item.V });
     });
@@ -185,12 +194,14 @@ function ensureDataset(chartId, name) {
 
 function removeData(chartId) {
     if (!chartsMap.hasOwnProperty(chartId)) {
-        console.warn(`removeData(): Chart ${chartId} gibt es nicht.`)
+        //console.warn(`removeData(): Chart ${chartId} gibt es nicht.`)
         return;
     }
     console.info("Lösche Daten aus " + chartId);
-   
-    chartsMap.delete(chartId);
-    chartsMap[chartId] = initChart(chartId);
+
+    chartsMap[chartId].data.datasets.forEach((ds) => {
+        ds.data = [];
+    });
+
     chartsMap[chartId].update();
 }

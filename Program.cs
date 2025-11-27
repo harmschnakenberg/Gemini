@@ -139,10 +139,13 @@ app.UseMiddleware<WebSocketMiddleware>();
         await ctx.Response.CompleteAsync();
     });
 
-    app.MapGet("/", async () => {
-     
-        return Results.File("wwwroot/html/menu.html", "text/html");
-    
+    app.MapGet("/", async ctx =>
+    {
+        ctx.Response.StatusCode = 200;
+        ctx.Response.ContentType = "text/html";
+        var file = File.ReadAllText("wwwroot/html/menu.html", Encoding.UTF8);
+        await ctx.Response.WriteAsync(file);
+        await ctx.Response.CompleteAsync();
     });
 
 while (true)
