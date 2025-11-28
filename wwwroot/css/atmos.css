@@ -12,3 +12,8 @@ body {
 span {
     color: var(--primary-color);
 }
+
+ul {
+    list-style-type: none;
+}
+
