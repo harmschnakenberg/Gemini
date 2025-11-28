@@ -1,5 +1,4 @@
-﻿
-function JsonTag(name, value, time) {
+﻿function JsonTag(name, value, time) {
     this.N = name;
     this.V = value;
     this.T = time;
@@ -70,8 +69,12 @@ function initWebsocket() {
         // Empfangene Daten (Text) als JSON-Objekt parsen
         try {
             const updatedObject = JSON.parse(event.data);
-            console.log('⬇️ Update vom Server empfangen:', updatedObject);
+            //console.log('⬇️ Update vom Server empfangen:', updatedObject);
             drawTags(updatedObject);
+            // Test: Daten auch an Chart übergeben
+            if (typeof (addChartData) === typeof (Function))
+                addChartData(updatedObject);
+
         } catch (e) {
             console.error('Fehler beim Parsen der Nachricht:', e);
         }
@@ -94,6 +97,6 @@ window.onload = () => {
     initUnits();
     initWebsocket();
 }
-    
+
 
 

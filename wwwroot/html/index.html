@@ -4,14 +4,16 @@
     <meta charset="UTF-8">
     <title>WebSocket Client</title>
     <link rel='shortcut icon' href='/favicon.ico'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='stylesheet' href='/css/atmos.css'>
     <link rel='stylesheet' href='/css/input.css'>
     <script src='/js/websocket.js'></script>
 </head>
 <body>
-    <h1>ASP.NET Core Minimal API WebSocket Test</h1>
+    <h1>ASP.NET Core Minimal API WebSocket Sollwerte Test</h1>
 
     <div class="sollwerte">
+        <h2>Erste Überschrift</h2>
         <label>Stunde</label>
         <input data-name='A01_DB10_DBW2' data-unit='std' disabled>
         <input type="number" min="0" max="23" data-unit='std' data-name='A01_DB10_DBW2'>
@@ -24,15 +26,25 @@
         <input data-name='A01_DB10_DBW6' data-unit='s' disabled>
         <input type="number" min="0" max="60" data-unit='sec' data-name='A01_DB10_DBW6'>
 
+        <h2>Zweite Überschrift</h2>
+
         <label>Raumtemperatur</label>
         <div>&nbsp;</div>
+        <input value="-10.2" type="number" min="-40" max="0" step="0.1" data-unit='°C'>
+
+        <label>Ein Button</label>
         <div>&nbsp;</div>
-        <input value="-10" type="number" min="-40" max="0" step="0.1" data-unit='°C'>
+        <a href="#" class="button">Click me</a>
+
+        <label>Ein binärer Wert</label>
+        <input type="checkbox" checked="checked" disabled>
+        <input type="checkbox" checked="checked">
+
+        <label>Noch ein binärer Wert</label>
+        <input type="checkbox" checked="checked" disabled>
+        <input type="checkbox" checked="checked">
 
     </div>
 
-    <p>Prüfe die Browser-Konsole für Server-Updates.</p>
-    <ol id="demo"></ol>
-    
 </body>
 </html>
