@@ -1,6 +1,7 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
 using Microsoft.Data.Sqlite;
+using System.Xml.Linq;
 using DateTime = System.DateTime;
 
 namespace Gemini.Db
@@ -186,10 +187,13 @@ namespace Gemini.Db
 
                 var command = connection.CreateCommand();
                 var dbNameParam = command.Parameters.Add("@DbName", SqliteType.Text);
+                //var dbNamesParam = command.Parameters.Add("@DbNames", SqliteType.Text);
                 var dbPathParam = command.Parameters.Add("@DbPath", SqliteType.Text);
                 var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
                 var startParam = command.Parameters.Add("@Start", SqliteType.Text);
                 var endParam = command.Parameters.Add("@End", SqliteType.Text);
+                
+                Dictionary<string, string> dataBases = [];
 
                 for (DateTime day = start; day.Date <= end.Date; day = day.AddDays(1))
                 {
@@ -197,33 +201,58 @@ namespace Gemini.Db
                     if (!File.Exists(dbPath))
                     {
 #if DEBUG
-                      //  Console.WriteLine($"Datenbank {dbPath} für Tag {day:yyyy-MM-dd} existiert nicht.");
+                        Console.WriteLine($"Datenbank {dbPath} für Tag {day:yyyy-MM-dd} existiert nicht.");
 #endif
                         continue;
                     }
 
                     string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
-                    //Console.WriteLine($"{day.Date} DB {dbPath} heißt {dbName}. {(day.Date == DateTime.UtcNow.Date)}");
+                    dataBases[dbName] = dbPath;
+
+                    Console.WriteLine($"DB-Name {dbName}");
 
                     if (day.Date == DateTime.UtcNow.Date)
-                        query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                        query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
                     else
-                    {
-                        attach.Add($" ATTACH DATABASE @DbPath AS {dbName};");
+                    {                        
                         query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
-                        dettach.Add($" DETACH DATABASE {dbName};");
+                        dettach.Add($"DETACH DATABASE '{dbName}';");
                     }
-
+                    
                     dbPathParam.Value = dbPath;
                     dbNameParam.Value = dbName;
                 }
+
 
                 #endregion
 
                 #region Datenbanken anhängen
 
+                #region Bereits angehängte Datenbanken finden
+
+                command.CommandText = "SELECT name FROM pragma_database_list;";               
+                List<string> existingDbs = [];
+                await using var reader1 = await command.ExecuteReaderAsync();
+                while (await reader1.ReadAsync())
+                {
+                    existingDbs.Add(reader1.GetString(0));
+                }
+
+                await reader1.CloseAsync();
+
+                dataBases = dataBases
+                    .Where(kvp => !existingDbs.Contains(kvp.Key))
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                #endregion
+
+                foreach (var db in dataBases) 
+                    attach.Add($"ATTACH DATABASE '{db.Value}' AS {db.Key};");                    
+                
+
+                string controoling = string.Empty;
                 command.CommandText = string.Join(' ', attach);
-                //Console.WriteLine(command.CommandText);
+                controoling += command.CommandText;
+                Console.WriteLine(command.CommandText);
                 command.ExecuteNonQuery();
 
                 #endregion
@@ -231,7 +260,10 @@ namespace Gemini.Db
                 #region Abfrage ausführen
 
                 command.CommandText = string.Join(" UNION ", query);
-                //Console.WriteLine(command.CommandText);
+                controoling += command.CommandText;
+                //Console.WriteLine("Länge: " + query.Count() + "\r\n" + command.CommandText);
+
+                DateTime minTime = DateTime.Now;
 
                 foreach (var tagName in tagNames)
                 {
@@ -239,12 +271,12 @@ namespace Gemini.Db
                     startParam.Value = start.ToString("yyyy-MM-dd HH:mm:ss");
                     endParam.Value = end.ToString("yyyy-MM-dd HH:mm:ss");
 
-                    //Console.WriteLine($"GetDataSet() Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
+                    Console.WriteLine($"GetDataSet() Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
                   
-                    await using var reader = await command.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
+                    await using var reader2 = await command.ExecuteReaderAsync();                    
+                    while (await reader2.ReadAsync())
                     {
-                        string v = reader.GetString(1);
+                        string v = reader2.GetString(1);
                         ///Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
                         object? value = null;
 
@@ -255,19 +287,28 @@ namespace Gemini.Db
                         else if (bool.TryParse(v, out bool boolValue))
                             value = boolValue;
 
-                        items.Add(new JsonTag(tagName, value, reader.GetDateTime(0).ToLocalTime()));
+                        DateTime t = reader2.GetDateTime(0).ToLocalTime();
+
+                        if (t < minTime)
+                            minTime = t;
+
+                        items.Add(new JsonTag(tagName, value, t));
                     }
                 }
 
+                Console.WriteLine($"Frühester Datenpunkt war {minTime}");
                 #endregion
 
                 #region Datenbanken wieder lösen (notwendig?)
 
                 command.CommandText = string.Join(' ', dettach);
+                controoling += command.CommandText;
                 //Console.WriteLine(command.CommandText);
                 command.ExecuteNonQuery();
 
                 #endregion
+
+                Console.WriteLine("Vollständiger Commend:\r\n" + controoling + "\r\n");
 
             }
             catch (Exception ex)

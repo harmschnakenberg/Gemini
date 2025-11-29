@@ -45,7 +45,10 @@ function drawTags(arr) {
         const tagName = inputs[i].getAttribute('data-name');
         let obj = arr.find(o => o.N === tagName);
         if (obj) {
-            inputs[i].value = obj.V;
+            if (inputs[i].nodeName == 'INPUT')
+                inputs[i].value = obj.V;
+            else
+                inputs[i].innerHTML = obj.V;
         }
     }
 }
@@ -98,5 +101,13 @@ window.onload = () => {
     initWebsocket(initTags());
 }
 
+function clock() {
+    h = document.getElementById('hour').innerHTML;
+    m = document.getElementById('min').innerHTML;
+    s = document.getElementById('sec').innerHTML;
+    t = document.getElementById('time').innerHTML;
+
+    t.innerHTML = h.toFixed(2) + ':' + m.toFixed(2) + ':' + s.toFixed(2);
+}
 
 

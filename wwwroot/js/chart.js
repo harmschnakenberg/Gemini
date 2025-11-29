@@ -106,7 +106,7 @@ function initChart(chartId) {
                         },
                         tooltipFormat: 'dd.MM.yyyy HH:mm'                        
                     },
-                    min: startDate,
+                    //min: startDate,
                     ticks: {
                         source: 'data',                        
                         //minRotation: 90,   
@@ -136,7 +136,7 @@ function initChart(chartId) {
 
 async function addChartDataDb(chartId, tags, start, end) {
 
-    console.info(`Chart ${chartId}; Start ${start}, End ${end}`)
+    //console.info(`Chart ${chartId}; Start ${start}, End ${end}`)
     let s = new Date(start);
     let e = new Date(end);
 
@@ -230,7 +230,7 @@ function rundeZeitAufViertelstunde(date) {
     // Neue Date-Objekt mit gerundeter Zeit erstellen
     let neueDatum = new Date(date.getFullYear(), date.getMonth(), date.getDate(), gerundeteStunden, gerundeteMinuten);
 
-    //console.info("gerundete Zeit ist " + neueDatum);
+    console.info("gerundete Zeit ist " + neueDatum);
     return neueDatum;
 }
 
@@ -238,8 +238,7 @@ function removeData(chartId) {
     if (!chartsMap.hasOwnProperty(chartId)) {
         return;
     }
-    //console.info("Lösche Daten aus " + chartId);
-
+    
     chartsMap[chartId].data.datasets.forEach((ds) => {
         ds.data = [];
     });
@@ -294,3 +293,17 @@ function post(path, params, method = 'post') {
     document.body.appendChild(form);
     form.submit();
 }
+
+function excelExport(startId, endId, tagNames) {
+    const s = new Date(document.getElementById(startId).value);
+    const e = new Date(document.getElementById(endId).value);
+    const arr = [];
+
+    tags.forEach(function (value, key) {
+        console.info(key + ' = ' + value);
+        arr.push(new JsonTag(key, value, new Date()));
+    })
+
+    post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: 1, tags: JSON.stringify(arr) }); //ToDo: Endpoint anpassen
+}
+

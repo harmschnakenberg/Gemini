@@ -19,7 +19,9 @@ namespace Gemini.Middleware
                 if (context.WebSockets.IsWebSocketRequest)
                 {
                     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+#if DEBUG
                     Console.WriteLine("WebSocket wird geöffnet.");
+#endif
                     await ReadTagsLoop(webSocket);
                 }
                 else
@@ -241,7 +243,9 @@ namespace Gemini.Middleware
             finally
             {
                 // Verbindung beendet -> entferne die Tags dieses Clients global
+#if DEBUG
                 Console.WriteLine($"WebSocket client {clientId} disconnected.");
+#endif
                 PlcTagManager.Instance.RemoveClient(clientId);
 
                 // Schließe den Socket sauber
