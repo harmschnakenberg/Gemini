@@ -85,7 +85,7 @@ namespace Gemini.Services
                 {
                     var key = child.Key;
                     var host = child.GetValue<string>("Host");
-                    var cpu = child.GetValue<string>("Cpu") ?? "S71200";
+                    var cpu = child.GetValue<string>("Cpu") ?? "S71500";
                     var rack = child.GetValue<short?>("Rack") ?? 0;
                     var slot = child.GetValue<short?>("Slot") ?? 1;
 
@@ -93,18 +93,18 @@ namespace Gemini.Services
 
                     switch (cpu)
                     {
+                        case "S71500":
+                            cpuType = CpuType.S71500;
+                            break;
                         case "S71200":
                             cpuType = CpuType.S71200;
+                            break;                        
+                        case "S7400":
+                            cpuType = CpuType.S7400;
                             break;
                         case "S7300":
                             cpuType = CpuType.S7300;
                             break;
-                        case "S7400":
-                            cpuType = CpuType.S7400;
-                            break;
-                        case "S71500":
-                            cpuType = CpuType.S71500;
-                            break;             
                     }
 
 
@@ -134,6 +134,19 @@ namespace Gemini.Services
 
             var entry = new ClientEntry(sendCallback, tags);
             _clients.AddOrUpdate(clientId, entry, (_, __) => entry);
+
+#if DEBUG
+         /*   List<string> x = [];
+            foreach (var client in _clients)
+            {
+                foreach (var tag in client.Value.Tags)
+                {
+                    x.Add(tag.N);
+                }                
+            }
+
+            Console.WriteLine($"{string.Join(", ", x.Order())}"); //*/
+#endif
         }
 
         public void RemoveClient(Guid clientId)
@@ -238,6 +251,7 @@ namespace Gemini.Services
                                 var ranges = list
                                     .Select(r => new { r.clientId, r.tag, r.parsed, start = r.parsed.Offset, end = r.parsed.Offset + r.parsed.Size - 1 })
                                     .OrderBy(x => x.start)
+                                    //.DistinctBy(g => g.tag.N) // TEST: Datenpunkte nicht doppelt abfragen funktionietr nicht, da unterschiedliche Clients unterschiedliche Tags mit gleicher Adresse haben können
                                     .ToList();
 
                                 // Merge zu Blöcken, begrenze Größe durch MaxBlockBytes
@@ -352,7 +366,7 @@ namespace Gemini.Services
                                         var existingTag = clientEntry.Tags[existingIndex];
                                         var oldVal = existingTag.V;
 
-                                        if (!AreEqual(oldVal, newValue))
+                                        if (!AreEqual(oldVal, newValue)) //ToDO: evtl. einen Offset einbauen (LogDeepBand)
                                         {
                                             var updated = new JsonTag(existingTag.N, newValue, DateTime.UtcNow);
                                             clientEntry.Tags[existingIndex] = updated;
@@ -509,6 +523,11 @@ namespace Gemini.Services
                 default:
                     return null;
             }
+        }
+
+        internal Dictionary<string, Plc> GetAllPlcs()
+        {
+            return _plcConfigs.ToDictionary<string, Plc>();
         }
 
         private Plc? GetOrCreatePlc(string plcName)
