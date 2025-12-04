@@ -12,99 +12,106 @@ input[type=number] {
 
 .sollwerte {
 	display: grid;
-	grid-template-columns: 25rem 7rem 3rem 7rem 3rem;
+	grid-template-columns: 40rem 7rem 3rem 7rem 3rem;
 }
 
-.sollwerte > * {
-	padding: 0.5rem;
-	margin: 1px 0px;
-	font-size: 1.2em;
-	
+@media (max-width: 1000px) {
+	.sollwerte {
+		display: grid;
+		grid-template-columns: auto 7rem 3rem 7rem 3rem;
+	}
 }
 
-	.sollwerte h2 {
-		background-color: lightgray;
-		color: black;
-		grid-column: span 5;
-		margin-top:0.5rem;
-	}
 
-	.sollwerte a {
-		background-color: white;
-		color: black;
-		grid-column: span 2;
-		text-align: center;
-		text-decoration: none;
-		cursor: pointer;
-	}
-
-		.sollwerte a:hover {
-			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
+		.sollwerte > * {
+			padding: 0.5rem;
+			margin: 1px 0px;
+			font-size: 1.2em;
 		}
 
+		.sollwerte h2 {
+			background-color: lightgray;
+			color: black;
+			grid-column: span 5;
+			margin-top: 0.5rem;
+		}
 
-	.sollwerte div {
-		background-color: lightgrey;
-		grid-column: span 2;
-	}
-
-	.sollwerte label {
-		background-color: lightgrey;
-		color: black;
-	}
-
-	.sollwerte input {
-		text-align: right;
-		border: 0px solid grey;
-	}
-
-		.sollwerte input:not([disabled]) {
+		.sollwerte a {
+			background-color: white;
+			color: black;
+			grid-column: span 2;
+			text-align: center;
+			text-decoration: none;
 			cursor: pointer;
 		}
 
-	.sollwerte input + span {
-		background-color: white;
-		color: black;
-	}
+			.sollwerte a:hover {
+				box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
+			}
 
-	.sollwerte input:disabled + span {
-		background-color: black;
-		color: white;
-	}
 
-	.sollwerte input:disabled {
-		background-color: black;
-		color: white;
-	}
-
-	.sollwerte input:enabled {
-		background-color: white;
-		color: black;		
-	}
-
-		.sollwerte input:enabled:hover {
-			box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
+		.sollwerte div {
+			background-color: lightgrey;
+			grid-column: span 2;
 		}
 
-		.sollwerte input:enabled:focus-visible {
-			border: 1px solid blue;
+		.sollwerte label {
+			background-color: lightgrey;
+			color: black;
+			overflow: hidden;
+			min-width: 0;
 		}
 
-input[type="checkbox"] {	
-	grid-column: span 2;
-}
+		.sollwerte input {
+			text-align: right;
+			border: 0px solid grey;
+		}
 
-	input[type="checkbox"]:disabled {
-		background-color: black;
-		accent-color: black;
-	}
+			.sollwerte input:not([disabled]) {
+				cursor: pointer;
+			}
 
-/*	input[type="checkbox"]:read-only {
+			.sollwerte input + span {
+				background-color: white;
+				color: black;
+			}
+
+			.sollwerte input:disabled + span {
+				background-color: black;
+				color: white;
+			}
+
+			.sollwerte input:disabled {
+				background-color: black;
+				color: white;
+			}
+
+			.sollwerte input:enabled {
+				background-color: white;
+				color: black;
+			}
+
+				.sollwerte input:enabled:hover {
+					box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
+				}
+
+				.sollwerte input:enabled:focus-visible {
+					border: 1px solid blue;
+				}
+
+		input[type="checkbox"] {
+			grid-column: span 2;
+		}
+
+			input[type="checkbox"]:disabled {
+				background-color: black;
+				accent-color: black;
+			}
+		/*	input[type="checkbox"]:read-only {
 		cursor: pointer;
 		accent-color: lightgray;
 	}*/
-
-/*			input[type="checkbox"]:before {
+		/*			input[type="checkbox"]:before {
 				content: 'X' !important;
 				font-size: 14px !important;
 				color: red;
@@ -115,8 +122,8 @@ input[type="checkbox"] {
 
 
 
-.ist {
-	fill: white;
-	font-size: 1.2em;
-	text-anchor: start
-}
+		.ist {
+			fill: white;
+			font-size: 1.2em;
+			text-anchor: start
+		}

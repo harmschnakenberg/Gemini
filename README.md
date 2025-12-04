@@ -9,16 +9,19 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Statische Sollwert-Bilder
 	- Charts zur Visualisierung von Prozessdaten	
 	- Chartes mit Echtzeit-Datenaktualisierung
+	- Charts mit Werten aus der Datenbank
+	- Excel-Export einstellbarer Werte und Zeiträume
+	- Excel-Export aus Charts
+	- Programm weiter laufen lassen, wenn kein WebClient mehr läuft
 	- Todo: Charts mit Zoom und Pan Funktionalität
 	- ToDo: dynamische Dashboards
 	- ToDo: HTTPS Support
 	- ToDo: JWT Authentifizierung
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Benutzerverwaltung
-	- ToDo: Excel Export
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder
-	- ToDo: Programm weiter laufen lassen, wenn kein WebClient mehr läuft
+	
 - S700/1200/1500/300/400 PLC Communication Library
 	- TCP/IP Communication mit mehreren SPSen gleichzeitig
 	- Multiple Data Types (Bool, Int, DInt, Real, etc.)
@@ -27,4 +30,5 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 		
 - SQLite Database
 	- SPS Verwaltung in Datenbank?
-	- ToDo: Auslesen über mehrere Datenbankdateien
+	- Auslesen über mehrere Datenbankdateien
+	- ToDo: gleichzeitigen Zugriff auf die Datenbank verhindern (lock)

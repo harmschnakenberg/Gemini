@@ -118,6 +118,7 @@ namespace Gemini.Db
                 if (tagNames.Count > 0)
                     break;              
             }
+            await connection.DisposeAsync();
             return tagNames;
         }
 
@@ -131,15 +132,16 @@ namespace Gemini.Db
             CreateDayDatabaseAsync();
 
             await using var connection = new SqliteConnection(DayDbSource);
-            await connection.OpenAsync();            
-            await using var transaction = connection.BeginTransaction();
+            await connection.OpenAsync();                 
+            //await using var transaction = connection.BeginTransaction();
 
             try
             {
                
                 // 2. Erstelle den Command mit Parametern
                 var command = connection.CreateCommand();
-                command.Transaction = transaction; // <- Wichtig: Command muss die Transaktion nutzen!
+                
+                //command.Transaction = transaction; // <- Wichtig: Command muss die Transaktion nutzen!
                 command.CommandText =
                     @$"
                       INSERT OR IGNORE INTO Tag (Name) VALUES (@TagName); 
@@ -163,13 +165,17 @@ namespace Gemini.Db
                 }
 
                 // 4. Committe die Transaktion (Hier erfolgt der I/O-Schreibvorgang auf die Platte)
-                await transaction.CommitAsync();
+                //await transaction.CommitAsync();
             }
             catch (Exception ex)
             {
                 // Bei einem Fehler: Rollback der Transaktion
-                transaction.Rollback();
+                //transaction.Rollback();
                 Db.DbLogInfo($"Fehler beim Batch-Insert. {ex}");
+            }
+            finally
+            {
+                await connection.DisposeAsync();
             }
         }
 
@@ -204,44 +210,9 @@ namespace Gemini.Db
                     tags.Add(tagName, comment);
                 }
             }
-
+            await connection.DisposeAsync();
             return tags;
         }
-
-
-//        private static async Task<List<string>> GetAttachedDatabases(bool detache = false)
-//        {
-//            List<string> existingDbs = [];
-//            await using var connection = new SqliteConnection(DayDbSource);
-//            await connection.OpenAsync();
-//            var command = connection.CreateCommand();
-
-//            command.CommandText = "SELECT name FROM pragma_database_list;";
-
-//            await using var reader1 = await command.ExecuteReaderAsync();
-//            while (await reader1.ReadAsync())
-//            {
-//#if DEBUG
-//                Console.WriteLine("vorhanden: " + reader1.GetString(0));
-//#endif                                
-//                    existingDbs.Add(reader1.GetString(0));
-//            }
-
-//            await reader1.CloseAsync();
-
-//            #region Detach alle vorhandenen außer Main
-//            if (detache)
-//            {
-//                foreach (var alias in existingDbs)
-//                    if (alias != "main")
-//                        command.CommandText += $"DETACH DATABASE '{alias}';";
-
-//                await command.ExecuteNonQueryAsync();
-//            }
-//            #endregion
-
-//            return existingDbs;
-//        }
 
         /// <summary>
         /// Gibt Alias-Namen und Pfade aller existierenden Datenbanken zwischen start und end aus
@@ -269,177 +240,6 @@ namespace Gemini.Db
 
             return dataBases;
         }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="tagNames"></param>
-        /// <param name="start"></param>
-        /// <param name="end"></param>
-        /// <returns></returns>
-//        public static async Task<JsonTag[]> GetDataSet(string[] tagNames, System.DateTime start, System.DateTime end)
-//        {
-//            //TODO: maximal 10 Databases dürfen gleichzeitig attached sein! Abfrage in Blöcken durchführen.
-//            List<JsonTag> items = [];
-
-//            await using var connection = new SqliteConnection(DayDbSource);
-//            await connection.OpenAsync();
-            
-//            try
-//            {
-                
-//                List<string> attach = [];
-//                List<string> query = [];
-//                List<string> detach = [];
-//                List<string> existingDbs = await GetAttachedDatabases();
-//                Dictionary<DateTime, string> dataBases = GetDataBasePathsForQuery(start, end);
-                
-//                var command = connection.CreateCommand();
-//                var dbNameParam = command.Parameters.Add("@DbName", SqliteType.Text);
-//                var dbPathParam = command.Parameters.Add("@DbPath", SqliteType.Text);
-//                var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
-//                var startParam = command.Parameters.Add("@Start", SqliteType.Text);
-//                var endParam = command.Parameters.Add("@End", SqliteType.Text);
-
-
-//                #region Query zusammenbauen
-
-
-//                foreach (string alias in dataBases.Keys)
-//                {
-//                    if (!existingDbs.Contains(alias))
-//                        attach.Add($"ATTACH DATABASE '{alias}' AS '{dataBases[alias]}';");
-
-//                    if (day.Date == DateTime.UtcNow.Date)
-//                        query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
-//                    else
-//                    {
-//                        query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
-//                        detach.Add($"DETACH DATABASE '{dbName}';"); //Alle detachen oder nur die, die auch angehängt wurden?
-//                    }
-
-//                    dbPathParam.Value = dbPath;
-//                    dbNameParam.Value = dbName;
-//                }
-
-
-////                for (DateTime day = start.ToUniversalTime().Date; day.Date <= end.ToUniversalTime().Date; day = day.AddDays(1))
-////                {
-////                    string dbPath = GetDayDbPath(day);
-////                    if (!File.Exists(dbPath))
-////                    {
-////#if DEBUG
-////                       // Console.WriteLine($"✖ Datenbank {dbPath} für Tag {day:yyyy-MM-dd} existiert nicht.");
-////#endif
-////                        continue;
-////                    }
-
-                    
-
-////                    string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
-////                    dataBases[dbName] = dbPath;
-
-////                    //Console.WriteLine($"✔ Datenbank {dbName} |{dbPath}| für Tag {day:yyyy-MM-dd} existiert und ist {(existingDbs.Contains(dbName) ? "eingebunden" : "nicht eingebunden")}.");
-
-////                    if (!existingDbs.Contains(dbName))
-////                        attach.Add($"ATTACH DATABASE '{dbName}' AS '{dbPath}';");
-                  
-////                    if (day.Date == DateTime.UtcNow.Date)
-////                        query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
-////                    else
-////                    {                        
-////                        query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
-////                        detach.Add($"DETACH DATABASE '{dbName}';"); //Alle detachen oder nur die, die auch angehängt wurden?
-////                    }
-                    
-////                    dbPathParam.Value = dbPath;
-////                    dbNameParam.Value = dbName;
-////                }
-
-//                #endregion
-
-
-
-//                while (query.Count > 0)
-//                {
-//                    var attachBulk = attach.Take(9);
-//                    attach.RemoveRange(0, Math.Min(attach.Count, 9));
-
-//                    var queryBulk = query.Take(9);
-//                    query.RemoveRange(0, Math.Min(query.Count, 9));
-
-//                    var detachBulk = detach.Take(9);
-//                    detach.RemoveRange(0, Math.Min(detach.Count, 9));
-
-//                    #region Datenbanken anhängen
-
-//                    command.CommandText = string.Join(' ', attachBulk);
-//                    Console.WriteLine(command.CommandText);
-//                    command.ExecuteNonQuery();
-
-//                    #endregion
-
-//                    #region Abfrage ausführen
-
-//                    command.CommandText = string.Join(" UNION ", queryBulk);
-//                    Console.WriteLine("queryBulk Länge: " + queryBulk.Count() + "\r\n" + command.CommandText);
-
-//                    DateTime minTime = DateTime.Now;
-
-//                    foreach (var tagName in tagNames)
-//                    {
-//                        nameParam.Value = tagName;
-//                        startParam.Value = start.ToString("yyyy-MM-dd HH:mm:ss");
-//                        endParam.Value = end.ToString("yyyy-MM-dd HH:mm:ss");
-
-//                        Console.WriteLine($"GetDataSet() Abfrage '{nameParam.Value}' von '{startParam.Value}' bis '{endParam.Value}'");
-
-//                        await using var reader2 = await command.ExecuteReaderAsync();
-//                        while (await reader2.ReadAsync())
-//                        {
-//                            string v = reader2.GetString(1);
-//                            ///Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
-//                            object? value = null;
-
-//                            if (double.TryParse(v, out double floatValue))
-//                                value = floatValue;
-//                            else if (Int16.TryParse(v, out Int16 intValue))
-//                                value = intValue;
-//                            else if (bool.TryParse(v, out bool boolValue))
-//                                value = boolValue;
-
-//                            DateTime t = reader2.GetDateTime(0).ToLocalTime();
-
-//                            if (t < minTime)
-//                                minTime = t;
-
-//                            items.Add(new JsonTag(tagName, value, t));
-//                        }
-//                    }
-
-//                    Console.WriteLine($"Frühester Datenpunkt war {minTime}");
-//                    #endregion
-
-//                    #region Datenbanken wieder lösen
-
-//                    command.CommandText = string.Join(' ', detachBulk);
-//                    Console.WriteLine(command.CommandText);
-//                    command.ExecuteNonQuery();
-
-//                    #endregion
-//                }
-
-//            }
-//            catch (Exception ex)
-//            {
-//                Console.WriteLine($"GetDataSet() Fehler beim Auslesen des Datensatzes für Tags {string.Join(' ', tagNames)}:\r\n{ex}");
-//            }
-
-//            //Console.WriteLine($"GetDataSet() {items.Count} Ergebnisse: " + string.Join(' ', items.Select(n => n.V)));
-
-//            return [.. items];
-//        }
-
 
         public static async Task<JsonTag[]> GetDataSet2(string[] tagNames, System.DateTime start, System.DateTime end)
         {

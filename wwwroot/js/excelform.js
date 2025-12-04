@@ -201,7 +201,7 @@ async function loadComments() {
 
 function getExcelFromForm() {
     const inputs = document.querySelectorAll('.sortable-item > input');
-    
+    const interval = document.getElementById('interval').value;
     const tags = new Map();
 
     for (let i = 0; i < inputs.length; i++) {
@@ -218,7 +218,7 @@ function getExcelFromForm() {
     //console.info(`Übergebene Tags: ${tags.size}`);
 
     if (tags.size > 0)
-        excelExport('start', 'end', tags);
+        excelExport('start', 'end', interval, tags);
     else
         console.warn("Keine Tags für Excel-Export ausgewählt.");
 }

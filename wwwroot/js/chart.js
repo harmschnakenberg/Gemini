@@ -294,7 +294,7 @@ function post(path, params, method = 'post') {
     form.submit();
 }
 
-function excelExport(startId, endId, tags) {
+function excelExport(startId, endId, ival, tags) {
     const s = new Date(document.getElementById(startId).value);
     const e = new Date(document.getElementById(endId).value);
     const arr = [];
@@ -305,6 +305,6 @@ function excelExport(startId, endId, tags) {
     })
 
     if (arr.length > 0)
-        post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: 1, tags: JSON.stringify(arr) }); //ToDo: Endpoint anpassen
+        post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) }); //ToDo: Endpoint anpassen
 }
 
