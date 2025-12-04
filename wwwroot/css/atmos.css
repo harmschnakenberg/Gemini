@@ -17,3 +17,99 @@ ul {
     list-style-type: none;
 }
 
+
+
+/*body {
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+}
+*/
+
+input[type=datetime-local], select {
+    font-size: 1em;
+    font-family: sans-serif;
+    padding:0.2rem;
+}
+
+.container {
+    min-width: 800px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: lightslategray;    
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.controls {
+    display: flex;
+    margin-bottom: 15px;
+    gap: 10px;
+    padding: 0.3rem;
+}
+
+#newItemInput {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#sortable-list {
+    list-style-type: upper-alpha;
+    padding: 0;
+}
+
+.nonsortable-item {
+    margin: 3px 0;
+    padding: 2px;
+    border: 1px solid #ddd;
+    border-radius: 2px;    
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: opacity 0.2s;
+}
+
+.sortable-item {
+    margin: 3px 0;
+    padding: 2px;
+    border: 1px solid #ddd;
+    border-radius: 2px;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;
+    
+    transition: opacity 0.2s;
+}
+
+    .sortable-item:active {
+        cursor: grabbing;
+    }
+
+    .sortable-item.dragging {
+        opacity: 0.4;
+    }
+
+    .sortable-item.over {
+        border-top: 2px solid #333; /* Visuelles Feedback wo es fallen gelassen wird */
+    }
+
+.item-content {
+    flex-grow: 1;
+}
+
+.delete-btn {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+    .delete-btn:hover {
+        background-color: #e60000;
+    }

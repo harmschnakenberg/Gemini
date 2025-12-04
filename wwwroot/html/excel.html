@@ -1,0 +1,81 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Demo Kurve</title>
+    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+
+    <link rel='stylesheet' href='/css/atmos.css'>
+    <link rel='stylesheet' href='/css/input.css'>
+    
+    <script src='/js/websocket.js'></script>
+    <script src='/js/chart.js'></script>
+</head>
+<body>
+    <h1>ASP.NET Core Minimal API WebSocket Trend Test</h1>
+
+    <fieldset>
+        <legend>Zeitraum:</legend>
+        <p>
+            Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Wertintervall,<br/>
+            d.h. mit welchem Zeitabstand die Werte in die Tabelle eingetragen werden sollen.
+        </p>
+        <div class="container">
+            <label for='start'>Beginn</label>
+            <input class='myForm' type='datetime-local' id='start' name='start'>
+            <label for='end'>Ende</label>
+            <input class='myForm' type='datetime-local' id='end' name='end'>
+            <label for='interval'>Werteintervall</label>
+            <select class='myForm' id='interval' name='interval'>
+              <option value='0'>Sekunde</option>
+              <option value='1' selected>Minute</option>
+              <option value='2'>Stunde</option>
+              <option value='3'>Tag</option>
+              <option value='4'>Monat</option>
+              <option value='5'>Jahr</option>
+            </select>   
+        </div>
+    </fieldset>
+
+  <hr/>
+              
+  <fieldset>
+    <legend>Zuordnung Tabellenspalten:</legend>
+    <p>
+      Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte in die Liste eintragen.<br/>
+      Der genaue Wortlaut wird während der Eingabe vorgeschlagen. Ungültige Bezeichner werden ignoriert.<br/>
+      Die erste Spalte 'A' enthält immer den Zeitstempel und kann nicht geändert werden.
+    </p>
+        
+    <div class="container">
+        <div class="controls">
+            <input type="text" id="newItemInput" list='comments' placeholder="Neue Tabellenspalte hinzufügen">
+            <button onclick="addItem()">Hinzufügen</button>
+        </div>
+
+        <ol type="A" id="sortable-list">      
+            <li class="nonsortable-item">Zeitstempel</li>
+            <!-- Dynamisch hinzugefügte Listenelemente kommen hierher -->
+        </ol>
+    </div>
+  </fieldset>
+   
+             <button style="margin:0.3rem;padding:0.3rem;" onclick="getExcelFromForm();">Excel-Export</button>
+      
+
+    <datalist id='comments'></datalist>
+
+    <script src='/js/excelform.js'></script>
+    <script>
+
+        loadComments();
+        setDatesToStratOfMonth('start', 'end');
+
+
+    </script>
+
+</body>
+</html>

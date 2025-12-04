@@ -1,6 +1,8 @@
 ﻿using Gemini.Models;
 using OfficeOpenXml;
 using System.IO;
+using System.Runtime.CompilerServices;
+using static Gemini.DynContent.Excel;
 
 
 namespace Gemini.DynContent
@@ -15,12 +17,29 @@ namespace Gemini.DynContent
         {
             Sekunde,
             Minute,
+            Viertelstunde,
             Stunde,
             Tag,
             Monat,
             Jahr
         }
 
+        public static string GetTimeFormat(Interval interval)
+        {
+            return interval switch
+            {
+                Interval.Sekunde => "yyyy-MM-dd HH:mm:ss",
+                Interval.Minute => "yyyy-MM-dd HH:mm",
+                Interval.Viertelstunde => "yyyy-MM-dd HH:mm",
+                Interval.Stunde => "yyyy-MM-dd HH:00",
+                Interval.Tag => "yyyy-MM-dd",
+                Interval.Monat => "yyyy-MM",
+                Interval.Jahr => "yyyy-MM",
+                _ => "yyyy-MM-dd HH:mm:ss",
+            };
+        }
+
+       
 
         internal static async Task<MemoryStream> CreateExcelWb(Interval interval, Dictionary<string, string> tagNamesAndComment, JsonTag[] jsonTags)
         {
@@ -59,36 +78,11 @@ namespace Gemini.DynContent
 
             #endregion
 
-
-            #region Format Zeitspalte
-            string timeFormat = "yyyy-MM-dd HH:mm:ss";
-
-            switch (interval)
-            {
-                case Interval.Sekunde:
-                    timeFormat = "yyyy-MM-dd HH:mm:ss";
-                    break;
-                case Interval.Minute:
-                    timeFormat = "yyyy-MM-dd HH:mm";
-                    break;
-                case Interval.Stunde:
-                    timeFormat = "yyyy-MM-dd HH:00";
-                    break;
-                case Interval.Tag:
-                    timeFormat = "yyyy-MM-dd";
-                    break;
-                case Interval.Monat:
-                    timeFormat = "yyyy-MM";
-                    break;
-                case Interval.Jahr:
-                    timeFormat = "yyyy-MM";
-                    break;
-            }
-
-            #endregion
-
+                        
             #region Add Data
 
+
+            string timeFormat = GetTimeFormat(interval);
             var groups = jsonTags.GroupBy(t => DateTime.Parse(t.T.ToString(timeFormat))).OrderBy(o => o.Key);
            
             int row = 1;

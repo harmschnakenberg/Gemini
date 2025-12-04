@@ -123,7 +123,8 @@ namespace Gemini.DynContent
                 </script> //*/
                 sb.Append(@" <style>
                     .colForTable {
-                        display: block;
+                        display: inline-block;
+                        border: 1px solid #aaaaaa;
                         padding: 0.2rem;
                         font-size: 1em;                        
                     }
@@ -140,6 +141,14 @@ namespace Gemini.DynContent
                       height: 30px;
                       padding: 10px;
                       border: 1px solid #aaaaaa;
+                    }
+
+                    .upArrow {
+                        display: inline-block;
+                        padding: 0.3rem;
+                        margin: 1px;
+                        background-color: slategrey;
+                        cursor: pointer;
                     }
 
                 </style>

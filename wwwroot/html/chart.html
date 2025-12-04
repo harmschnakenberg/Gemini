@@ -27,8 +27,8 @@
     <span style="max-width: fit-content; margin-left: auto; margin-right: auto;">
         <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart', 'start', 'end', tags);">
         <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart', 'start', 'end', tags);">
-        <input type="button" onclick="setDates('start', 'end', 8); loadChart('myChart', 'start', 'end', tags);" value="8 Stunden" />
-        <input type="button" onclick="setDates('start', 'end',24); loadChart('myChart', 'start', 'end', tags);" value="24 Stunden" />
+        <input type="button" onclick="setDatesHours('start', 'end', 8); loadChart('myChart', 'start', 'end', tags);" value="8 Stunden" />
+        <input type="button" onclick="setDatesHours('start', 'end',24); loadChart('myChart', 'start', 'end', tags);" value="24 Stunden" />
         <input type="button" onclick="removeData('myChart');" value="löschen" />
         <input type="button" onclick="excelExport('start', 'end', tags);" value="Excel Export"/>
      
@@ -42,7 +42,7 @@
             ['A01_DB10_DBW6', 'Sekunden']
         ]);
                  
-        setDates('start', 'end', 8);
+        setDatesHours('start', 'end', 8);
         loadChart('myChart', 'start', 'end', tags);
     </script>
     <style>

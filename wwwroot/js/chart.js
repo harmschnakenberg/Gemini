@@ -261,13 +261,13 @@ function loadChart(chartId, startId, endId, tags) {
     addChartDataDb(id, tags, start, end);
 }
 
-function setDates(startId, endId, std) {
+function setDatesHours(startId, endId, hh) {
     var now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById(endId).value = now.toISOString().slice(0, 16);
 
     var begin = new Date();
-    begin.setUTCHours(begin.getHours() - std);
+    begin.setUTCHours(begin.getHours() - hh);
     document.getElementById(startId).value = begin.toISOString().slice(0, 16);
 }
 
@@ -278,7 +278,7 @@ function post(path, params, method = 'post') {
     const form = document.createElement('form');
     form.method = method;
     form.action = path;
-
+    
     for (const key in params) {
         if (params.hasOwnProperty(key)) {
             const hiddenField = document.createElement('input');
@@ -294,16 +294,17 @@ function post(path, params, method = 'post') {
     form.submit();
 }
 
-function excelExport(startId, endId, tagNames) {
+function excelExport(startId, endId, tags) {
     const s = new Date(document.getElementById(startId).value);
     const e = new Date(document.getElementById(endId).value);
     const arr = [];
 
     tags.forEach(function (value, key) {
-        console.info(key + ' = ' + value);
+        console.info('Exportvorbereitung: ' + key + ' = ' + value);
         arr.push(new JsonTag(key, value, new Date()));
     })
 
-    post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: 1, tags: JSON.stringify(arr) }); //ToDo: Endpoint anpassen
+    if (arr.length > 0)
+        post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: 1, tags: JSON.stringify(arr) }); //ToDo: Endpoint anpassen
 }
 

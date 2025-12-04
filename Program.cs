@@ -71,7 +71,7 @@ app.UseMiddleware<WebSocketMiddleware>();
         }
 
         //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
-        JsonTag[] obj = await Db.GetDataSet(tagNames!, start, end);
+        JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
 
         //Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
         ctx.Response.StatusCode = 200;
@@ -86,6 +86,18 @@ app.UseMiddleware<WebSocketMiddleware>();
         ctx.Response.ContentType = "text/html";       
         await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
         await ctx.Response.CompleteAsync();
+    });
+
+    app.MapPost("/tagcomments", async () =>
+    {
+        Dictionary<string, string> allTags = await Db.GetDbTagNames(DateTime.UtcNow, 3);
+
+        List<JsonTag> result = [];
+
+        foreach (var tag in allTags)        
+            result.Add(new JsonTag(tag.Key, tag.Value, DateTime.Now));
+                       
+        return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
     });
 
     app.MapGet("/excel", async ()=>
@@ -170,6 +182,7 @@ app.UseMiddleware<WebSocketMiddleware>();
 app.MapPost("/excel", async ctx =>
 {
     string jsonString = ctx.Request.Form["tags"].ToString() ?? string.Empty;
+    //Console.WriteLine("/excel : " + jsonString);
 
     if (
     !DateTime.TryParse(ctx.Request.Form["start"], out DateTime start) ||
@@ -187,23 +200,27 @@ app.MapPost("/excel", async ctx =>
         $"interval: '{ctx.Request.Form["interval"]}'\r\n" +
         $"tags: '{ctx.Request.Form["tags"]}'\r\n";
 #endif
-       
+        ctx.Response.ContentType = "text/plain";
         await ctx.Response.WriteAsync(msg);
         await ctx.Response.CompleteAsync();
         return;
     }
 
     
-    Console.WriteLine($"Rohempfanh:\r\n'{jsonString}'");
+    //Console.WriteLine($"Rohempfang:\r\n'{jsonString}'\r\n");
     
     JsonTag[] tags = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray) ?? [];
-    Dictionary<string, string> tagsAndCommnets = tags.ToDictionary(t => t.N, t => t.V?.ToString() ?? string.Empty);
+    Dictionary<string, string> tagsAndCommnets = tags.ToDictionary(t => t?.N ?? string.Empty, t => t.V?.ToString() ?? string.Empty);
+    string[] tagNames = [.. tagsAndCommnets.Keys];
 
+    //Console.WriteLine($"/excel TagNames für Abfrage: {string.Join('|', tagNames)}");
     //string[] comments = tagsAndCommnets.Values.ToArray();
 
     //string[] comments = [.. tagsAndCommnets.OrderBy(t => t.Key).ToDictionary().Values];
     //Dictionary<string, string> tagNamesAndComment = await Db.GetTagNamesFromComments(comments);
-    JsonTag[] obj = await Db.GetDataSet(tagsAndCommnets.Keys.ToArray()!, start, end);
+    
+
+    JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
     MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagsAndCommnets, obj);
 
     string excelFileName = $"Werte_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.TimeOfDay.TotalSeconds:0000}.xlsx";
