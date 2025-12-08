@@ -1,0 +1,14 @@
+{
+  "Sollwerte": [
+    {
+      "id": 1,
+      "name": "Test Sollwerte",
+      "link": "test.html"
+    },
+    {
+      "id": 2,
+      "name": "Schaltwarte",
+      "link": "schaltwarte.html"
+    }  
+    ]
+  }

@@ -9,6 +9,10 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
+h1 {
+    padding: 0rem 2.5rem;
+}
+
 span {
     color: var(--primary-color);
 }
@@ -17,21 +21,11 @@ ul {
     list-style-type: none;
 }
 
-
-
-/*body {
-    font-family: sans-serif;
-    background-color: #f4f4f4;
-    margin: 0;
-    padding: 20px;
-}
-*/
-
-input[type=datetime-local], select {
-    font-size: 1em;
-    font-family: sans-serif;
-    padding:0.2rem;
-}
+    input[type=datetime-local], select{
+        font-size: 1em;
+        font-family: sans-serif;
+        padding: 0.2rem;
+    }
 
 .container {
     min-width: 800px;
@@ -49,7 +43,7 @@ input[type=datetime-local], select {
     padding: 0.3rem;
 }
 
-#newItemInput {
+.myButton {
     flex-grow: 1;
     padding: 8px;
     border: 1px solid #ccc;
@@ -113,3 +107,4 @@ input[type=datetime-local], select {
     .delete-btn:hover {
         background-color: #e60000;
     }
+

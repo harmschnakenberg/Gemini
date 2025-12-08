@@ -6,12 +6,11 @@ using System.Data.Common;
 
 namespace Gemini.Db
 {
-
-
+   
     internal partial class Db
     {
-       
 
+        private static readonly object _dbLock = new();
 
         #region Pfade
         internal static readonly string AppFolder = AppDomain.CurrentDomain.BaseDirectory;

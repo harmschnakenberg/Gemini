@@ -28,7 +28,7 @@ app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 
     // 4. Routen festlegen
-    app.MapGet("/soll", async ctx =>
+    app.MapGet("/menu/soll", async ctx =>
     {
         ctx.Response.StatusCode = 200;
         ctx.Response.ContentType = "text/html";

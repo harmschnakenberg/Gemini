@@ -307,4 +307,3 @@ function excelExport(startId, endId, ival, tags) {
     if (arr.length > 0)
         post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) }); //ToDo: Endpoint anpassen
 }
-

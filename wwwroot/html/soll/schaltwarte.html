@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Schaltwarte</title>
+    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='/css/atmos.css'>
+    <link rel='stylesheet' href='/css/input.css'>
+    <script src='/js/websocket.js'></script>
+</head>
+<body>
+    <h1>Schaltwarte</h1>
+
+    <div class="sollwerte">
+        <h2>Raumsteuerung</h2>
+        <label>Raumtemperatur<span>87.08</span></label>
+        <input data-name='A01_DB25_DBD42100' data-unit='°C' disabled>
+        <input type="number" min="10" max="50" data-unit='°C' data-name='A01_DB2066_DBD50'>
+
+        <label>Hysterese</label>
+        <div>&nbsp;</div>
+        <input type="number" min="00" max="10" data-unit='K' data-name='A01_DB2066_DBD50'>
+
+        <label>Grenzwert Übertemperatur</label>
+        <div>&nbsp;</div>
+        <input type="number" min="00" max="20" data-unit='K' data-name='A01_DB2066_DBD62'>
+
+        <label>Grenzwert Untertemperatur</label>
+        <div>&nbsp;</div>
+        <input type="number" min="00" max="20" data-unit='K' data-name='A01_DB2066_DBD66'>
+
+        <label>verzögert Über-/Untertemperatur</label>
+        <input data-name='A01_DB2066_DBW6' data-unit='min' disabled>
+        <input type="number" min="0" max="60" data-unit='min' data-name='A01_DB2066_DBW4'>
+
+        <label>Freigabe Temperaturüberwachung wenn Raum aus</label>
+        <div>&nbsp;</div>
+        <input type="checkbox" data-name='A01_DB2066_DBX99_0'>
+
+        <label>Freigabe Lüfter Dauerlauf</label>
+        <div>&nbsp;</div>
+        <input type="checkbox" data-name='A01_DB2066_DBX99_1'>
+
+        <label>Freigabe Notkühlen bei Drahtbruch Raumfühler</label>
+        <div>&nbsp;</div>
+        <input type="checkbox" data-name='A01_DB2066_DBX99_2'>
+               
+        <h2>Lüfter</h2>
+
+        
+        <label>Lüfter Nachlaufzeit</label>
+        <input data-name='A01_DB2066_DBW110' data-unit='min' disabled>
+        <input type="number" min="0" data-unit='min' data-name='A01_DB2066_DBW8'>
+
+        <label>Handstellwert</label>
+        <input data-name='A01_DB28_DBD564' data-unit='°C' disabled>
+        <input type="number" min="10" max="50" data-unit='°C' data-name='A01_DB2066_DBD150'>
+
+
+    </div>
+
+</body>
+</html>

@@ -62,6 +62,12 @@ input[type=number] {
 			min-width: 0;
 		}
 
+			.sollwerte label span {
+				background-color: lightgoldenrodyellow;
+				color: black;
+				padding:2px;
+			}
+
 		.sollwerte input {
 			text-align: right;
 			border: 0px solid grey;
