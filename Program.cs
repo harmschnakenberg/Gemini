@@ -5,6 +5,9 @@ using Gemini.Models;
 using System.Text;
 using System.Text.Json;
 
+
+bool pleaseStop = false;
+
 Gemini.Db.Db db = new();//Datenbanken initialisieren
 
 // 0. Datenbank-Schreibvorgang initialisieren
@@ -12,6 +15,9 @@ Gemini.Db.Db.InitiateDbWriting();
 
 // 1. Native AOT Vorbereitung: CreateSlimBuilder verwenden
 var builder = WebApplication.CreateSlimBuilder(args);
+
+//// Hosted Service für sauberes Herunterfahren registrieren
+//builder.Services.AddHostedService<ShutdownService>();
 
 // 2. Native AOT Vorbereitung: Json Serializer Context registrieren
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -49,8 +55,8 @@ app.UseMiddleware<WebSocketMiddleware>();
     app.MapGet("/db", async ctx =>
     {
         string[]? tagNames = [];
-        DateTime start = DateTime.UtcNow.AddHours(-8);
-        DateTime end = DateTime.UtcNow;
+        DateTime startUtc = DateTime.UtcNow.AddHours(-8);
+        DateTime endUtc = DateTime.UtcNow;
 
         //Console.WriteLine($"DB Request received with query: {ctx.Request.QueryString}");
 
@@ -60,20 +66,22 @@ app.UseMiddleware<WebSocketMiddleware>();
 
         if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))
         {
-            start = s.ToUniversalTime(); //lokale Zeit in UTC
+            startUtc = s.ToUniversalTime(); //lokale Zeit in UTC
                                          //Console.WriteLine($"Parsed start time {startStr} to {start}");
         }
 
         if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))
         {
-            end = e.ToUniversalTime();
+            endUtc = e.ToUniversalTime();
             //Console.WriteLine($"Parsed end time {endStr} to {end}");
         }
 
         //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
-        JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
-
-        //Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
+        JsonTag[] obj = await Db.GetDataSet2(tagNames!, startUtc, endUtc);
+#if DEBUG
+        Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
+#endif
+        // Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
         ctx.Response.StatusCode = 200;
         ctx.Response.ContentType = "application/json";
         await ctx.Response.WriteAsJsonAsync(obj, AppJsonSerializerContext.Default.JsonTagArray);
@@ -143,16 +151,13 @@ app.MapPost("/excel", async ctx =>
     Dictionary<string, string> tagsAndCommnets = tags.ToDictionary(t => t?.N ?? string.Empty, t => t.V?.ToString() ?? string.Empty);
     string[] tagNames = [.. tagsAndCommnets.Keys];
 
-    //Console.WriteLine($"/excel TagNames für Abfrage: {string.Join('|', tagNames)}");
-    //string[] comments = tagsAndCommnets.Values.ToArray();
-
-    //string[] comments = [.. tagsAndCommnets.OrderBy(t => t.Key).ToDictionary().Values];
-    //Dictionary<string, string> tagNamesAndComment = await Db.GetTagNamesFromComments(comments);
-
     Console.WriteLine($"Interval = {interval}");
 
+    //JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
+    //MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagsAndCommnets, obj);
+
     JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
-    MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagsAndCommnets, obj);
+    MemoryStream fileStream = MiniExcel.DownloadExcel((MiniExcel.Interval)interval, tagsAndCommnets, obj);
 
     string excelFileName = $"Werte_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.TimeOfDay.TotalSeconds:0000}.xlsx";
 
@@ -173,9 +178,52 @@ app.MapGet("/", async ctx =>
         await ctx.Response.CompleteAsync();
 });
 
-while (true)
+app.MapGet("/exit", async ctx =>
 {
-    app.Run();
+    ctx.Response.StatusCode = 200;
+    ctx.Response.ContentType = "text/html";    
+    await ctx.Response.WriteAsync(HtmlHelper.ExitForm());
+    await ctx.Response.CompleteAsync();
+
+    pleaseStop = true;
+});
+
+while (!pleaseStop)
+{
     Console.WriteLine("Webserver neu gestartet.");
+    app.Run();    
 }
 
+//class ShutdownService(IHostApplicationLifetime applicationLifetime) : IHostedService
+//{
+//    private bool pleaseStop;
+//    private Task? BackgroundTask;
+//    private readonly IHostApplicationLifetime applicationLifetime = applicationLifetime;
+
+//    public Task StartAsync(CancellationToken _)
+//    {
+//        Console.WriteLine("Starting service");
+
+//        BackgroundTask = Task.Run(async () =>
+//        {
+//            while (!pleaseStop)
+//            {
+//                await Task.Delay(50);
+//            }
+
+//            Console.WriteLine("Background task gracefully stopped");
+//        }, _);
+
+//        return Task.CompletedTask;
+//    }
+
+//    public async Task StopAsync(CancellationToken cancellationToken)
+//    {
+//        Console.WriteLine("Stopping service");
+
+//        pleaseStop = true;
+//        await BackgroundTask;
+
+//        Console.WriteLine("Service stopped");
+//    }
+//}

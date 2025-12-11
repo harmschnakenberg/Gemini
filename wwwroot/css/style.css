@@ -1,0 +1,293 @@
+﻿:root {
+    --primary-bg-color: rgb(60, 60, 60);
+    --primary-color: #eeeeee;
+}
+
+body {
+    background-color: var(--primary-bg-color);
+    color: var(--primary-color);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+h1 {
+    padding: 0rem 2.5rem;
+}
+
+span {
+    color: var(--primary-color);
+}
+
+ul {
+    list-style-type: none;
+}
+
+#sidemenu {
+    overflow-y: auto;
+    scrollbar-color: pink lightblue;
+    position: fixed;
+    top: -93vh;
+    left: -430px;
+    padding: 10px;
+    z-index: 1000;
+    height: 95vh;
+    background-color: transparent;
+    opacity: 0.98;
+    /*list-style-type: none;*/
+    /*transform: translate(0px);*/
+}
+
+    #sidemenu:hover {
+        background-color: rgb(70, 70, 70);
+        transform: translate(430px, 91vh)
+    }
+
+  
+.menuitem:link, .menuitem:visited {
+    background-color: slategrey;
+    color: white;
+    padding: 14px 25px;
+    text-decoration: none;
+    margin: 1px;
+    width: 400px;
+    display: inline-block;
+}
+
+.menuitem:hover, .menuitem:active {
+    background-color: blue;
+}
+
+
+    input[type=datetime-local], select{
+        font-size: 1em;
+        font-family: sans-serif;
+        padding: 0.2rem;
+    }
+
+.info-container {
+    min-width: 800px;
+    max-width: 1200px;
+    margin: 10px auto;
+    color: lightgrey;
+}
+
+.container {
+    min-width: 800px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: lightslategray;    
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.controls {
+    display: flex;
+    margin-bottom: 15px;
+    gap: 10px;
+    padding: 0.3rem;
+}
+
+.myButton {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#sortable-list {
+    list-style-type: initial;
+    /*list-style-position: inside;*/
+    padding: 0;
+}
+
+.nonsortable-item {
+    margin: 5px 0px;
+    padding: 2px;
+    /*border: 1px solid #ddd;*/
+ /*   border-radius: 2px;    */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  /*  transition: opacity 0.2s;*/
+}
+
+.sortable-item {
+    margin: 3px 0;
+    padding: 2px;
+   /* border: 1px solid #ddd;*/
+    border-radius: 2px;
+    cursor: grab;
+    display: flex;
+    justify-content: space-between;    
+    transition: opacity 0.2s;
+}
+
+    .sortable-item:active {
+        cursor: grabbing;
+    }
+
+    .sortable-item.dragging {
+        opacity: 0.4;
+    }
+
+    .sortable-item.over {
+        border-top: 2px solid #333; /* Visuelles Feedback wo es fallen gelassen wird */
+    }
+
+.item-content {
+    flex-grow: 1;
+    border: none;
+}
+
+.delete-btn {
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+    .delete-btn:hover {
+        background-color: #e60000;
+    }
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.sollwerte {
+    display: grid;
+    grid-template-columns: 40rem 7rem 3rem 7rem 3rem;
+}
+
+@media (max-width: 1000px) {
+    .sollwerte {
+        display: grid;
+        grid-template-columns: auto 7rem 3rem 7rem 3rem;
+    }
+}
+
+
+.sollwerte > * {
+    padding: 0.5rem;
+    margin: 1px 0px;
+    font-size: 1.2em;
+}
+
+.sollwerte h2 {
+    background-color: lightgray;
+    color: black;
+    grid-column: span 5;
+    margin-top: 0.5rem;
+}
+
+.sollwerte a {
+    background-color: white;
+    color: black;
+    grid-column: span 2;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+    .sollwerte a:hover {
+        box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
+    }
+
+
+.sollwerte div {
+    background-color: lightgrey;
+    grid-column: span 2;
+}
+
+.sollwerte label {
+    background-color: lightgrey;
+    color: black;
+    overflow: hidden;
+    min-width: 0;
+}
+
+    .sollwerte label span {
+        background-color: lightgoldenrodyellow;
+        color: black;
+        float: right !important;
+        width: 6rem;
+        /* position: relative;
+				 right: 0px !important; */
+        padding: 2px 0px;
+    }
+
+.sollwerte input {
+    text-align: right;
+    border: 0px solid grey;
+}
+
+    .sollwerte input:not([disabled]) {
+        cursor: pointer;
+    }
+
+    .sollwerte input + span {
+        background-color: white;
+        color: black;
+    }
+
+    .sollwerte input:disabled + span {
+        background-color: black;
+        color: white;
+    }
+
+    .sollwerte input:disabled {
+        background-color: black;
+        color: white;
+    }
+
+    .sollwerte input:enabled {
+        background-color: white;
+        color: black;
+    }
+
+        .sollwerte input:enabled:hover {
+            box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
+        }
+
+        .sollwerte input:enabled:focus-visible {
+            border: 1px solid blue;
+        }
+
+input[type="checkbox"] {
+    grid-column: span 2;
+}
+
+    input[type="checkbox"]:disabled {
+        background-color: black;
+        accent-color: black;
+    }
+/*	input[type="checkbox"]:read-only {
+		cursor: pointer;
+		accent-color: lightgray;
+	}*/
+/*			input[type="checkbox"]:before {
+				content: 'X' !important;
+				font-size: 14px !important;
+				color: red;
+				text-align: center;
+				line-height: 7px
+			}*/
+
+
+
+
+/*	.ist {
+			fill: white;
+			font-size: 1.2em;
+			text-anchor: start
+		}*/

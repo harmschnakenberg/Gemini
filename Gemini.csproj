@@ -1,27 +1,48 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
     <PublishAot>true</PublishAot>
 	<OutputType>Exe</OutputType>
 	<Nullable>enable</Nullable>
+	<GenerateDocumentationFile>False</GenerateDocumentationFile>
+	<Configurations>Debug;Release;Linux</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <WarningsAsErrors />
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Linux|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <WarningsAsErrors />
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EPPlus" Version="5.8.14" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.0" />
-    <PackageReference Include="S7netplus" Version="0.20.0" />
-    <PackageReference Include="System.Drawing.Common" Version="10.0.0" />
+    <Content Remove="wwwroot\css\input.css" />
+    <Content Remove="wwwroot\js\chart_loeschmich.js" />
+    <Content Remove="wwwroot\js\setDatesToStartOfMonth.js" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="wwwroot\css\atmos.css">
+    <PackageReference Include="EPPlus" Version="5.8.14" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.1" />
+    <PackageReference Include="MiniExcel" Version="1.42.0" />
+    <PackageReference Include="S7netplus" Version="0.20.0" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\css\style.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Update="wwwroot\css\input.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\favicon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -30,6 +51,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\chart2.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\html\excel.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\menu.html">
@@ -44,7 +68,7 @@
     <Content Update="wwwroot\js\chart.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\js\excelform.js">
+    <Content Update="wwwroot\js\excel.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\js\sollmenu.json">
@@ -53,7 +77,7 @@
     <Content Update="wwwroot\js\websocket.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\js\worker.js">
+    <Content Update="wwwroot\js\chartworker.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

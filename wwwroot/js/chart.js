@@ -1,15 +1,5 @@
-﻿// Konfigurationen
-//const DATA_URL = '/' + window.location.host + '/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=2025-11-24T08%3A17%3A00.000Z&end=2025-11-25T08%3A17%3A00.000Z'; // ERSETZE DIES DURCH DEINE ECHTE DATEN-URL
-//const LABEL_ALIASES = {
-//    'A01_DB10_DBW2': 'Stunde [Std.]',
-//    'A01_DB10_DBW4': 'Minute [min]',
-//    'A01_DB10_DBW6': 'Sekunde [s]',
-//    // Füge hier weitere Alias-Ersetzungen hinzu: 'Original-Label': 'Alias-Name'
-//};
-
-
-let myChart;
-const worker = new Worker('/js/worker2.js'); // Initialisiert den Web Worker
+﻿let myChart;
+const worker = new Worker('/js/chartworker.js'); // Initialisiert den Web Worker
 
 // Standardfarben für Datensätze (Chart.js vergibt auch automatisch Farben)
 const CHART_COLORS = [
@@ -152,7 +142,7 @@ worker.onmessage = function (e) {
         const percentage = message.percentage;
    //     console.log(percentage);
         progressBar.value = percentage;
-        progressText.textContent = `${percentage}%`;
+        progressText.textContent = `${percentage}%,  ${message.processedCount} Datensätze`;
 
     } else if (message.type === 'complete') {
 
@@ -195,16 +185,5 @@ function setDatesHours(startId, endId, hh) {
 }
 
 
-function excelExport(startId, endId, ival, tags) {
-    const s = new Date(document.getElementById(startId).value);
-    const e = new Date(document.getElementById(endId).value);
-    const arr = [];
 
-    tags.forEach(function (value, key) {
-        console.info('Exportvorbereitung: ' + key + ' = ' + value);
-        arr.push(new JsonTag(key, value, new Date()));
-    })
 
-    if (arr.length > 0)
-        post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) });
-}

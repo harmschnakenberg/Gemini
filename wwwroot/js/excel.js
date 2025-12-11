@@ -1,8 +1,6 @@
 ﻿function addCol() {    
     const i = document.forms['myForm'].getElementsByTagName('li').length;
 
-
-
     var y = document.createElement('LI');
     y.setAttribute('id', 'li' + i);
 
@@ -33,8 +31,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
     setupDragAndDrop();
 });
 
-const list = document.getElementById('sortable-list');
+let list = null;
 let draggingItem = null;
+
+//window.onload = () => { //Es kann nur einmal onload geben!
+//    list = document.getElementById('sortable-list');
+//}
 
 function setupDragAndDrop() {
     // Event Listener für alle sortierbaren Elemente hinzufügen
@@ -146,17 +148,6 @@ function createListItem(text) {
     isValid(inputField);
 }
 
-function setDatesToStratOfMonth(startId, endId) {
-    var now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById(endId).value = now.toISOString().slice(0, 16);
-
-    var begin = new Date();
-    begin.setUTCMonth(begin.getUTCMonth() - 1, 1)
-    begin.setUTCHours(0, 0, 0);
-    document.getElementById(startId).value = begin.toISOString().slice(0, 16);
-}
-
 function isValid(input) {    
     const ops = document.querySelectorAll('#comments > OPTION');
     input.style.backgroundColor = 'white';
@@ -199,6 +190,17 @@ async function loadComments() {
 
 }
 
+function setDatesToStartOfMonth(startId, endId) {
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById(endId).value = now.toISOString().slice(0, 16);
+
+    var begin = new Date();
+    begin.setUTCMonth(begin.getUTCMonth() - 1, 1);
+    begin.setUTCHours(0, 0, 0);
+    document.getElementById(startId).value = begin.toISOString().slice(0, 16);
+}
+
 function getExcelFromForm() {
     const inputs = document.querySelectorAll('.sortable-item > input');
     const interval = document.getElementById('interval').value;
@@ -221,4 +223,43 @@ function getExcelFromForm() {
         excelExport('start', 'end', interval, tags);
     else
         console.warn("Keine Tags für Excel-Export ausgewählt.");
+}
+
+function excelExport(startId, endId, ival, tags) {
+    const s = new Date(document.getElementById(startId).value);
+    const e = new Date(document.getElementById(endId).value);
+    const arr = [];
+
+    console.info(`Übergebene Tags: ${tags.size}`);
+
+    tags.forEach(function (value, key) {
+        console.info('Exportvorbereitung: ' + key + ' = ' + value);
+        arr.push(new JsonTag(key, value, new Date()));
+    })
+
+    if (arr.length > 0)
+        post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) });
+}
+
+function post(path, params, method = 'post') {
+
+    // The rest of this code assumes you are not using a library.
+    // It can be made less verbose if you use one.
+    const form = document.createElement('form');
+    form.method = method;
+    form.action = path;
+
+    for (const key in params) {
+        if (params.hasOwnProperty(key)) {
+            const hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = key;
+            hiddenField.value = params[key];
+
+            form.appendChild(hiddenField);
+        }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }

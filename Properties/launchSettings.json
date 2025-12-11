@@ -4,8 +4,8 @@
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": false,
-      "launchBrowser": false,
-      "launchUrl": "chart",
+      "launchBrowser": true,
+      "launchUrl": "",
       "applicationUrl": "http://localhost:5222",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"

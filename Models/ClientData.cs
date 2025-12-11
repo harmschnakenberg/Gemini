@@ -17,10 +17,11 @@ namespace Gemini.Models
 
     }
 
+
     public record FormPost(
     [Required] DateTime Start,
     [Required] DateTime End,
-    [Required, Range(0, 5)] Excel.Interval Interval,
+    [Required, Range(0, 5)] MiniExcel.Interval Interval,
     [Required] Dictionary<string, string> TagsAndComments
 );
 
@@ -35,5 +36,6 @@ namespace Gemini.Models
 [JsonSerializable(typeof(int))]
 [JsonSerializable(typeof(Int16))]
 [JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(object))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext { }
 

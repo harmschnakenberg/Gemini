@@ -132,6 +132,9 @@ namespace Gemini.Services
                     _parseCache.TryRemove(t.N, out _);
             }
 
+            //Hier prüfen, ob alle TagNames in der Datenbank bekannt sind
+            Db.Db.InsertTagNamesBulk(tags);
+
             var entry = new ClientEntry(sendCallback, tags);
             _clients.AddOrUpdate(clientId, entry, (_, __) => entry);
 
@@ -264,6 +267,8 @@ namespace Gemini.Services
                                     int blockStart = ranges[iIdx].start;
                                     int blockEnd = ranges[iIdx].end;
 
+                                    //Console.WriteLine($"DB{db}-Range Start {blockStart}, Ende {blockEnd}, Länge {blockEnd - blockStart}");
+
                                     var blockMembers = new List<(Guid, JsonTag, ParsedAddress)>
                                     {
                                         (ranges[iIdx].clientId, ranges[iIdx].tag, ranges[iIdx].parsed)
@@ -276,8 +281,10 @@ namespace Gemini.Services
                                         int nextEnd = ranges[iIdx].end;
 
                                         int tentativeStart = blockStart;
-                                        int tentativeEnd = Math.Max(blockEnd, nextEnd);
+                                        int tentativeEnd = Math.Max(blockEnd, nextEnd);                                        
                                         int tentativeLength = tentativeEnd - tentativeStart + 1;
+
+                                        //Console.WriteLine($"DB{db}-Block Start {tentativeStart}, Ende {tentativeEnd}, Länge {tentativeLength}");
 
                                         if (tentativeLength > MaxBlockBytes)
                                         {
@@ -290,11 +297,12 @@ namespace Gemini.Services
 
                                         // extend block
                                         blockEnd = tentativeEnd;
-                                        blockMembers.Add((ranges[iIdx].clientId, ranges[iIdx].tag, ranges[iIdx].parsed));
+                                        blockMembers.Add((ranges[iIdx].clientId, ranges[iIdx].tag, ranges[iIdx].parsed));                                        
                                         iIdx++;
                                     }
 
                                     blocks.Add((blockStart, blockEnd - blockStart + 1, blockMembers));
+                                    //Console.WriteLine($"Auswertung DB{db}-Block Start {blockStart}, Länge {blockEnd - blockStart + 1}, Anzahl {blockMembers.Count}");
                                 }
 
                                 // Für jeden Block: ReadBytes und extrahiere Werte
@@ -304,12 +312,14 @@ namespace Gemini.Services
                                     try
                                     {
                                         // S7.Net: ReadBytes(DataType, db, start, count)
-                                        blockBytes = plc.ReadBytes(DataType.DataBlock, db, block.start, block.length);
+                                        blockBytes = plc.ReadBytes(DataType.DataBlock, db, block.start, block.length);                                        
                                     }
                                     catch
                                     {
                                         // Lesefehler -> skip
+#if DEBUG
                                         Console.WriteLine($"Fehler beim Lesen von DB{db} ab Offset {block.start} Länge {block.length} von SPS {ip}.");
+#endif
                                         continue;
                                     }
 

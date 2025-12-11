@@ -10,7 +10,7 @@ namespace Gemini.Db
     internal partial class Db
     {
 
-        private static readonly object _dbLock = new();
+        private static readonly Lock _dbLock = new();
 
         #region Pfade
         internal static readonly string AppFolder = AppDomain.CurrentDomain.BaseDirectory;
@@ -82,10 +82,12 @@ namespace Gemini.Db
                           Slot INTEGER DEFAULT 0,
                           Comment TEXT                          
                           );
+                    PRAGMA journal_mode=WAL;
                     ";
             int result = command.ExecuteNonQuery();
+            Console.WriteLine("Mastertabelle erstellt. Ergebnis: " + result);
 
-            if (result < 1) //Keine Änderungen geschrieben
+            if (result != 0) //Keine Änderungen geschrieben
                 return;
 
             //Tabellen mit Default-Daten füllen
@@ -122,12 +124,13 @@ namespace Gemini.Db
 
                           CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
                           ); 
+                          PRAGMA journal_mode=WAL;
                     ";
             int result = command.ExecuteNonQuery();
 
             Console.WriteLine("Tagestabelle erstellt. Ergebnis: " + result);
 
-            if (result > 0) //Keine Änderungen geschrieben. Warum 0?
+            if (result != 0) //Keine Änderungen geschrieben. Warum 0?
                 return;
 
             #region Tabelle Tag mit TagNames aus der letzten Tabelle füllen
@@ -157,7 +160,8 @@ namespace Gemini.Db
                 command.CommandText = $@"
                         ATTACH DATABASE '{dbPath}' AS old_db; 
                         INSERT INTO Tag SELECT * FROM old_db.Tag; 
-                        DETACH DATABASE old_db; ";
+                        DETACH DATABASE old_db; 
+                        ";
 
                 result = command.ExecuteNonQuery();
 

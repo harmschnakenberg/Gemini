@@ -3,43 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <title>WebSocket Client</title>
-    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel='stylesheet' href='/css/atmos.css'>
-    <link rel='stylesheet' href='/css/input.css'>
+    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+    <link rel='stylesheet' href='/css/style.css'>
     <script src='/js/websocket.js'></script>
-    <script src='/js/menu.js'></script>
 </head>
 <body>
     <h1>ASP.NET Core Minimal API</h1>
 
     <ul>
-        <li><a href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a></li>
-        <li><a href="/html/soll/test.html">Demo Sollwertfenster</a></li>
-        <li><a href="/chart">Demo Kurvendarstellung</a></li>
-        <li><a href="/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=2025-11-24T08%3A17%3A00.000Z&end=2025-11-25T08%3A17%3A00.000Z">Demo Json Rohdaten abfragen</a></li>
-        <li><a href="/excel">Demo Datenexport via Excel</a></li>         
+        <li><a class="menuitem" href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a></li>
+        <li><a class="menuitem" href="/html/soll/test.html">Demo Sollwertfenster</a></li>
+        <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
+        <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
+        <li><a class="menuitem" href="/excel">Demo Datenexport via Excel</a></li>         
     </ul>
-    <style>
-        ul {
-            list-style-type: none;
-        }
 
-        a:link, a:visited {
-            background-color: slategrey;
-            color: white;
-            padding: 14px 25px;
-            
-            text-decoration: none;
-            margin: 1px;
-            width: 50vw;
-            display: inline-block;
-        }
-
-        a:hover, a:active {
-            background-color: blue;
-        }
-    </style>
-    <script>loadMenu('/js/sollmenu.json')</script>
+    <script>
+        const start = new Date();
+        start.setHours(0, 0, 0);
+        start.toISOString().replace(" ", "%3A")
+        
+        const end = new Date();
+        end.toISOString().replace(" ", "%3A");
+        
+        document.getElementById('rawjsonlink').setAttribute('href', `/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=${start}&end=${end}`)
+        //href="/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=2025-11-24T08%3A17%3A00.000Z&end=2025-11-25T08%3A17%3A00.000Z"
+    </script>
 </body>
 </html>
