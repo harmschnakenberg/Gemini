@@ -92,15 +92,8 @@ function initWebsocket(tags) {
     };
 }
 
-window.onload = () => {
-    initUnits();
-    initWebsocket(initTags());
-    loadMenu('/js/sollmenu.json');
-}
-
-
-async function loadMenu(path) {
-    const logo = "<svg><style> svg { width:35px; height:35px; background-color: #ddd; position:absolute; right:2px; bottom:2px; margin:2px;}</style>" +
+async function loadMenu(endpoint, path) {
+    const logo = "<svg id='logo'><style> svg { width:35px; height:35px; background-color: #ddd; position:absolute; right:2px; bottom:2px; margin:2px;}</style>" +
         "<line x1='0' y1='0' x2='0' y2='35' style='stroke:darkcyan;stroke-width:2'></line>" +
         "<polygon points='10,0 10,15 25,0' style='fill:#00004d;'></polygon>" +
         "<polygon points='10,20 10,35 25,35' style='fill:#00004d;'></polygon>" +
@@ -114,13 +107,14 @@ async function loadMenu(path) {
 
     let file = await fetch(path);
     let text = await file.text();
-    console.info(`Menü JSON: ${text}`);
+    //console.info(`Menü JSON: ${text}`);
     const json = JSON.parse(text);
 
     for (var item of json.Sollwerte) {
         const li = document.createElement("li");
         const a = document.createElement("a");
-        a.setAttribute("href", `/html/soll/${item.link}`);
+        a.setAttribute("href", `/menu/${endpoint}/${item.id}`)
+        //a.setAttribute("href", `/html/soll/${item.link}`);
         a.classList.add("menuitem");        
         a.innerHTML = item.name;
 
@@ -128,4 +122,32 @@ async function loadMenu(path) {
     }
 }
 
+// Token-Schlüssel konstant halten
+const TOKEN_KEY = 'accessToken';
+const LOGGED_USER = 'userName';
 
+// Funktion zum Überprüfen des Login-Status beim Laden der Seite
+function checkLoginStatus() {
+    let span = document.getElementById('loginMessage');
+
+    if (!span) {
+        span = document.createElement("span");
+        span.setAttribute('id', 'loginMessage');
+        document.body.appendChild(span);
+    }
+
+    if (sessionStorage.getItem(TOKEN_KEY)) {
+        span.innerHTML = sessionStorage.getItem(LOGGED_USER);
+        span.style.backgroundcolor = 'lawngreen';
+    } else {
+        span.textContent = 'Kein Benutzer';
+        span.style.color = 'grey';
+    }
+}
+
+window.onload = () => {
+    initUnits();
+    checkLoginStatus();
+    initWebsocket(initTags());
+    loadMenu('soll', '/js/sollmenu.json');
+}

@@ -17,18 +17,46 @@ namespace Gemini.Models
 
     }
 
+    public class Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
+    {
+        public string TagName { get; set; } = tagName;
+        public string TagComment { get; set; } = tagComment;
+        public object? TagValue { get; set; } = tagValue;
+        public bool ChartFlag { get; set; } = chartFlag;
+
+    }
 
     public record FormPost(
     [Required] DateTime Start,
     [Required] DateTime End,
     [Required, Range(0, 5)] MiniExcel.Interval Interval,
     [Required] Dictionary<string, string> TagsAndComments
-);
+    );
+
+    public record UserCredentials(string Username, string Password);
+
+    public class CurrentUser
+    {
+        public string Username { get; set; } = string.Empty;
+    }
+
+
+    public class MenuLink(int id, string name, string link)
+    {
+        public int Id { get; set; } = id;
+        public string Name { get; set; } = name;
+        public string Link { get; set; } = link;
+    }
+
+    //public record MenuTree(string treeName, MenuLink[] menuItems);
 
 }
 
 // Source Generator Context
 [JsonSerializable(typeof(string[]))]
+[JsonSerializable(typeof(Dictionary<string, Gemini.Models.MenuLink[]>))]
+[JsonSerializable(typeof(Gemini.Models.MenuLink[]))]
+[JsonSerializable(typeof(Gemini.Models.UserCredentials))]
 [JsonSerializable(typeof(Gemini.Models.FormPost))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(DateTime))]

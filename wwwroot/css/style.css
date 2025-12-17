@@ -41,7 +41,13 @@ ul {
         transform: translate(430px, 91vh)
     }
 
-  
+#loginMessage{
+    position: absolute;
+    right: 0.5rem;
+    top: 1.5rem;    
+}
+
+
 .menuitem:link, .menuitem:visited {
     background-color: slategrey;
     color: white;
@@ -167,6 +173,11 @@ input[type=number] {
 .sollwerte {
     display: grid;
     grid-template-columns: 40rem 7rem 3rem 7rem 3rem;
+}
+
+.tagConfig {
+    display: grid;
+    grid-template-columns: 7rem 40rem 3rem 1rem 1rem 3rem;
 }
 
 @media (max-width: 1000px) {

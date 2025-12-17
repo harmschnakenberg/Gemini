@@ -21,7 +21,7 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- ToDo: Benutzerverwaltung
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder
-	- ToDo: dynamisch erzeugtes, eingeblendetes Menü
+	- dynamisch erzeugtes, eingeblendetes Menü
 	
 - S700/1200/1500/300/400 PLC Communication Library
 	- TCP/IP Communication mit mehreren SPSen gleichzeitig
@@ -33,4 +33,4 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- SPS Verwaltung in Datenbank?
 	- Auslesen über mehrere Datenbankdateien
 	- gleichzeitigen Zugriff auf die Datenbank verhindern (lock)
-	- ToDo: WAL (Write Ahead Log) Modus für bessere Performance?
+	- WAL (Write Ahead Log) Modus für bessere Performance/weniger Dateikonflikte

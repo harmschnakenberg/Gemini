@@ -155,7 +155,7 @@ namespace Gemini.Services
         public void RemoveClient(Guid clientId)
         {
 #if DEBUG
-            Console.WriteLine($"Client {clientId} wird entfernt.");
+            //Console.WriteLine($"Client {clientId} wird entfernt.");
 #endif
             _clients.TryRemove(clientId, out _);
         }

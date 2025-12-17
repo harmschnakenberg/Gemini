@@ -3,30 +3,35 @@ using Gemini.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using MiniExcelLibs;
-using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
+//using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using System.Text.Json;
 using System.Transactions;
 using System.Xml.Linq;
-using static OfficeOpenXml.ExcelErrorValue;
+//using static OfficeOpenXml.ExcelErrorValue;
 using DateTime = System.DateTime;
 
 namespace Gemini.Db
 {
     internal partial class Db
     {
-        internal static void InitiateDbWriting()
+        internal static async void InitiateDbWriting()
         {
-            JsonTag[] dummyData = [];
-
+            List<JsonTag> dummyData = [];
+            List<Tag> tags = await GetDbTagNames(DateTime.UtcNow);
+            tags.ForEach(tag => {
+                if (tag.ChartFlag == true)
+                    dummyData.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.UtcNow));
+                }); 
             //Lade alle Tag - Namen aus der Datenbank
-            GetDbTagNames(DateTime.UtcNow).ContinueWith(t =>
-            {
-                Console.WriteLine($"Lade {t.Result.Count} Tag-Namen aus der Datenbank für die Initialisierung.");
-                foreach (var kvp in t.Result)
-                {
-                    dummyData = [.. dummyData, new JsonTag(kvp.Key, null, DateTime.UtcNow)];
-                }
-            }).Wait();
+            //GetDbTagNames(DateTime.UtcNow).ContinueWith(t =>
+            //{
+            //    t.
+            //    Console.WriteLine($"Lade {t.Result.ToArray().Length} Tag-Namen aus der Datenbank für die Initialisierung.");
+            //    foreach (var kvp in t.Result)
+            //    {
+            //        dummyData = [.. dummyData, new JsonTag(kvp.Key, null, DateTime.UtcNow)];
+            //    }
+            //}).Wait();
 
             var dbClientId = Guid.NewGuid(); //Datenbank wie jeden anderen Client im PlcTagManager anmelden.
             Console.WriteLine($"Die Datenbank loggt sich ein als Client {dbClientId}");
@@ -39,7 +44,7 @@ namespace Gemini.Db
                 await SendDbUpdateAsync(dbClientId, tagsToSend);
             }
 
-            PlcTagManager.Instance.AddOrUpdateClient(dbClientId, dummyData, SendDbUpdateCallback);
+            PlcTagManager.Instance.AddOrUpdateClient(dbClientId, [.. dummyData], SendDbUpdateCallback);
 
         }
 
@@ -81,9 +86,9 @@ namespace Gemini.Db
         /// <param name="date"></param>
         /// <param name="lookBackDays"></param>
         /// <returns>Dictionary <TagName, TagComment></returns>
-        public static async Task<Dictionary<string, string>> GetDbTagNames(DateTime date, int lookBackDays = 9)
+        public static async Task<List<Tag>> GetDbTagNames(DateTime date, int lookBackDays = 9)
         {
-            Dictionary<string, string> tagNames = [];
+            List<Tag> tags = [];
 
             lock (_dbLock)
             {
@@ -107,11 +112,11 @@ namespace Gemini.Db
                     //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
 
                     if (date.Date == DateTime.UtcNow.Date)
-                        command.CommandText = @"SELECT Name, Comment FROM Tag WHERE ChartFlag == 1;";
+                        command.CommandText = @"SELECT Name, Comment, ChartFlag FROM Tag;";
                     else
                         command.CommandText = $@"
                         ATTACH DATABASE '{dbPath}' AS old_db; 
-                        SELECT Name, Comment FROM Tag WHERE ChartFlag == 1; 
+                        SELECT Name, Comment, ChartFlag FROM Tag; 
                         DETACH DATABASE old_db; ";
 
                     using var reader = command.ExecuteReader(); // maximal 10 Databases dürfen attached sein!
@@ -119,16 +124,17 @@ namespace Gemini.Db
                     {
                         string tagName = reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
                         string tagComment = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
+                        bool chartFlag = reader.GetBoolean(2);
                         //Console.WriteLine($"Tagestabelle: Gefundener TagName {tagName} mit Kommentar {tagComment}.");
-                        tagNames.Add(tagName, tagComment);
+                        tags.Add(new Tag(tagName, tagComment, null, chartFlag));
                     }
 
-                    if (tagNames.Count > 0)
+                    if (tags.Count > 0)
                         break;
                 }
                 connection.Dispose();
             }
-            return tagNames;
+            return tags;
         }
 
 
@@ -703,5 +709,28 @@ namespace Gemini.Db
 
         }
 
+        internal static void TagUpdate(string tagName, string? tagComm, bool tagChart)
+        {
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(DayDbSource);
+                connection.Open();                
+                var command = connection.CreateCommand();
+
+                var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
+                var commentParam = command.Parameters.Add("@TagComment", SqliteType.Text);
+                var chartParam = command.Parameters.Add("@ChartFlag", SqliteType.Text);
+
+                nameParam.Value = tagName;
+                commentParam.Value = tagComm;
+                chartParam.Value = tagChart;
+
+                command.CommandText = @"UPDATE Tag SET Comment = @TagComment, ChartFlag = @ChartFlag WHERE Name = @TagName;";
+                int result = command.ExecuteNonQuery();
+#if DEBUG
+                Console.WriteLine($"Beim Ändern von {tagName} wurden {result} Zeilen in der Datenbank geändert.");
+#endif
+            }               
+        }
     }
 }

@@ -16,65 +16,71 @@ namespace Gemini.DynContent
                 <html lang='de'>
                 <head>
                     <meta charset='UTF-8'>
-                    <title>Alle Werte</title>
-                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+                    <title>Alle Werte</title>                    
                     <link rel='shortcut icon' href='/favicon.ico'>
                     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                     <link rel='stylesheet' href='/css/style.css'>                    
                     <script src='/js/websocket.js'></script>
+                    <script src='/js/excel.js'></script>
                 </head>
                 <body>");
 
+
+            List<Models.Tag> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 1);
+
+
             sb.Append("<h1>Datenpunkte</h1>");
-            sb.Append("<div class='sollwerte'>");
-            sb.Append("<h2>Alle momentan aufgezeichneten Werte</h2>");
+            sb.Append("<table>");
+            sb.Append("<tr><th>Item-Name</th><th>Beschreibung</th><th>mom. Wert</th><th>Log</th></tr>");
 
-            Dictionary<string, string> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 1);
-
-            foreach (string tagName in allTags.Keys)
+            foreach (Models.Tag tag in allTags)
             {
-                sb.Append($"<label>{allTags[tagName]}</label>");
-                sb.Append($"<input data-name='{tagName}' data-unit='' disabled>");
-                sb.Append("<div>&nbsp;</div>");
+                sb.Append("<tr>");
+                sb.Append($"<td><input value='{tag.TagName}' disabled></td>");
+                sb.Append($"<td><input style='text-align: left;' value='{tag.TagComment}'></td>");
+                sb.Append($"<td><input data-name='{tag.TagName}' disabled></td>");
+                sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")} ></td>");
+                sb.Append("</tr>");
             }
-            sb.Append("</div>");
+
+            sb.Append("</table>");
+
+            sb.Append(@"
+            <script>
+                function updateTag(obj) {                    
+                    const tagName = obj.parentNode.parentNode.children[0].children[0].value;
+                    const tagComm = obj.parentNode.parentNode.children[1].children[0].value;
+                    const tagChck = obj.parentNode.parentNode.children[3].children[0].checked;
+
+                    post('/tagupdate', { tagName: tagName, tagComm: tagComm, tagChck: tagChck });
+
+                }
+            </script>
+            ");
 
             sb.Append("<h2>Steuerungen</h2>");
             sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
-            sb.Append("<ul>");
+            sb.Append("<table>");
 
             var plcs = PlcTagManager.Instance.GetAllPlcs();
 
             foreach (var plcName in plcs.Keys)
                 if (plcName.StartsWith('A')) {
-                    sb.AppendLine("<li>");
-                    sb.AppendLine($"<span style='display:inline-block;width:3rem'>{plcName}:</span>");
-                    sb.AppendLine($"{plcs[plcName].CPU.ToString()}, {plcs[plcName].IP}, Rack {plcs[plcName].Rack}, Slot {plcs[plcName].Slot}");
-                    //sb.AppendLine($"<span><input type='hidden' id='{plcName}hour' data-name='{plcName}_DB10_DBW2'/>");
-                    //sb.AppendLine($"<input type='hidden' id='{plcName}hour' data-name='{plcName}_DB10_DBW4'/>");
-                    //sb.AppendLine($"<input type='hidden' id='{plcName}hour' data-name='{plcName}_DB10_DBW6'/>");
-                    //sb.AppendLine("</li>");
-
+                    sb.AppendLine("<tr>");
+                    sb.AppendLine($"<td>{plcName}</td>");
+                    sb.AppendLine($"<td>{plcs[plcName].CPU.ToString()}<td/>");
+                    sb.AppendLine($"<td>{plcs[plcName].IP}<td/>");
+                    sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
+                    sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
+                    sb.AppendLine($"<td>" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2'/>:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4'/>:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6'/>" +
+                        $"</td>");                   
+                    sb.AppendLine("</tr>");
                 }
 
-            /*
-             * <div style="position:absolute; right:1rem; top:1rem;">
-        <input type="hidden" id="hour" data-name='A01_DB10_DBW2' />
-        <input type="hidden" id="min" data-name='A01_DB10_DBW4' />
-        <input type="hidden" id="sec" data-name='A01_DB10_DBW6' />
-        SPS-Zeit <span id="time"></span>
-        <script>
-            function clock() {
-                h = document.getElementById('hour').value;
-                m = document.getElementById('min').value;
-                s = document.getElementById('sec').value;                
-                document.getElementById('time').innerHTML = h.padStart(2, "0") + ':' + m.padStart(2, "0") + ':' + s.padStart(2, "0");
-            }
-            window.setInterval(clock, 1000);
-        </script>
-    </div>
-            */
-            sb.Append("</ul>");
+            sb.Append("</table>");
 
             sb.Append(@"
                 </body>

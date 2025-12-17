@@ -145,7 +145,7 @@ namespace Gemini.Middleware
                     if (r.MessageType == WebSocketMessageType.Close)
                     {
 #if DEBUG
-                        Console.WriteLine($"Websocket von Client {clientId} geschlossen.");
+                        //Console.WriteLine($"Websocket von Client {clientId} geschlossen.");
 #endif
                         break;
                     }
