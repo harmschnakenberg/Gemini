@@ -129,6 +129,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
     params.append("end", endDate.toISOString());
     const link = `/db?${params}`;
     document.getElementById('rawDataLink').setAttribute("href", link);
+
     
     // Sende alle notwendigen Daten an den Worker
     workers.get(chartId).postMessage({
@@ -186,4 +187,17 @@ function setDatesHours(startId, endId, hh) {
     var begin = new Date();
     begin.setUTCHours(begin.getHours() - hh);
     document.getElementById(startId).value = begin.toISOString().slice(0, 16);
+}
+
+function getAllTags(tags) {
+    const allTags = new Map();
+
+    tags.forEach(x);
+
+    function x(tag) {
+        tag.forEach(function (value, key) {
+            allTags.set(key, value);
+        });
+    }
+    return allTags;
 }

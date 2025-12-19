@@ -107,16 +107,18 @@ async function loadMenu(endpoint, path) {
 
     let file = await fetch(path);
     let text = await file.text();
-    //console.info(`Menü JSON: ${text}`);
+   console.info(`Menü JSON: ${text}`);
     const json = JSON.parse(text);
 
+    console.info(`Menü JSON: ${json.Sollwerte}`);
     for (var item of json.Sollwerte) {
+        console.info(`${item}, ${item.Id}`)
         const li = document.createElement("li");
         const a = document.createElement("a");
-        a.setAttribute("href", `/menu/${endpoint}/${item.id}`)
+        a.setAttribute("href", `/menu/${endpoint}/${item.Id}`)
         //a.setAttribute("href", `/html/soll/${item.link}`);
         a.classList.add("menuitem");        
-        a.innerHTML = item.name;
+        a.innerHTML = item.Name;
 
         document.getElementById("sidemenu").appendChild(li).appendChild(a);
     }

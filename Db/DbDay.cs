@@ -327,12 +327,13 @@ namespace Gemini.Db
                         {
                             //Console.WriteLine($"✔ Datenbank für Tag {day:yyyy-MM-dd} wird abgefragt.");
                             string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
-                            attach.Add($"ATTACH DATABASE '{dbChunk[day]}' AS '{dbName}';");
+                            
 
                             if (day.Date == DateTime.UtcNow.Date)
                                 query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
                             else
                             {
+                                attach.Add($"ATTACH DATABASE '{dbChunk[day]}' AS '{dbName}';");
                                 query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                                 detach.Add($"DETACH DATABASE '{dbName}';");
                             }

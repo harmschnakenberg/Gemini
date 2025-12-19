@@ -33,11 +33,11 @@
 
     <canvas id="myChart1" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
     <div class="container controls" style="max-width: fit-content; margin-left: auto; margin-right: auto;">
-        <input type="datetime-local" id="start" name="start" onfocusout="loadChart('myChart1', 'start', 'end', tags1);loadChart('myChart2', 'start', 'end', tags2);">
-        <input type="datetime-local" id="end" name="end" onfocusout="loadChart('myChart1', 'start', 'end', tags1);loadChart('myChart2', 'start', 'end', tags2);">
-        <input type="button" class="myButton" onclick="setDatesHours('start', 'end', 8); loadChart('myChart', 'start', 'end', tags1);" value="8 Stunden" />
-        <input type="button" class="myButton" onclick="setDatesHours('start', 'end',24); loadChart('myChart', 'start', 'end', tags1);" value="24 Stunden" />
-        <input type="button" class="myButton" onclick="excelExport('start', 'end', 0, tags);" value="Excel Export" />
+        <input type="datetime-local" id="start" name="start" onfocusout="loadAllCharts();">
+        <input type="datetime-local" id="end" name="end" onfocusout="loadAllCharts();">
+        <input type="button" class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();" value="8 Stunden" />
+        <input type="button" class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();" value="24 Stunden" />
+        <input type="button" class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));" value="Excel Export" />
     </div>
     <canvas id="myChart2" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
 
@@ -63,8 +63,14 @@
         initChart('myChart1');
         initChart('myChart2');
         setDatesHours('start', 'end', 8);
-        loadChart('myChart1', 'start', 'end', tags1);
-        loadChart('myChart2', 'start', 'end', tags2);
+        loadAllCharts();
+
+        function loadAllCharts() {
+            loadChart('myChart1', 'start', 'end', tags1);
+            loadChart('myChart2', 'start', 'end', tags2);
+        }
+
+
 
     </script> 
 </body>
