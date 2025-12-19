@@ -2,22 +2,22 @@ using Gemini.Db;
 using Gemini.DynContent;
 using Gemini.Middleware;
 using Gemini.Models;
+using Gemini.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 
 bool pleaseStop = false;
 
-Gemini.Db.Db db = new();//Datenbanken initialisieren
+
+Gemini.Db.Db db = new(); //Datenbanken initialisieren
 
 // 0. Datenbank-Schreibvorgang initialisieren
 Gemini.Db.Db.InitiateDbWriting();
@@ -25,87 +25,74 @@ Gemini.Db.Db.InitiateDbWriting();
 // 1. Native AOT Vorbereitung: CreateSlimBuilder verwenden
 var builder = WebApplication.CreateSlimBuilder(args);
 
+#region Authentifizierung
 
-// --- JWT Konfiguration aus appsettings.json ---
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-var jwtKey = builder.Configuration["Jwt:Key"];
+var key = Encoding.UTF8.GetBytes("Dein_Super_Geheimer_Schluessel_2025_!");
 
-// Identity Password Hasher Dienst registrieren
-// Wir verwenden den Standard AspNetUsers Hasher für Einfachheit
-builder.Services.AddSingleton<IPasswordHasher<CurrentUser>>(new PasswordHasher<CurrentUser>());
-
-// Füge Autorisierungsdienste hinzu // Quelle: https://www.google.com/search?q=miniapi+authentifizierung+beispiel+code&client=firefox-b-d&hs=Goc9&sca_esv=b338e4d9bf6df8e5&sxsrf=AE3TifM-VSwGoD1MYW_zfu1Q8D7ZFUxp6w%3A1765467166999&udm=50&fbs=AIIjpHw2KGh6wpocn18KLjPMw8n5Yp8-1M0n6BD6JoVBP_K3fXXvA3S3XGyupmJLMg20um-mJAeO36stiqcDeSp1syInqJqhSijxtY18VJnNswqZEIqIPXL38MAteWnp4wS6uPmuMpOhUlhdP9rbJwptoX38hedzCJMh4q4oNw2kfdRn5MHw26aduF_c8rKmrLVGeF2Q5T_7&aep=1&ntc=1&sa=X&ved=2ahUKEwiT1Ofa7bWRAxUQ9LsIHQtBBt0Q2J8OegQIDBAE&biw=1869&bih=1085&dpr=1&mtid=JeQ6afzZLpOA9u8PsJKNcQ&mstk=AUtExfB0xAbacpIVnlwi68hEzi2zTqYpv8vRz8y-ougmCMOYCIy9Am-9dq22iU29oP5YOs89Av3CcXqQfFTsxBn4VEXEF_RIRG-tHhTCqcm8KzhGENfqgnqqxxPGqo8sUHD7peOiw0fG2Egac997pdz_HMiwGYRa4BpX9BX21n4XpatA8vnF2VQN15aLXsDHWKrqsUYpp9pgyNSPS3YwEqbH7-vy0KNVSz15jESDmluGbKtJGpN3exb5YQMrX6gv6VHhyXRJ10EvId6t9PgOFN_ZdSDBplo888Sdl8r2h7s4xg0KsUrKb01Re5BGokpn5zrv4OQc_BiRPxhcEA&csuir=1
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
+    .AddJwtBearer(options => {
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey ?? new Guid().ToString())) //Wenn jwTKey ungültig/NULL einen Zufallswert hinterlegen
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+        // WICHTIG: Token aus dem Cookie lesen
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context => {
+                context.Token = context.Request.Cookies["X-Access-Token"];
+                return Task.CompletedTask;
+            }
         };
     });
+
 builder.Services.AddAuthorization();
-
-//// Hosted Service für sauberes Herunterfahren registrieren
-//builder.Services.AddHostedService<ShutdownService>();
-
-// 2. Native AOT Vorbereitung: Json Serializer Context registrieren
 builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    // Fügt den Quell-generierten Serialisierungskontext hinzu
-    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
-});
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default));
 
-
+#endregion
 
 var app = builder.Build();
-//app.UseAuthentication();
-//app.UseAuthorization();
-
-// 3. WebSocket Middleware aktivieren
 app.UseStaticFiles();
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 
 
-// Login-Endpunkt aktualisiert
-app.MapPost("/login", (UserCredentials credentials) =>
-{
-Console.WriteLine($"Login-Anfrage von {credentials.Username} {credentials.Password}");
 
-//PasswordHasherAOT.GenerateHashAndSalt(credentials.Password);
-
-var storedSaltHash = "VGvQLgakL+zYSbv1EFundg==.IoCdvQPXQoJxUqGVQMsASdZjHLIE7d8U9pwKqlkcq6E="; // Salt.Hash
-
-// Passwort überprüfen mit AOT-freundlicher Methode
-if (PasswordHasher.VerifyPassword(credentials.Password, storedSaltHash))
-{
-    // Token Generierungscode (unverändert)
-    var tokenHandler = new JwtSecurityTokenHandler();
-    var key = Encoding.UTF8.GetBytes(jwtKey ?? new Guid().ToString()); //
-    var tokenDescriptor = new SecurityTokenDescriptor
+app.MapPost("/login", async (JsonTag user, HttpContext ctx) =>
+{    
+    if (user.N == "testuser" && user?.V?.ToString() == "password123")
     {
-        Subject = new ClaimsIdentity([new Claim(ClaimTypes.Name, credentials.Username)]),
-        Expires = DateTime.UtcNow.AddMinutes(15),
-        Issuer = jwtIssuer,
-        Audience = jwtAudience,
-        SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-    };
-    var token = tokenHandler.CreateToken(tokenDescriptor);
-    var tokenString = tokenHandler.WriteToken(token);
-    var j = new JsonTag(credentials.Username, tokenString, DateTime.Now);
-    //Console.WriteLine($"ausgegebener Token für {j.N}: {j.V}" );
-        return Results.Json(j, AppJsonSerializerContext.Default.JsonTag);
-    }
+        Console.WriteLine($"Login mit {user.N}, {user.V}");
 
+        var token = JwtExtensions.GenerateJwt(user.N, key);
+
+        // JWT als HttpOnly Cookie setzen
+        ctx.Response.Cookies.Append("X-Access-Token", token, new CookieOptions
+        {
+            HttpOnly = true,
+            //Secure = true,      // Nur über HTTPS
+            SameSite = SameSiteMode.Strict,
+            Expires = DateTime.UtcNow.AddHours(1)
+        });
+
+        return Results.Ok();
+        //ctx.Response.StatusCode = 200;
+        //ctx.Response.ContentType = "text/html";
+        //var file = File.ReadAllText(link, Encoding.UTF8);
+        //await ctx.Response.WriteAsync(file);
+        //await ctx.Response.CompleteAsync();
+    }
     return Results.Unauthorized();
 });
+
+app.MapPost("/logout", (HttpContext context) =>
+{
+    context.Response.Cookies.Delete("X-Access-Token");
+    return Results.Ok(new { message = "Ausgeloggt" });
+}).AllowAnonymous();
 
 // 4. Routen festlegen
 app.MapGet("/menu/soll/{id:int}", async (int id, HttpContext ctx) =>
@@ -114,22 +101,19 @@ app.MapGet("/menu/soll/{id:int}", async (int id, HttpContext ctx) =>
         using (TextReader reader = new StreamReader("wwwroot/js/sollmenu.json"))
         {
             json = await reader.ReadToEndAsync();
-        };
+        }
+        ;
 
-       // Console.WriteLine(json);
+        //Console.WriteLine(json);
 
         var menuTree = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.DictionaryStringMenuLinkArray);
 
         if (menuTree == null)
             return;
 
-        string key = menuTree.Keys.FirstOrDefault() ?? string.Empty;
-        MenuLink? menuLink = menuTree[key]?.Where(i => i.Id == id).FirstOrDefault();
+        MenuLink? menuLink = menuTree.First().Value?.Where(i => i.Id == id).FirstOrDefault();
         string link = $"wwwroot/html/soll/{menuLink?.Link ?? string.Empty}";
-
-        Console.WriteLine($"ID: {id}, link: {link}");
-
-        if (id == 0 || string.IsNullOrEmpty(menuLink?.Link) )
+        if (id == 0 || string.IsNullOrEmpty(menuLink?.Link))
             link = "wwwroot/html/menu.html";
 
         ctx.Response.StatusCode = 200;
@@ -137,18 +121,18 @@ app.MapGet("/menu/soll/{id:int}", async (int id, HttpContext ctx) =>
         var file = File.ReadAllText(link, Encoding.UTF8);
         await ctx.Response.WriteAsync(file);
         await ctx.Response.CompleteAsync();
-    }).AllowAnonymous();
-
-    app.MapGet("/chart", async ctx =>
-    {
-        ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = "text/html";
-        var file = File.ReadAllText("wwwroot/html/chart.html", Encoding.UTF8);
-        await ctx.Response.WriteAsync(file);
-        await ctx.Response.CompleteAsync();
     });
 
-    app.MapGet("/db", async ctx =>
+app.MapGet("/chart", async ctx =>
+{
+    ctx.Response.StatusCode = 200;
+    ctx.Response.ContentType = "text/html";
+    var file = File.ReadAllText("wwwroot/html/chart.html", Encoding.UTF8);
+    await ctx.Response.WriteAsync(file);
+    await ctx.Response.CompleteAsync();
+});
+
+app.MapGet("/db", async ctx =>
     {
         string[]? tagNames = [];
         DateTime startUtc = DateTime.UtcNow.AddHours(-8);
@@ -184,25 +168,25 @@ app.MapGet("/menu/soll/{id:int}", async (int id, HttpContext ctx) =>
         await ctx.Response.CompleteAsync();
     });
 
-    app.MapGet("/all", async ctx =>
-    {
-        ctx.Response.StatusCode = 200;
-        ctx.Response.ContentType = "text/html";       
-        await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
-        await ctx.Response.CompleteAsync();
-    });
+app.MapGet("/all", async ctx =>
+{
+    ctx.Response.StatusCode = 200;
+    ctx.Response.ContentType = "text/html";
+    await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
+    await ctx.Response.CompleteAsync();
+});
 
-    app.MapPost("/tagcomments", async () =>
-    {
-        List<Tag> allTags = await Db.GetDbTagNames(DateTime.UtcNow, 3);
+app.MapPost("/tagcomments", async () =>
+{
+    List<Tag> allTags = await Db.GetDbTagNames(DateTime.UtcNow, 3);
 
-        List<JsonTag> result = [];
+    List<JsonTag> result = [];
 
-        foreach (var tag in allTags)        
-            result.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.Now));
-                       
-        return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
-    });
+    foreach (var tag in allTags)
+        result.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.Now));
+
+    return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
+});
 
     app.MapGet("/excel", async ctx =>
     {

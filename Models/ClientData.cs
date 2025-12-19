@@ -33,13 +33,7 @@ namespace Gemini.Models
     [Required] Dictionary<string, string> TagsAndComments
     );
 
-    public record UserCredentials(string Username, string Password);
-
-    public class CurrentUser
-    {
-        public string Username { get; set; } = string.Empty;
-    }
-
+    public record UserLogin(string Username, string Password);
 
     public class MenuLink(int id, string name, string link)
     {
@@ -56,7 +50,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(Dictionary<string, Gemini.Models.MenuLink[]>))]
 [JsonSerializable(typeof(Gemini.Models.MenuLink[]))]
-[JsonSerializable(typeof(Gemini.Models.UserCredentials))]
+[JsonSerializable(typeof(Gemini.Models.UserLogin))]
 [JsonSerializable(typeof(Gemini.Models.FormPost))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(DateTime))]

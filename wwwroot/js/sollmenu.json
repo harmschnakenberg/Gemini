@@ -1,19 +1,19 @@
 {
   "Sollwerte": [
     {
-      "id": 0,
-      "name": "Hauptmenü",
-      "link": "../../../"
+      "Id": 0,
+      "Name": "Hauptmenü",
+      "Link": "../../../"
     },
     {
-      "id": 1,
-      "name": "Test Sollwerte",
-      "link": "test.html"
+      "Id": 1,
+      "Name": "Test Sollwerte",
+      "Link": "test.html"
     },
     {
-      "id": 2,
-      "name": "Schaltwarte",
-      "link": "schaltwarte.html"
+      "Id": 2,
+      "Name": "Schaltwarte",
+      "Link": "schaltwarte.html"
     }
   ]
   }

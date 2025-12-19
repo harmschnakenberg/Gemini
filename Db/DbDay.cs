@@ -16,26 +16,18 @@ namespace Gemini.Db
     {
         internal static async void InitiateDbWriting()
         {
+            //Lade alle Tag-Namen mit Log-Flog aus der Datenbank
             List<JsonTag> dummyData = [];
             List<Tag> tags = await GetDbTagNames(DateTime.UtcNow);
             tags.ForEach(tag => {
                 if (tag.ChartFlag == true)
                     dummyData.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.UtcNow));
                 }); 
-            //Lade alle Tag - Namen aus der Datenbank
-            //GetDbTagNames(DateTime.UtcNow).ContinueWith(t =>
-            //{
-            //    t.
-            //    Console.WriteLine($"Lade {t.Result.ToArray().Length} Tag-Namen aus der Datenbank für die Initialisierung.");
-            //    foreach (var kvp in t.Result)
-            //    {
-            //        dummyData = [.. dummyData, new JsonTag(kvp.Key, null, DateTime.UtcNow)];
-            //    }
-            //}).Wait();
-
+           
             var dbClientId = Guid.NewGuid(); //Datenbank wie jeden anderen Client im PlcTagManager anmelden.
+#if DEBUG
             Console.WriteLine($"Die Datenbank loggt sich ein als Client {dbClientId}");
-
+#endif
 
             async Task SendDbUpdateCallback(Models.JsonTag[] tagsToSend)
             {

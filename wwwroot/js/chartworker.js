@@ -6,7 +6,7 @@
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
 function processData(jsonData, aliases, colors) {
-    const REPORT_INTERVAL = 100;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
+    const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
     const totalItems = jsonData.length;
@@ -58,7 +58,8 @@ function processData(jsonData, aliases, colors) {
                 type: 'progress',
                 percentage: percentage,
                 // Optional: Die Anzahl der bereits verarbeiteten Elemente
-                processedCount: i + 1
+                processedCount: i + 1,
+                totalCount: totalItems
             });
         }
     }
@@ -71,7 +72,7 @@ function processData(jsonData, aliases, colors) {
  * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
  */
 self.onmessage = async function (e) {
-    const { url, aliases, colors } = e.data;
+    const { chartId, url, aliases, colors } = e.data;
 
     try {
         // 1. Daten asynchron laden
@@ -87,12 +88,13 @@ self.onmessage = async function (e) {
         // 3. Verarbeitete Daten zurück an den Haupt-Thread senden
         self.postMessage({
             type: 'complete',
+            chartId: chartId,
             datasets: newDatasets
         });
 
     } catch (error) {
         console.error('Fehler im Web Worker:', error);
         // Sende eine Fehlermeldung oder leere Daten zurück, um den Haupt-Thread zu informieren
-        self.postMessage({ error: error.message, datasets: [] });
+        self.postMessage({ error: error.message, chartId: chartId, datasets: [] });
     }
 };

@@ -123,7 +123,7 @@ async function loadMenu(endpoint, path) {
 }
 
 // Token-Schlüssel konstant halten
-const TOKEN_KEY = 'accessToken';
+//const TOKEN_KEY = 'accessToken';
 const LOGGED_USER = 'userName';
 
 // Funktion zum Überprüfen des Login-Status beim Laden der Seite
@@ -136,7 +136,7 @@ function checkLoginStatus() {
         document.body.appendChild(span);
     }
 
-    if (sessionStorage.getItem(TOKEN_KEY)) {
+    if (checkCookie(LOGGED_USER)) {
         span.innerHTML = sessionStorage.getItem(LOGGED_USER);
         span.style.backgroundcolor = 'lawngreen';
     } else {
@@ -145,9 +145,36 @@ function checkLoginStatus() {
     }
 }
 
+function checkCookie(name) {
+    return getCookie(name) != "";     
+}
+
+function getCookie(cname) {
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+        }
+    }
+    return "";
+}
+
 window.onload = () => {
     initUnits();
     checkLoginStatus();
     initWebsocket(initTags());
     loadMenu('soll', '/js/sollmenu.json');
+
+    // Service Worker registrieren
+    //if ('serviceWorker' in navigator) {
+    //    navigator.serviceWorker.register('/js/auth.js').then(reg => {
+    //        console.log('SW registriert');
+    //    });
+    //}
 }

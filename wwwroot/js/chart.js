@@ -1,5 +1,8 @@
-﻿let myChart;
-const worker = new Worker('/js/chartworker.js'); // Initialisiert den Web Worker
+﻿//let myChart;
+//const worker = new Worker('/js/chartworker.js'); // Initialisiert den Web Worker
+
+const myCharts = new Map();
+const workers = new Map();
 
 // Standardfarben für Datensätze (Chart.js vergibt auch automatisch Farben)
 const CHART_COLORS = [
@@ -11,9 +14,8 @@ const CHART_COLORS = [
     'rgba(255, 159, 64, 1)'
 ];
 
-/**
- * Initialisiert das Chart.js Liniendiagramm.
- */
+
+ //Initialisiert das Chart.js Liniendiagramm.
 function initChart(chartId) {
     const elm = document.getElementById(chartId);
 
@@ -24,7 +26,7 @@ function initChart(chartId) {
 
     const ctx = elm.getContext('2d');
 
-    myChart = new Chart(ctx, {
+    let myChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: [],
@@ -84,6 +86,12 @@ function initChart(chartId) {
             }
         }
     });
+
+    myCharts.set(chartId, myChart);
+
+    const worker = new Worker('/js/chartworker.js'); 
+    worker.onmessage = workermessage;
+    workers.set(chartId, worker);
 }
 
 
@@ -123,7 +131,8 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
     document.getElementById('rawDataLink').setAttribute("href", link);
     
     // Sende alle notwendigen Daten an den Worker
-    worker.postMessage({
+    workers.get(chartId).postMessage({
+        chartId: chartId,
         url: link,
         aliases: LABEL_ALIASES,
         colors: CHART_COLORS
@@ -133,46 +142,41 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
 /**
  * Empfängt die verarbeiteten Daten vom Web Worker und aktualisiert das Chart.
  */
-worker.onmessage = function (e) {
 
-    const message = e.data;
+//worker.onmessage =
 
-    if (message.type === 'progress') {
-        // Fortschritts-Update verarbeiten
-        const percentage = message.percentage;
-   //     console.log(percentage);
-        progressBar.value = percentage;
-        progressText.textContent = `${percentage}%,  ${message.processedCount} Datensätze`;
+    function workermessage(e) {
 
-    } else if (message.type === 'complete') {
+        const message = e.data;
 
-        const newDatasets = e.data.datasets;
-        console.log(`Daten vom Worker empfangen. ${newDatasets.length} Datensätze.`);
+        if (message.type === 'progress') {
+            // Fortschritts-Update verarbeiten
+            const percentage = message.percentage;
+            //     console.log(percentage);
+            progressBar.value = percentage;
+            progressText.textContent = `${percentage}%,  ${message.processedCount}/${message.totalCount} Datensätze`;
 
-        // Ersetze die existierenden Datensätze durch die neuen
-        myChart.data.datasets = newDatasets;
+        } else if (message.type === 'complete') {
+            const chartId = message.chartId;
+            const newDatasets = e.data.datasets;
+            const myChart = myCharts.get(chartId);
+            console.log(`Daten vom Worker für ${chartId} empfangen. ${newDatasets.length} Datensätze.`);
 
-        // Aktualisiere das Diagramm
-        myChart.update();
-        //console.log('Chart aktualisiert.');
-        progressContainer.style.display = 'none';
-        document.body.style.opacity = "1";
-        document.body.style.cursor = "auto";
-    } else if (message.type === 'error') {
-        // Fehlerbehandlung
-        progressContainer.style.display = 'none';
-        alert(`Fehler beim Laden/Verarbeiten der Daten: ${message.error}`);
+            // Ersetze die existierenden Datensätze durch die neuen
+            myChart.data.datasets = newDatasets;
+
+            // Aktualisiere das Diagramm
+            myChart.update();
+            //console.log('Chart aktualisiert.');
+            progressContainer.style.display = 'none';
+            document.body.style.opacity = "1";
+            document.body.style.cursor = "auto";
+        } else if (message.type === 'error') {
+            // Fehlerbehandlung
+            progressContainer.style.display = 'none';
+            alert(`Fehler beim Laden/Verarbeiten der Daten für ${message.chartId}: ${message.error}`);
+        }
     }
-};
-
-
-// Initialisierung beim Laden der Seite
-//window.onload = () => {
-//    initChart();
-//    // Laden der initialen Daten (optional)
-//    loadChartData(tags);
-//};
-
 
 function setDatesHours(startId, endId, hh) {
     var now = new Date();
@@ -183,7 +187,3 @@ function setDatesHours(startId, endId, hh) {
     begin.setUTCHours(begin.getHours() - hh);
     document.getElementById(startId).value = begin.toISOString().slice(0, 16);
 }
-
-
-
-

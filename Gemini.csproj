@@ -4,14 +4,16 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <OutputType>Exe</OutputType>
     <PublishAot>true</PublishAot>
-	<VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility>
-	<OutputType>Exe</OutputType>
+	<!-- <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility> -->
+
 	<!-- <OptimizationPreference>Speed</OptimizationPreference> -->
 	<Nullable>enable</Nullable>
 	<GenerateDocumentationFile>False</GenerateDocumentationFile>
 	<Configurations>Debug;Release</Configurations>
 	<Platforms>AnyCPU</Platforms>
+	<PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -26,6 +28,7 @@
 
   <ItemGroup>
     <Content Remove="wwwroot\css\input.css" />
+    <Content Remove="wwwroot\js\auth.js" />
     <Content Remove="wwwroot\js\chart_loeschmich.js" />
     <Content Remove="wwwroot\js\setDatesToStartOfMonth.js" />
   </ItemGroup>
@@ -40,15 +43,12 @@
 
   <ItemGroup>
     <Content Update="wwwroot\css\style.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\favicon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\chart.html">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Update="wwwroot\html\chart2.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\excel.html">
@@ -67,7 +67,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\js\excel.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\js\sollmenu.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -76,7 +76,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\js\chartworker.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
