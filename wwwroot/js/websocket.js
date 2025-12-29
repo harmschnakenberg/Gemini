@@ -107,12 +107,12 @@ async function loadMenu(endpoint, path) {
 
     let file = await fetch(path);
     let text = await file.text();
-   console.info(`Menü JSON: ${text}`);
+    //console.info(`Menü JSON: ${text}`);
     const json = JSON.parse(text);
 
-    console.info(`Menü JSON: ${json.Sollwerte}`);
+    //console.info(`Menü JSON: ${json.Sollwerte}`);
     for (var item of json.Sollwerte) {
-        console.info(`${item}, ${item.Id}`)
+        //console.info(`${item}, ${item.Id}`)
         const li = document.createElement("li");
         const a = document.createElement("a");
         a.setAttribute("href", `/menu/${endpoint}/${item.Id}`)
@@ -138,8 +138,9 @@ function checkLoginStatus() {
         document.body.appendChild(span);
     }
 
-    if (checkCookie(LOGGED_USER)) {
-        span.innerHTML = sessionStorage.getItem(LOGGED_USER);
+    const loggedUser = sessionStorage.getItem(LOGGED_USER);
+    if (loggedUser) {
+        span.innerHTML = loggedUser;
         span.style.backgroundcolor = 'lawngreen';
     } else {
         span.textContent = 'Kein Benutzer';
@@ -147,25 +148,31 @@ function checkLoginStatus() {
     }
 }
 
-function checkCookie(name) {
-    return getCookie(name) != "";     
+//function checkCookie(name) {
+//    return getCookie(name) != "";     
+//}
+
+// Hilfsfunktion für Fetch mit Cookies
+async function fetchWithCookies(url, options = {}) {
+    options.credentials = 'include';
+    return fetch(url, options);
 }
 
-function getCookie(cname) {
-    let name = cname + "=";
-    let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-        }
-        if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-        }
-    }
-    return "";
-}
+//function getCookie(cname) {
+//    let name = cname + "=";
+//    let decodedCookie = decodeURIComponent(document.cookie);
+//    let ca = decodedCookie.split(';');
+//    for (let i = 0; i < ca.length; i++) {
+//        let c = ca[i];
+//        while (c.charAt(0) == ' ') {
+//            c = c.substring(1);
+//        }
+//        if (c.indexOf(name) == 0) {
+//            return c.substring(name.length, c.length);
+//        }
+//    }
+//    return "";
+//}
 
 window.onload = () => {
     initUnits();

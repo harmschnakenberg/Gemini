@@ -28,100 +28,78 @@
         end.toISOString().replace(" ", "%3A");
 
         document.getElementById('rawjsonlink').setAttribute('href', `/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=${start}&end=${end}`)
-    </script>
 
-    <div id="logincard">        
-        <form id="loginForm">
-            <div id="loginheader" onclick="checkLoginStatus();">Login</div>
-            <input type="text" id="username" placeholder="Benutzername (testuser)" required value="testuser"><br>
-            <input type="password" id="password" placeholder="Passwort (password123)" required value="password123"><br>
-            <button onclick="login()">Login</button><button onclick="logout()">Logout</button>
-        </form>           
-    </div>
-   
-    <script>
+        const API_URL = 'http://' + window.location.host;
+
+
 
         async function login() {
-           
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge ein...';
 
-            try
-            {
-                const usr = document.getElementById('username').value;
-                const pwd = document.getElementById('password').value;      
-                const url = 'http://' + window.location.host + '/login';
-             
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', // Erlaubt das Setzen/Senden von Cookies
-                    body: JSON.stringify(new JsonTag(usr, pwd))                        
-                })
-                    //.then(response => response.json())
-                    //.then(data => { console.log(data); })
-                    ;
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
 
-                if (res.ok) alert('Cookie wurde vom Server gesetzt!');
+            try {
+                const response = await fetchWithCookies(`${API_URL}/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
 
-                if (res.ok) {                 
-                    sessionStorage.setItem(LOGGED_USER, usr);
-                    el.textContent = usr; //await res.json().message + usr;
+                if (response.ok) {
+                    sessionStorage.setItem(LOGGED_USER, username);
+                    el.textContent = username;
                     el.style.color = 'green';
                 } else {
                     el.textContent = 'Login fehlgeschlagen. Überprüfe Anmeldedaten.';
                     el.style.color = 'red';
                 }
-            } catch (error) {
-                el.textContent = 'Ein Fehler ist aufgetreten beim Login.' + error;                
-                el.style.color = 'red';
-                console.warn(el.textContent);
-            }
+            } catch (e) { console.error("Fehler beim Login: " + e); }
         }
 
-        // Logout Funktion
         async function logout() {
-
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge aus...';
-
-            const res = await fetch('/logout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: ""
-            });
-
-            if (res.ok) {
-                sessionStorage.removeItem(LOGGED_USER);
-                el.textContent = await res.json().message + usr;
-                el.style.color = 'white';
-            } else {
-                el.textContent = 'Login fehlgeschlagen. Überprüfe Anmeldedaten.';
-                el.style.color = 'red';
+            // Wir müssen dem Server sagen, dass er das Cookie löschen soll
+            const response = await fetchWithCookies(`${API_URL}/logout`, { method: "POST" });
+            if (response.ok) {
+                const loggedUser = sessionStorage.getItem(LOGGED_USER);
+                if (loggedUser) {
+                    sessionStorage.removeItem(LOGGED_USER);
+                    el.textContent = loggedUser + ' ausgeloggt';
+                    el.style.color = 'red';
+                }
             }
-
         }
-
     </script>
+
+    <div id="logincard">
+            <div id="loginheader" onclick="checkLoginStatus();">Login</div>    
+            <input type="text" id="username" placeholder="Benutzername (testuser)" value="testuser"><br/>
+            <input type="password" id="password" placeholder="Passwort (password123)" value="password123"><br/>
+            <button onclick="login()">Login</button><button onclick="logout()">Logout</button>
+    </div>
+
     <style>
-        #logincard{
-            position:absolute;
-            right:11rem;
-            top: 3rem; 
+        #logincard {
+            position: absolute;
+            right: 11rem;
+            top: 3rem;
             width: 10rem;
         }
 
         @media (max-width: 1000px) {
             #logincard {
                 right: 1rem;
-                margin-right:1rem;
+                margin-right: 1rem;
             }
         }
 
-        #logincard button {           
-            width:5rem;
-            background-color:white;
-            font-size:1.1rem;
+        #logincard button {
+            width: 5rem;
+            background-color: white;
+            font-size: 1.1rem;
         }
 
         #loginheader {
@@ -131,5 +109,67 @@
             font-size: 1.3rem;
         }
     </style>
+
+
+    <hr />
+
+    <h1>MiniAPI Auth Demo</h1>
+
+    <div id="login-section" class="box">
+        <h2>Anmelden</h2>
+        <!--<input type="text" id="username" placeholder="Benutzername (testuser)" value="testuser">
+        <input type="password" id="password" placeholder="Passwort (password123)" value="password123">-->
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="secure-section" class="box hidden">
+        <h2>Gesicherter Bereich</h2>
+        <p>Token ist gespeichert.</p>
+        <button onclick="getData()">Daten abrufen</button>
+        <button onclick="logout()" style="background-color: #6c757d;">Logout</button>
+    </div>
+
+   
+    <div class="box">
+        <h3>Log / Ergebnis:</h3>
+        <div id="output">Noch keine Aktion...</div>
+    </div>
+
+    <script>
+
+
+        async function getData() {
+            try {
+                // Wir müssen keinen Header manuell setzen! Der Browser macht das.
+                const response = await fetchWithCookies(`${API_URL}/secure-data`);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log("Daten: " + JSON.stringify(data, null, 2));
+                } else {
+                    log("Zugriff verweigert (Status " + response.status + ")");
+                    if (response.status === 401) toggleView(false);
+                }
+            } catch (e) { log("Error: " + e); }
+        }
+
+        //async function logout() {
+        //    // Wir müssen dem Server sagen, dass er das Cookie löschen soll
+        //    await fetchWithCookies(`${API_URL}/logout`, { method: "POST" });
+        //    toggleView(false);
+        //    log("Logout durchgeführt (Cookie gelöscht).");
+        //}
+
+        function toggleView(isLoggedIn) {
+            document.getElementById("login-section").classList.toggle("hidden", isLoggedIn);
+            document.getElementById("secure-section").classList.toggle("hidden", !isLoggedIn);
+        }
+
+        function log(text) {
+            document.getElementById("output").innerText = text;
+        }
+    </script>
+
+
 </body>
 </html>

@@ -63,14 +63,14 @@ namespace Gemini.Services
         //}
 
         // Hilfsmethode & AOT Typen
-        internal static string GenerateJwt(string user, byte[] key)
-        {
-            var claims = new[] { new Claim(ClaimTypes.Name, user) };
-            var sKey = new SymmetricSecurityKey(key);
-            var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
-                claims: claims, expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: new SigningCredentials(sKey, SecurityAlgorithms.HmacSha256));
-            return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
-        }
+        //internal static string GenerateJwt(string user, byte[] key)
+        //{
+        //    var claims = new[] { new Claim(ClaimTypes.Name, user) };
+        //    var sKey = new SymmetricSecurityKey(key);
+        //    var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+        //        claims: claims, expires: DateTime.UtcNow.AddHours(1),
+        //        signingCredentials: new SigningCredentials(sKey, SecurityAlgorithms.HmacSha256));
+        //    return new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
+        //}
     }
 }

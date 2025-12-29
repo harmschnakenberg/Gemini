@@ -2,16 +2,13 @@ using Gemini.Db;
 using Gemini.DynContent;
 using Gemini.Middleware;
 using Gemini.Models;
-using Gemini.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 
 bool pleaseStop = false;
@@ -25,74 +22,154 @@ Gemini.Db.Db.InitiateDbWriting();
 // 1. Native AOT Vorbereitung: CreateSlimBuilder verwenden
 var builder = WebApplication.CreateSlimBuilder(args);
 
-#region Authentifizierung
-
-var key = Encoding.UTF8.GetBytes("Dein_Super_Geheimer_Schluessel_2025_!");
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = false,
-            ValidateAudience = false
-        };
-        // WICHTIG: Token aus dem Cookie lesen
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context => {
-                context.Token = context.Request.Cookies["X-Access-Token"];
-                return Task.CompletedTask;
-            }
-        };
-    });
-
-builder.Services.AddAuthorization();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default));
+
+#region Authentifizierung
+
+// Sicherheitsschlüssel (In Produktion niemals hardcoden -> User Secrets/Azure KeyVault!)
+var jwtKey = "Ein_Sehr_Langer_Und_Sicherer_Geheimer_Schluessel_123!";
+var jwtIssuer = "MeineMiniApi";
+var jwtAudience = "MeinBrowserClient";
+const string CookieToken = "auth_token";
+
+// 2. Authentifizierung & Autorisierung hinzufügen
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    };
+
+    //3. Token aus Cookie extrahieren
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            // Wenn ein Cookie mit dem Namen existiert, nutze es als Token
+            if (context.Request.Cookies.ContainsKey(CookieToken))
+            {
+                context.Token = context.Request.Cookies[CookieToken];                
+            }
+            return Task.CompletedTask;
+        }
+    };
+
+});
+
+//builder.Services.ConfigureApplicationCookie(options =>
+//{
+//    // The path the user is sent to when they are not authenticated
+//    options.LoginPath = "/";
+
+    // Optional: Only redirect if it's not an API call
+    //options.Events.OnRedirectToLogin = context =>
+    //{
+    //    if (context.Request.Path.StartsWithSegments("/api"))
+    //    {
+    //        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+    //    }
+    //    else
+    //    {
+    //        context.Response.Redirect(context.RedirectUri);
+    //    }
+    //    return Task.CompletedTask;
+    //};
+//});
+
+builder.Services.AddAuthorization();
+
+// CORS aktivieren, damit der Browser (wenn er auf einem anderen Port läuft) zugreifen darf
+// AllowCredentials ist notwendig für Cookies über verschiedene Ports/Domains!
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy => policy
+        //.AllowAnyOrigin()
+        .WithOrigins("http://127.0.0.1:5500", "http://localhost:5500") // Deine Client-URL explizit nennen!
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials()// <-- Zwingend erforderlich für Cookies
+        );
+});
 
 #endregion
 
 var app = builder.Build();
+app.UseCors("AllowAll");
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseStaticFiles();
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 
 
-
-app.MapPost("/login", async (JsonTag user, HttpContext ctx) =>
-{    
-    if (user.N == "testuser" && user?.V?.ToString() == "password123")
+app.MapPost("/login", (LoginRequest request, HttpContext context) =>
+{
+    // Hier echte Prüfung gegen Datenbank einfügen
+    if (request.Username == "testuser" && request.Password == "password123")
     {
-        Console.WriteLine($"Login mit {user.N}, {user.V}");
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.UTF8.GetBytes(jwtKey);
 
-        var token = JwtExtensions.GenerateJwt(user.N, key);
-
-        // JWT als HttpOnly Cookie setzen
-        ctx.Response.Cookies.Append("X-Access-Token", token, new CookieOptions
+        var tokenDescriptor = new SecurityTokenDescriptor
         {
-            HttpOnly = true,
-            //Secure = true,      // Nur über HTTPS
-            SameSite = SameSiteMode.Strict,
+            Subject = new ClaimsIdentity(
+            [
+                new Claim(ClaimTypes.Name, request.Username),
+                new Claim(ClaimTypes.Role, "Admin")
+            ]),
+            Expires = DateTime.UtcNow.AddHours(1),
+            Issuer = jwtIssuer,
+            Audience = jwtAudience,
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
+
+        // Cookie Optionen für maximale Sicherheit
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,  // JS kann nicht zugreifen (Schutz vor XSS)
+            Secure = false,   // Auf 'true' setzen, wenn du HTTPS nutzt (in Prod Pflicht!)
+            SameSite = SameSiteMode.Lax, // 'Strict' ist besser, aber 'Lax' ist toleranter bei Dev-Servern auf anderen Ports
             Expires = DateTime.UtcNow.AddHours(1)
-        });
+        };
 
-        return Results.Ok();
-        //ctx.Response.StatusCode = 200;
-        //ctx.Response.ContentType = "text/html";
-        //var file = File.ReadAllText(link, Encoding.UTF8);
-        //await ctx.Response.WriteAsync(file);
-        //await ctx.Response.CompleteAsync();
+        context.Response.Cookies.Append(CookieToken, token, cookieOptions);
+        
+        return Results.Ok(new { Message = "Login erfolgreich" });
     }
-    return Results.Unauthorized();
-});
 
+    return Results.Unauthorized();
+}).AllowAnonymous();
+
+// Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann)
 app.MapPost("/logout", (HttpContext context) =>
 {
-    context.Response.Cookies.Delete("X-Access-Token");
-    return Results.Ok(new { message = "Ausgeloggt" });
-}).AllowAnonymous();
+    context.Response.Cookies.Delete(CookieToken);    
+    return Results.Ok(new { Message = "Ausgeloggt" });
+});
+
+app.MapGet("/secure-data", (ClaimsPrincipal user) =>
+{
+    return Results.Ok(new { Message = $"Hallo {user.Identity?.Name}, dies kommt sicher via Cookie!", Timestamp = DateTime.Now });
+})
+.RequireAuthorization();
+
+
+
 
 // 4. Routen festlegen
 app.MapGet("/menu/soll/{id:int}", async (int id, HttpContext ctx) =>
@@ -130,7 +207,8 @@ app.MapGet("/chart", async ctx =>
     var file = File.ReadAllText("wwwroot/html/chart.html", Encoding.UTF8);
     await ctx.Response.WriteAsync(file);
     await ctx.Response.CompleteAsync();
-});
+})
+    .RequireAuthorization();
 
 app.MapGet("/db", async ctx =>
     {

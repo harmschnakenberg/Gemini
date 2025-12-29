@@ -3,6 +3,7 @@
 
 // Das Datenmodell für den Austausch
 using Gemini.DynContent;
+using Gemini.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -33,7 +34,10 @@ namespace Gemini.Models
     [Required] Dictionary<string, string> TagsAndComments
     );
 
-    public record UserLogin(string Username, string Password);
+    public record LoginRequest(string Username, string Password);
+    //public record TokenResponse() {
+    //    public required string Token { get; set; }
+    //};
 
     public class MenuLink(int id, string name, string link)
     {
@@ -50,7 +54,8 @@ namespace Gemini.Models
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(Dictionary<string, Gemini.Models.MenuLink[]>))]
 [JsonSerializable(typeof(Gemini.Models.MenuLink[]))]
-[JsonSerializable(typeof(Gemini.Models.UserLogin))]
+[JsonSerializable(typeof(LoginRequest))]
+//[JsonSerializable(typeof(TokenResponse))]
 [JsonSerializable(typeof(Gemini.Models.FormPost))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(DateTime))]
@@ -58,6 +63,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(int))]
 [JsonSerializable(typeof(Int16))]
 [JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(object))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext { }
 
