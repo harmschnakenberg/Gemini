@@ -248,7 +248,7 @@ function post(path, params, method = 'post') {
     const form = document.createElement('form');
     form.method = method;
     form.action = path;
-
+    
     for (const key in params) {
         if (params.hasOwnProperty(key)) {
             const hiddenField = document.createElement('input');
@@ -262,4 +262,16 @@ function post(path, params, method = 'post') {
 
     document.body.appendChild(form);
     form.submit();
+}
+
+function post2(path, params, method = 'post') {
+    fetch(path, {
+        method: method,
+        credentials: "include", // wichtig für Cookie
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRF-TOKEN-HEADERNAME": tokenFromServerOrCookie
+        },
+        body: new URLSearchParams({ foo: "bar" })
+    });
 }

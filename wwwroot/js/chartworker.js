@@ -6,7 +6,7 @@
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
 function processData(jsonData, aliases, colors) {
-    const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
+    const REPORT_INTERVAL = 1000;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
     const totalItems = jsonData.length;
@@ -76,7 +76,8 @@ self.onmessage = async function (e) {
 
     try {
         // 1. Daten asynchron laden
-        const response = await fetch(url);
+        //const response = await fetch(url);
+        const response = await fetchWithCookies(url);
         if (!response.ok) {
             throw new Error(`HTTP-Fehler! Status: ${response.status}`);
         }
@@ -98,3 +99,8 @@ self.onmessage = async function (e) {
         self.postMessage({ error: error.message, chartId: chartId, datasets: [] });
     }
 };
+
+async function fetchWithCookies(url, options = {}) {
+    options.credentials = 'include';
+    return fetch(url, options);
+}

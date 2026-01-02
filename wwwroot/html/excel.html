@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Demo Kurve</title>
+    <title>Excel Export</title>
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <link rel='stylesheet' href='/css/style.css'>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
@@ -12,12 +12,13 @@
     <script src='/js/websocket.js'></script>
 </head>
 <body>
-    <h1>ASP.NET Core Minimal API WebSocket Trend Test</h1>
+    <h1>Export aufgezeichneter Anlagendaten nach Excel</h1>
 
     <fieldset>
         <legend>Zeitraum:</legend>
         <p class="info-container">
-            Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Wertintervall, d.h. mit welchem Zeitabstand die Werte in die Tabelle eingetragen werden sollen.
+            Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Wertintervall,
+            d.h. mit welchem Zeitabstand die Werte in die Tabelle eingetragen werden sollen.
         </p>
         <div class="container">
             <label for='start'>Beginn</label>
@@ -42,9 +43,9 @@
     <fieldset>
         <legend>Zuordnung Tabellenspalten:</legend>
         <p class="info-container">
-            Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.
-            Der genaue Wortlaut wird während der Eingabe vorgeschlagen. Ungültige Bezeichner werden rot hinterlegt.
-            Die Rehenfolge der Spalten kann per Drag and Drop geändert werden.
+            Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.<br/>
+            Der genaue Wortlaut wird während der Eingabe vorgeschlagen. Ungültige Bezeichner werden rot hinterlegt.<br />
+            Die Rehenfolge der Spalten kann anschließend mit der Maus per Drag and Drop geändert werden.<br />
             Die erste Spalte 'A' enthält immer den Zeitstempel und kann nicht geändert werden.
         </p>
 

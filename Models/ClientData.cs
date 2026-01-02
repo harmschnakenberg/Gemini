@@ -9,6 +9,7 @@ using System.Text.Json.Serialization;
 
 namespace Gemini.Models
 {
+    public record LoginRequest(string Username, string Password);
 
     public class JsonTag(string n, object? v, DateTime t)
     {        
@@ -34,11 +35,7 @@ namespace Gemini.Models
     [Required] Dictionary<string, string> TagsAndComments
     );
 
-    public record LoginRequest(string Username, string Password);
-    //public record TokenResponse() {
-    //    public required string Token { get; set; }
-    //};
-
+   
     public class MenuLink(int id, string name, string link)
     {
         public int Id { get; set; } = id;
@@ -46,16 +43,13 @@ namespace Gemini.Models
         public string Link { get; set; } = link;
     }
 
-    //public record MenuTree(string treeName, MenuLink[] menuItems);
-
 }
 
 // Source Generator Context
-[JsonSerializable(typeof(string[]))]
+
 [JsonSerializable(typeof(Dictionary<string, Gemini.Models.MenuLink[]>))]
 [JsonSerializable(typeof(Gemini.Models.MenuLink[]))]
 [JsonSerializable(typeof(LoginRequest))]
-//[JsonSerializable(typeof(TokenResponse))]
 [JsonSerializable(typeof(Gemini.Models.FormPost))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(DateTime))]
@@ -63,6 +57,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(int))]
 [JsonSerializable(typeof(Int16))]
 [JsonSerializable(typeof(bool))]
+[JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(string))]
 [JsonSerializable(typeof(object))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext { }

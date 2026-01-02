@@ -57,7 +57,7 @@ function initWebsocket(tags) {
     if (tags.length == 0)
         return;
 
-    const socketUrl = 'ws://' + window.location.host + '/ws';
+    const socketUrl = 'wss://' + window.location.host + '/ws';
     const websocket = new WebSocket(socketUrl);
 
     websocket.onopen = () => {
@@ -110,18 +110,25 @@ async function loadMenu(endpoint, path) {
     //console.info(`Menü JSON: ${text}`);
     const json = JSON.parse(text);
 
+    const li = document.createElement("li");
+    const a = createLink('/', 'Hauptmenü');
+    document.getElementById("sidemenu").appendChild(li).appendChild(a);
+
     //console.info(`Menü JSON: ${json.Sollwerte}`);
     for (var item of json.Sollwerte) {
         //console.info(`${item}, ${item.Id}`)
         const li = document.createElement("li");
-        const a = document.createElement("a");
-        a.setAttribute("href", `/menu/${endpoint}/${item.Id}`)
-        //a.setAttribute("href", `/html/soll/${item.link}`);
-        a.classList.add("menuitem");        
-        a.innerHTML = item.Name;
-
+        const a = createLink(`/${endpoint}/${item.Id}`, item.Name)           
         document.getElementById("sidemenu").appendChild(li).appendChild(a);
     }
+}
+
+function createLink(href, display) {
+    const a = document.createElement("a");
+    a.setAttribute("href", href)
+    a.classList.add("menuitem");
+    a.innerHTML = display;
+    return a;
 }
 
 // Token-Schlüssel konstant halten
@@ -148,15 +155,17 @@ function checkLoginStatus() {
     }
 }
 
-//function checkCookie(name) {
-//    return getCookie(name) != "";     
-//}
-
 // Hilfsfunktion für Fetch mit Cookies
 async function fetchWithCookies(url, options = {}) {
     options.credentials = 'include';
     return fetch(url, options);
 }
+
+
+//function checkCookie(name) {
+//    return getCookie(name) != "";     
+//}
+
 
 //function getCookie(cname) {
 //    let name = cname + "=";

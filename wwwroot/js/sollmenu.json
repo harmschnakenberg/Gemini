@@ -1,11 +1,6 @@
 {
   "Sollwerte": [
     {
-      "Id": 0,
-      "Name": "Hauptmenü",
-      "Link": "../../../"
-    },
-    {
       "Id": 1,
       "Name": "Test Sollwerte",
       "Link": "test.html"

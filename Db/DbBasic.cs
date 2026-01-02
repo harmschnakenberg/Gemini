@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using SQLitePCL;
 using System.Data;
 using System.Data.Common;
+using System.Xml.Linq;
 
 namespace Gemini.Db
 {
@@ -68,10 +69,9 @@ namespace Gemini.Db
                           ); 
                     CREATE TABLE IF NOT EXISTS User ( 
                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                          Name TEXT NOT NULL UNIQUE,
-                          IsAdmin INTEGER DEFAULT 0,
-                          Password TEXT,
-                          Identification TEXT
+                          Name TEXT NOT NULL UNIQUE,                         
+                          Hash TEXT,
+                          Role TEXT DEFAULT 'User'
                           ); 
                     CREATE TABLE IF NOT EXISTS Source ( 
                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -93,10 +93,11 @@ namespace Gemini.Db
             //Tabellen mit Default-Daten füllen
             command.CommandText =
             $@"
-                    INSERT INTO Log (Category, Message) VALUES ('System', 'Datenbank neu erstellt.'); 
-                    INSERT INTO User (Name, IsAdmin, Password) VALUES ('admin', 1, '{Encrypt("admin")}'); 
+                    INSERT INTO Log (Category, Message) VALUES ('System', 'Datenbank neu erstellt.');                      
                     INSERT INTO Source (Name, Ip) VALUES ('A01', '192.168.0.10'); ";
             _ = command.ExecuteNonQuery();
+
+            _ = Db.CreateUser("Admin", "Admin", "Admin");
         }
 
         private static async void CreateDayDatabaseAsync()

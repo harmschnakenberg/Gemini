@@ -6,14 +6,16 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <OutputType>Exe</OutputType>
     <PublishAot>true</PublishAot>
+	<IsPackable>true</IsPackable>
 	<!-- <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility> -->
 
-	<!-- <OptimizationPreference>Speed</OptimizationPreference> -->
+	<OptimizationPreference>Speed</OptimizationPreference>
 	<Nullable>enable</Nullable>
 	<GenerateDocumentationFile>False</GenerateDocumentationFile>
 	<Configurations>Debug;Release</Configurations>
 	<Platforms>AnyCPU</Platforms>
 	<PublishTrimmed>False</PublishTrimmed>
+	<UserSecretsId>fbbb64fa-449c-4d7b-a9fc-6e36d844d9a0</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

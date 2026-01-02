@@ -1,5 +1,6 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using System.Buffers;
 using System.Net.WebSockets;
 using System.Text;
@@ -14,6 +15,7 @@ namespace Gemini.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
+         
             if (context.Request.Path == "/ws")
             {
                 if (context.WebSockets.IsWebSocketRequest)

@@ -1,7 +1,4 @@
-﻿//let myChart;
-//const worker = new Worker('/js/chartworker.js'); // Initialisiert den Web Worker
-
-const myCharts = new Map();
+﻿const myCharts = new Map();
 const workers = new Map();
 
 // Standardfarben für Datensätze (Chart.js vergibt auch automatisch Farben)
@@ -13,6 +10,7 @@ const CHART_COLORS = [
     'rgba(153, 102, 255, 1)',
     'rgba(255, 159, 64, 1)'
 ];
+
 
 
  //Initialisiert das Chart.js Liniendiagramm.

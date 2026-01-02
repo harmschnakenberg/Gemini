@@ -6,8 +6,8 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "dotnetRunMessages": false,
-      "applicationUrl": "http://*:5222;http://*:80",
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://*:443;https://*:442;http://*:80;http://*:5222",
       "nativeDebugging": true
     }
   },
