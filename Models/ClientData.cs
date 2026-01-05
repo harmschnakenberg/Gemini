@@ -11,6 +11,10 @@ namespace Gemini.Models
 {
     public record LoginRequest(string Username, string Password);
 
+    public record LoginResponse(string RequestToken);
+
+    public record CsrfTokenResponse(string Token);
+
     public class JsonTag(string n, object? v, DateTime t)
     {        
         public string N { get; set; } = n;
@@ -43,6 +47,7 @@ namespace Gemini.Models
         public string Link { get; set; } = link;
     }
 
+   
 }
 
 // Source Generator Context
@@ -50,6 +55,8 @@ namespace Gemini.Models
 [JsonSerializable(typeof(Dictionary<string, Gemini.Models.MenuLink[]>))]
 [JsonSerializable(typeof(Gemini.Models.MenuLink[]))]
 [JsonSerializable(typeof(LoginRequest))]
+[JsonSerializable(typeof(LoginResponse))]
+[JsonSerializable(typeof(CsrfTokenResponse))]
 [JsonSerializable(typeof(Gemini.Models.FormPost))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
 [JsonSerializable(typeof(DateTime))]

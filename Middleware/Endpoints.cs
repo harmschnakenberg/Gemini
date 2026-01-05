@@ -2,46 +2,40 @@
 using Gemini.DynContent;
 using Gemini.Models;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
 namespace Gemini.Middleware
 {
-    public record JwtSettings(string Key, string Audience, string Issuer);
+    //public record JwtSettings(string Key, string Audience, string Issuer);
 
    
 
     public static class Endpoints
     {
         internal static bool PleaseStop = false;
-
-        internal const string CookieToken = "auth_token";
-        internal static JwtSettings JwtSettings = new(
-            Key: "DeinSuperGeheimerSchluessel12345", // Mindestens 16 Zeichen für HMACSHA256
-            Audience: "GeminiAudience",
-            Issuer: "GeminiIssuer"
-        );
-
+        
         public static void MapEndpoints(this IEndpointRouteBuilder app)
         {
-
             app.MapPost("/login", Login).AllowAnonymous();
-            app.MapPost("/logout", Logout); // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann)
+            app.MapPost("/logout", Logout).RequireAuthorization(); // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann)
+            app.MapGet("/antiforgery/token", RefreshAntiForgeryToken).AllowAnonymous();
 
-            app.MapGet("user", SelectUsers).AllowAnonymous(); //.RequireAuthorization();
+            app.MapGet("/user", SelectUsers).AllowAnonymous(); //.RequireAuthorization();
             app.MapPost("/user/create", UserCreate);
 
+            app.MapGet("/favicon.ico", Favicon).AllowAnonymous();
             app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien ausliefern
             app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien ausliefern
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
-            app.MapGet("/chart", Chart); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
-            app.MapGet("/db", DbQuery); // Datenbankabfrage und Ausgabe als JSON            
+            app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
+            app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
             app.MapPost("/tagcomments", GetTagComments); // Tag-Kommentare abrufen
-            app.MapPost("/tagupdate", TagConfigUpdate); // Tag-Kommentar und Log-Flag aktualisieren
+            app.MapPost("/tagupdate", TagConfigUpdate);//.Add(endpoint => endpoint.Metadata.Add(new ValidateAntiForgeryTokenAttribute())); ; // Tag-Kommentar und Log-Flag aktualisieren
             app.MapGet("/excel", GetExcelForm); // Excel-Export Formular ausliefern
             app.MapPost("/excel", ExcelDownload); // Excel-Datei generieren und ausliefern
             app.MapGet("/all", GetAllTagsConfig).RequireAuthorization(); // Alle Tags mit Kommentaren und Log-Flags als HTML-Tabelle ausliefern
@@ -53,10 +47,12 @@ namespace Gemini.Middleware
 
         private static IResult UserCreate([FromForm] string name, [FromForm] string role, [FromForm] string pwd)
         {
-            int result = Db.Db.CreateUser(name, pwd, role);
+            Console.WriteLine($"UserCreate aufgerufen");
+
+           int result = Db.Db.CreateUser(name, pwd, role);
             Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);
 
-            return Results.Ok();
+            return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
         }
 
         private static IResult SelectUsers(ClaimsPrincipal user)
@@ -76,46 +72,29 @@ namespace Gemini.Middleware
         }
 
 
-        private static IResult Login(IAntiforgery antiforgery, LoginRequest request, HttpContext context)
+        private async static Task<IResult> Login(IAntiforgery antiforgery, LoginRequest request, HttpContext context)
         {
-            //Console.WriteLine($"Anmeldeversuch {request.Username}\t{request.Password}");
+            
 
-            // Hier echte Prüfung gegen Datenbank einfügen
-            if (Db.Db.AuthenticateUser(request.Username, request.Password))
+            if (Db.Db.AuthenticateUser(request.Username, request.Password, out string userRole))
             {
-               
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.UTF8.GetBytes(Endpoints.JwtSettings.Key);
-
-                var tokenDescriptor = new SecurityTokenDescriptor
-                {
-                    Subject = new ClaimsIdentity(
-                    [
-                        new Claim(ClaimTypes.Name, request.Username),
-                        new Claim(ClaimTypes.Role, "Admin")
-                    ]),
-                    Expires = DateTime.UtcNow.AddHours(1),
-                    Issuer = Endpoints.JwtSettings.Issuer,
-                    Audience = Endpoints.JwtSettings.Audience,
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+#if DEBUG
+                Console.WriteLine($"Anmeldung {request.Username}");
+#endif
+                // A. User einloggen (Setzt das Auth-Cookie)
+                var claims = new List<Claim> { 
+                    new(ClaimTypes.Name, request.Username), 
+                    new(ClaimTypes.Role, userRole)
                 };
+                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-                var token = tokenHandler.WriteToken(tokenHandler.CreateToken(tokenDescriptor));
+                await context.SignInAsync(new ClaimsPrincipal(claimsIdentity));
 
-                // Cookie Optionen für maximale Sicherheit
-                var cookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,  // JS kann nicht zugreifen (Schutz vor XSS)
-                    Secure = false,   // Auf 'true' setzen, wenn du HTTPS nutzt (in Prod Pflicht!)
-                    SameSite = SameSiteMode.Lax, // 'Strict' ist besser, aber 'Lax' ist toleranter bei Dev-Servern auf anderen Ports
-                    Expires = DateTime.UtcNow.AddHours(1)
-                };
-
-                context.Response.Cookies.Append(CookieToken, token, cookieOptions);
-
+                // B. AntiForgery Token generieren und CSRF-Cookie setzen
+                // Das ist entscheidend: Der Client bekommt das Token für den NÄCHSTEN Request.
                 var tokens = antiforgery.GetAndStoreTokens(context);
-                return Results.Ok(tokens.RequestToken!);
-                // return Results.Ok(new { Message = "Login erfolgreich" });
+
+                return Results.Ok(new LoginResponse(tokens.RequestToken!));
             }
 
             return Results.Unauthorized();
@@ -123,8 +102,26 @@ namespace Gemini.Middleware
 
         private static IResult Logout(HttpContext context)
         {
-            context.Response.Cookies.Delete(CookieToken);
+            context.SignOutAsync();            
             return Results.Ok(new { Message = "Ausgeloggt" });
+        }
+
+        private static IResult RefreshAntiForgeryToken(IAntiforgery antiforgery, HttpContext context)
+        {
+            // Generiert neue Tokens basierend auf dem aktuellen Auth-Status
+            // und setzt das Cookie im Response Header neu.
+            var tokens = antiforgery.GetAndStoreTokens(context);
+
+            return Results.Ok(new CsrfTokenResponse(tokens.RequestToken!));
+        }
+
+        private static async Task Favicon(HttpContext ctx)
+        {
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "image/x-icon";
+            var file = File.ReadAllText($"wwwroot/favicon.ico", Encoding.UTF8);
+            await ctx.Response.WriteAsync(file);
+            await ctx.Response.CompleteAsync();
         }
 
         private static async Task JavaScriptFile(string filename, HttpContext ctx)
@@ -206,7 +203,7 @@ namespace Gemini.Middleware
             }
 
             //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
-            JsonTag[] obj = await Db.Db.GetDataSet2(tagNames!, startUtc, endUtc);
+            JsonTag[] obj = await Db.Db.GetDataSet(tagNames!, startUtc, endUtc);
 #if DEBUG
             Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
 #endif
@@ -224,35 +221,33 @@ namespace Gemini.Middleware
             List<JsonTag> result = [];
 
             foreach (var tag in allTags)
-                result.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.Now));
+            {
+               // Console.WriteLine($"{tag.TagName} = {tag.TagValue}");
+                result.Add(new JsonTag(tag.TagName, tag.TagComment, DateTime.Now));
+            }
 
             return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
         }
 
-        private static IResult TagConfigUpdate(HttpContext ctx) //, IAntiforgery antiforgery
+        private static IResult TagConfigUpdate(HttpContext ctx, ClaimsPrincipal claimsPrincipal) //, IAntiforgery antiforgery
         {
-            //try
-            //{
-            //    // Manuelle Validierung des Tokens aus dem Request
-            //    await antiforgery.ValidateRequestAsync(ctx);
-            //}
-            //catch (AntiforgeryValidationException)
-            //{
-            //    return Results.BadRequest("Ungültiges Anti-Forgery Token.");
-            //}
+            bool isAdmin = claimsPrincipal.IsInRole("Admin");
+            string userName = claimsPrincipal.Identity?.Name ?? "unbekannt";
 
             string tagName = ctx.Request.Form["tagName"].ToString() ?? string.Empty;
             string tagComm = ctx.Request.Form["tagComm"].ToString() ?? string.Empty;
             string tagChck = ctx.Request.Form["tagChck"].ToString() ?? string.Empty;
             _ = bool.TryParse(tagChck, out bool isChecked);
 
-            Console.WriteLine($"Tag-Update: {tagName}: {tagComm} | Log {isChecked}");
+            Console.WriteLine($"{userName} veranlasst Tag-Update: {tagName}: {tagComm} | Log {isChecked}");
 
-            Db.Db.TagUpdate(tagName, tagComm, isChecked);
-
-            //ctx.Response.StatusCode = 200;
-            //await ctx.Response.CompleteAsync();
-            return Results.Ok();
+            if (isAdmin)
+            {
+                Db.Db.TagUpdate(tagName, tagComm, isChecked);
+                return Results.Ok();
+            }
+            else
+                return Results.Unauthorized();
         }
 
         private static async Task GetExcelForm(HttpContext ctx)
@@ -302,7 +297,7 @@ namespace Gemini.Middleware
             //JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
             //MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagsAndCommnets, obj);
 
-            JsonTag[] obj = await Db.Db.GetDataSet2(tagNames!, start, end);
+            JsonTag[] obj = await Db.Db.GetDataSet(tagNames!, start, end);
             MemoryStream fileStream = Gemini.DynContent.MiniExcel.DownloadExcel((Gemini.DynContent.MiniExcel.Interval)interval, tagsAndCommnets, obj);
 
             string excelFileName = $"Werte_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.TimeOfDay.TotalSeconds:0000}.xlsx";

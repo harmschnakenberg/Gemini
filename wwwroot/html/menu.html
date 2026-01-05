@@ -13,7 +13,7 @@
 
     <ul>
         <li><a class="menuitem" href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a></li>
-        <li><a class="menuitem" href="/html/soll/test.html">Demo Sollwertfenster</a></li>
+        <li><a class="menuitem" href="/html/soll/1">Demo Sollwertfenster</a></li>
         <li><a class="menuitem" href="/user">Demo Benutzerverwaltung</a></li>
         <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
         <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
@@ -32,8 +32,6 @@
 
         const API_URL = 'https://' + window.location.host;
 
-
-
         async function login() {
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge ein...';
@@ -42,13 +40,16 @@
             const password = document.getElementById("password").value;
 
             try {
-                const response = await fetchWithCookies(`${API_URL}/login`, {
+                const response = await fetchSecure(`${API_URL}/login`, { // fetchWithCookies(`${API_URL}/login`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ username, password })
                 });
 
                 if (response.ok) {
+                    const data = await response.json();
+                    const csrfToken = data.requestToken;                    
+                    sessionStorage.setItem(TOKEN_NAME, csrfToken);
                     sessionStorage.setItem(LOGGED_USER, username);
                     el.textContent = username;
                     el.style.color = 'green';
@@ -62,8 +63,9 @@
         async function logout() {
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge aus...';
-            // Wir müssen dem Server sagen, dass er das Cookie löschen soll
-            const response = await fetchWithCookies(`${API_URL}/logout`, { method: "POST" });
+            
+            const response = await fetchSecure(`${API_URL}/logout`, { method: "POST" });     
+            sessionStorage.removeItem(TOKEN_NAME);
             if (response.ok) {
                 const loggedUser = sessionStorage.getItem(LOGGED_USER);
                 if (loggedUser) {
@@ -71,6 +73,10 @@
                     el.textContent = loggedUser + ' ausgeloggt';
                     el.style.color = 'red';
                 }
+            }
+            else {
+                el.textContent = 'Kein Benutzer ?';
+                el.style.color = 'orange';
             }
         }
     </script>
@@ -110,29 +116,5 @@
             font-size: 1.3rem;
         }
     </style>
-
-
-    <script>
-
-        //DEMO
-        //async function getData() {
-        //    try {
-        //        // Wir müssen keinen Header manuell setzen! Der Browser macht das.
-        //        const response = await fetchWithCookies(`${API_URL}/secure-data`);
-
-        //        if (response.ok) {
-        //            const data = await response.json();
-        //            log("Daten: " + JSON.stringify(data, null, 2));
-        //        } else {
-        //            log("Zugriff verweigert (Status " + response.status + ")");
-        //            if (response.status === 401) toggleView(false);
-        //        }
-        //    } catch (e) { log("Error: " + e); }
-        //}
-
-      
-    </script>
-
-
 </body>
 </html>

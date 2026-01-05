@@ -60,7 +60,7 @@ namespace Gemini.DynContent
                     const userrole = document.getElementById('role').value;
                     const userpwd = document.getElementById('pwd').value;
 
-                    post('/user/create', { name: username, role: userrole, pwd: userpwd });
+                    post2('/user/create', { name: username, role: userrole, pwd: userpwd });
                 }
             </script>");
 
@@ -117,17 +117,13 @@ namespace Gemini.DynContent
                     const tagComm = obj.parentNode.parentNode.children[1].children[0].value;
                     const tagChck = obj.parentNode.parentNode.children[3].children[0].checked;
 
-                   // post('/tagupdate', { tagName: tagName, tagComm: tagComm, tagChck: tagChck });
-                    fetch('/tagupdate', {
-                      method: 'POST',
-                      credentials: 'include', // wichtig für Cookie
-                      headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-TOKEN-HEADERNAME': 'KreuAntiforgeryCookie'
-                      },
+                    fetchSecure('/tagupdate', {
+                      method: 'POST',                      
                       body: new URLSearchParams({ tagName: tagName, tagComm: tagComm, tagChck: tagChck })
                     });
                 }
+
+
             </script>
             ");
 

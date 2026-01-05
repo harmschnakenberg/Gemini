@@ -108,8 +108,10 @@ namespace Gemini.Db
         }
 
 
-        internal static bool AuthenticateUser(string username, string userpassword, string requiredUserRole = "User")
+        internal static bool AuthenticateUser(string username, string userpassword, out string userRole)
         {
+            userRole = "unbekannt";
+
             lock (_dbLock)
             {
                 
@@ -131,10 +133,10 @@ namespace Gemini.Db
                     //Console.WriteLine($"Vergleich {userpassword}\t{storedHash}  {Gemini.Middleware.PasswordHasher.HashPassword(userpassword)}");
                     bool passwordMatch = Gemini.Middleware.PasswordHasher.VerifyPassword(userpassword, storedHash);
                     
-                    string userRole = reader.GetString(1);
-                    bool userRoleOk = userRole.Equals(requiredUserRole, StringComparison.OrdinalIgnoreCase);
+                    userRole = reader.GetString(1);
+                    //bool userRoleOk = userRole.Equals(requiredUserRole, StringComparison.OrdinalIgnoreCase);
 
-                    return passwordMatch && (requiredUserRole.Equals("user", StringComparison.OrdinalIgnoreCase) || userRoleOk);
+                    return passwordMatch;
                 }
 
                 connection.Dispose();

@@ -1,4 +1,8 @@
-﻿function JsonTag(name, value, time) {
+﻿const LOGGED_USER = 'userName';
+const TOKEN_NAME = 'RequestVerificationToken';
+let currentCsrfToken = null; // Hier speichern wir das Token global
+
+function JsonTag(name, value, time) {
     this.N = name;
     this.V = value;
     this.T = time;
@@ -65,7 +69,7 @@ function initWebsocket(tags) {
 
         const jsonString = JSON.stringify(tags);
         websocket.send(jsonString);
-        console.log('⬆️ Initiales Objekt an Server gesendet:', tags);
+        //console.log('⬆️ Initiales Objekt an Server gesendet:', tags);
     };
 
     websocket.onmessage = (event) => {
@@ -131,9 +135,6 @@ function createLink(href, display) {
     return a;
 }
 
-// Token-Schlüssel konstant halten
-//const TOKEN_KEY = 'accessToken';
-const LOGGED_USER = 'userName';
 
 // Funktion zum Überprüfen des Login-Status beim Laden der Seite
 function checkLoginStatus() {
@@ -156,32 +157,104 @@ function checkLoginStatus() {
 }
 
 // Hilfsfunktion für Fetch mit Cookies
-async function fetchWithCookies(url, options = {}) {
-    options.credentials = 'include';
-    return fetch(url, options);
+//async function fetchWithCookies(url, options = {}) {
+//    options.credentials = 'include';
+//    return fetch(url, options);
+//}
+
+/**
+ * Holt ein frisches Token vom Server
+ */
+async function refreshCsrfToken() {
+    try {
+        const response = await fetch('/antiforgery/token', { method: 'GET' });
+        if (response.ok) {
+            const data = await response.json();
+            currentCsrfToken = data.token;
+            console.log("Token erneuert:", currentCsrfToken);
+            return true;
+        }
+    } catch (e) {
+        console.error("Konnte Token nicht erneuern", e);
+    }
+    return false;
+}
+
+/**
+ * Ein Wrapper um fetch, der CSRF automatisch handhabt
+ */
+async function fetchSecure(url, options = {}) {
+    // Sicherstellen, dass wir überhaupt ein Token haben (z.B. beim ersten Start)
+    if (!currentCsrfToken) {
+        await refreshCsrfToken();
+    }
+
+    // Standard-Header vorbereiten
+    if (!options.headers) options.headers = {};
+
+    // Content-Type setzen, falls JSON gesendet wird
+    if (!(options.body instanceof FormData) && !options.headers['Content-Type']) {
+        options.headers['Content-Type'] = 'application/json';
+    }
+
+    // CSRF Token in Header packen
+    options.headers['RequestVerificationToken'] = currentCsrfToken;
+
+    // 1. Versuch: Request senden
+    let response = await fetch(url, options);
+
+    // Wenn der Server 400 Bad Request meldet, könnte das Token abgelaufen sein.
+    // (ASP.NET Core Antiforgery gibt 400 zurück, wenn das Token nicht stimmt)
+    if (response.status === 400) {
+        console.warn("400 Fehler erhalten - Versuche Token Refresh...");
+
+        // Versuchen, Token zu erneuern
+        const refreshed = await refreshCsrfToken();
+
+        if (refreshed) {
+            // Token im Header aktualisieren
+            options.headers['RequestVerificationToken'] = currentCsrfToken;
+
+            // 2. Versuch: Request wiederholen
+            response = await fetch(url, options);
+        }
+    }
+
+    return response;
 }
 
 
-//function checkCookie(name) {
-//    return getCookie(name) != "";     
-//}
+//async function post2(path, params, method = 'post') {
+//    const token = sessionStorage.getItem('RequestVerificationToken');
+//    console.log(JSON.stringify(params) + '| SessionToken ' + token);
+//    const searchParams = new URLSearchParams(params);
 
-
-//function getCookie(cname) {
-//    let name = cname + "=";
-//    let decodedCookie = decodeURIComponent(document.cookie);
-//    let ca = decodedCookie.split(';');
-//    for (let i = 0; i < ca.length; i++) {
-//        let c = ca[i];
-//        while (c.charAt(0) == ' ') {
-//            c = c.substring(1);
-//        }
-//        if (c.indexOf(name) == 0) {
-//            return c.substring(name.length, c.length);
-//        }
+//    for (const p of searchParams) {
+//        console.log(p);
 //    }
-//    return "";
+
+//    const res = await fetch(path, {
+//        method: method,
+//        credentials: "include", // wichtig für Cookie
+//        headers: {
+//            // Ohne diesen Header => 400 Bad Request (Antiforgery failure)
+//            'RequestVerificationToken': token
+//        },
+//        body: searchParams
+//    });
+
+//    if (res.status === 401) console.error("Nicht eingeloggt!");
+//    else if (res.status === 400) console.error("CSRF Token ungültig/fehlt!");
+//    else {
+//        //const text = await res.t
+
+//        //console.log("Server antwortet:", res.text());
+//    }
+
+//    return res;
 //}
+
+
 
 window.onload = () => {
     initUnits();

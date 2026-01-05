@@ -159,7 +159,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
             const chartId = message.chartId;
             const newDatasets = e.data.datasets;
             const myChart = myCharts.get(chartId);
-            console.log(`Daten vom Worker für ${chartId} empfangen. ${newDatasets.length} Datensätze.`);
+            //console.log(`Daten vom Worker für ${chartId} empfangen. ${newDatasets.length} Datensätze.`);
 
             // Ersetze die existierenden Datensätze durch die neuen
             myChart.data.datasets = newDatasets;

@@ -25,10 +25,10 @@ namespace Gemini.DynContent
                 Interval.Sekunde => "yyyy-MM-dd HH:mm:ss",
                 Interval.Minute => "yyyy-MM-dd HH:mm",
                 Interval.Viertelstunde => "yyyy-MM-dd HH:mm",
-                Interval.Stunde => "yyyy-MM-dd HH:00",
+                Interval.Stunde => "yyyy-MM-dd HH:'00'",
                 Interval.Tag => "yyyy-MM-dd",
                 Interval.Monat => "yyyy-MM",
-                Interval.Jahr => "yyyy-MM",
+                Interval.Jahr => "yyyy",
                 _ => "yyyy-MM-dd HH:mm:ss",
             };
         }

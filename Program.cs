@@ -1,18 +1,19 @@
 using Gemini.Middleware;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 Gemini.Db.Db db = new(); //Datenbanken initialisieren
 Gemini.Db.Db.InitiateDbWriting();
 
 // 1. Native AOT Vorbereitung: CreateSlimBuilder verwenden
 var builder = WebApplication.CreateSlimBuilder(args);
+
+#region https
+
 builder.WebHost.UseKestrelHttpsConfiguration();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -24,71 +25,97 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+#endregion
+
+#region JSON für native AOT vorbereiten
+
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default));
 
+#endregion
+
 #region Authentifizierung
-Endpoints.JwtSettings = new(
-    Key: builder.Configuration["jwt:Key"] ?? "DeinSuperGeheimerSchluessel12345", // Mindestens 16 Zeichen für HMACSHA256
-    Audience: builder.Configuration["jwt:Audience"] ?? "GeminiAudience",
-    Issuer: builder.Configuration["jwt:Issuer"] ?? "GeminiIssuer"
-    );
 
-
-// 2. Authentifizierung & Autorisierung hinzufügen
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// 2. Authentication (Cookies) hinzufügen
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = Endpoints.JwtSettings.Issuer,// jwtIssuer,
-        ValidAudience = Endpoints.JwtSettings.Audience, // jwtAudience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Endpoints.JwtSettings.Key))
-    };
-
-    //3. Token aus Cookie extrahieren
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
+        options.Cookie.Name = "MyAuthCookie";
+        options.Cookie.HttpOnly = true; // Wichtig gegen XSS
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        // Bei API Calls wollen wir keinen Redirect auf eine Login-Seite bei 401
+        options.Events.OnRedirectToLogin = context =>
         {
-            // Wenn ein Cookie mit dem Namen existiert, nutze es als Token
-            if (context.Request.Cookies.ContainsKey(Endpoints.CookieToken))
-            {
-                context.Token = context.Request.Cookies[Endpoints.CookieToken];                
-            }
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
-        }
-    };
+        };
+    });
 
-});
+builder.Services.AddAuthorization();
 
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    // The path the user is sent to when they are not authenticated
-    options.LoginPath = "/";
 
-    //// Optional: Only redirect if it's not an API call
-    //options.Events.OnRedirectToLogin = context =>
-    //{
-    //    if (context.Request.Path.StartsWithSegments("wwwroot/js") || context.Request.Path.StartsWithSegments("wwwroot/css"))
-    //    {
-    //        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-    //    }
-    //    else
-    //    {
-    //        context.Response.Redirect(context.RedirectUri);
-    //    }
-    //    return Task.CompletedTask;
-    //};
-});
+//Endpoints.JwtSettings = new(
+//    Key: builder.Configuration["jwt:Key"] ?? "DeinSuperGeheimerSchluessel12345", // Mindestens 16 Zeichen für HMACSHA256
+//    Audience: builder.Configuration["jwt:Audience"] ?? "GeminiAudience",
+//    Issuer: builder.Configuration["jwt:Issuer"] ?? "GeminiIssuer"
+//    );
+
+
+//// 2. Authentifizierung & Autorisierung hinzufügen
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
+//.AddJwtBearer(options =>
+//{
+//    options.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = true,
+//        ValidateAudience = true,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+//        ValidIssuer = Endpoints.JwtSettings.Issuer,// jwtIssuer,
+//        ValidAudience = Endpoints.JwtSettings.Audience, // jwtAudience,
+//        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Endpoints.JwtSettings.Key))
+//    };
+
+//    //3. Token aus Cookie extrahieren
+//    options.Events = new JwtBearerEvents
+//    {
+//        OnMessageReceived = context =>
+//        {
+//            // Wenn ein Cookie mit dem Namen existiert, nutze es als Token
+//            if (context.Request.Cookies.ContainsKey(Endpoints.CookieToken))
+//            {
+//                context.Token = context.Request.Cookies[Endpoints.CookieToken];                
+//            }
+//            return Task.CompletedTask;
+//        }
+//    };
+
+//});
+
+//builder.Services.ConfigureApplicationCookie(options =>
+//{
+//    // The path the user is sent to when they are not authenticated
+//    options.LoginPath = "/";
+
+//    //// Optional: Only redirect if it's not an API call
+//    //options.Events.OnRedirectToLogin = context =>
+//    //{
+//    //    if (context.Request.Path.StartsWithSegments("wwwroot/js") || context.Request.Path.StartsWithSegments("wwwroot/css"))
+//    //    {
+//    //        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+//    //    }
+//    //    else
+//    //    {
+//    //        context.Response.Redirect(context.RedirectUri);
+//    //    }
+//    //    return Task.CompletedTask;
+//    //};
+//});
 
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder()
@@ -101,7 +128,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy => policy
-        //.AllowAnyOrigin()
+        //.AllowAnyOrigin() //mit https nicht möglich?
         .WithOrigins("http://localhost:3000", "http://127.0.0.1:5500", "http://localhost:5500", "https://127.0.0.1:5500", "https://localhost:5500", "https://localhost:442", "https://localhost:443") // Deine Client-URL explizit nennen!
         .AllowAnyMethod()
         .AllowAnyHeader()
@@ -109,14 +136,9 @@ builder.Services.AddCors(options =>
         );    
 });
 
-//builder.Services.AddAntiforgery();
 builder.Services.AddAntiforgery(options =>
 {
-    // Set Cookie properties using CookieBuilder properties†.
-    options.Cookie.Name = "KreuAntiforgeryCookie";
-    options.FormFieldName = "AntiforgeryFieldname";
-    options.HeaderName = "X-CSRF-TOKEN-HEADERNAME";
-    options.SuppressXFrameOptionsHeader = false;
+    options.HeaderName = "RequestVerificationToken";
 });
 
 
@@ -136,9 +158,13 @@ app.UseCors("AllowFrontend");
 //AntiForgeryToken auswerten
 app.Use(async (ctx, next) =>
 {
-    if (HttpMethods.IsPost(ctx.Request.Method))
+    Console.WriteLine("AntiforgeryMiddelware auf Endpoint " + ctx.Request.Path);
+
+    if (HttpMethods.IsPost(ctx.Request.Method) && ctx.Request.Path != "/login")
     {
         var antiforgery = ctx.RequestServices.GetRequiredService<IAntiforgery>();
+        var t = antiforgery.GetTokens(ctx);
+        Console.WriteLine($"AntiforgeryTokens. HeaderName={t.HeaderName}\tCookieToken={t.CookieToken}\tRequestToken={t.RequestToken}\tFormFieldName={t.FormFieldName}");
         await antiforgery.ValidateRequestAsync(ctx);
     }
     await next();
@@ -152,14 +178,6 @@ app.UseAntiforgery();
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 app.MapEndpoints();
-
-
-app.MapGet("/secure-data", (ClaimsPrincipal user) =>
-{
-    return Results.Ok(new { Message = $"Hallo {user.Identity?.Name}, dies kommt sicher via Cookie!", Timestamp = DateTime.Now });
-})
-.RequireAuthorization();
-
 
 while (!Endpoints.PleaseStop)
 {

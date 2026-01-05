@@ -164,7 +164,7 @@ const allTagComments = new Map();
 
 async function loadComments() {
     const link = `/tagcomments`;
-    const response = await fetch(link, {
+    const response = await fetchSecure(link, {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -183,7 +183,7 @@ async function loadComments() {
     json.forEach((t) => {        
         allTagComments.set(t.V?.length > 3 ? t.V : t.N, t.N);
         const para = document.createElement("OPTION");
-        //console.info(`# ${t.V}=${t.N}`);       
+        console.info(`# ${t.V}=${t.N}`);       
         para.setAttribute("value", t.V?.length > 3 ? t.V : t.N);        
         document.getElementById('comments').appendChild(para);
     });
@@ -262,16 +262,4 @@ function post(path, params, method = 'post') {
 
     document.body.appendChild(form);
     form.submit();
-}
-
-function post2(path, params, method = 'post') {
-    fetch(path, {
-        method: method,
-        credentials: "include", // wichtig für Cookie
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-CSRF-TOKEN-HEADERNAME": tokenFromServerOrCookie
-        },
-        body: new URLSearchParams({ foo: "bar" })
-    });
 }
