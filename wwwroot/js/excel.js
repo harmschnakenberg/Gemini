@@ -166,10 +166,10 @@ async function loadComments() {
     const link = `/tagcomments`;
     const response = await fetchSecure(link, {
         method: 'POST',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-        },
+        //headers: {
+        //    'Accept': 'application/json',
+        //    'Content-Type': 'application/json'
+        //},
         body: "?"
     });
 

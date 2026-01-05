@@ -11,10 +11,7 @@ using System.Text.Json;
 
 namespace Gemini.Middleware
 {
-    //public record JwtSettings(string Key, string Audience, string Issuer);
-
-   
-
+    
     public static class Endpoints
     {
         internal static bool PleaseStop = false;
@@ -25,17 +22,17 @@ namespace Gemini.Middleware
             app.MapPost("/logout", Logout).RequireAuthorization(); // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann)
             app.MapGet("/antiforgery/token", RefreshAntiForgeryToken).AllowAnonymous();
 
-            app.MapGet("/user", SelectUsers).AllowAnonymous(); //.RequireAuthorization();
+            app.MapGet("/user", SelectUsers).RequireAuthorization();
             app.MapPost("/user/create", UserCreate);
 
-            app.MapGet("/favicon.ico", Favicon).AllowAnonymous();
+            app.MapGet("favicon.ico", Favicon).AllowAnonymous();
             app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien ausliefern
             app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien ausliefern
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
             app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
             app.MapPost("/tagcomments", GetTagComments); // Tag-Kommentare abrufen
-            app.MapPost("/tagupdate", TagConfigUpdate);//.Add(endpoint => endpoint.Metadata.Add(new ValidateAntiForgeryTokenAttribute())); ; // Tag-Kommentar und Log-Flag aktualisieren
+            app.MapPost("/tagupdate", TagConfigUpdate); // Tag-Kommentar und Log-Flag aktualisieren
             app.MapGet("/excel", GetExcelForm); // Excel-Export Formular ausliefern
             app.MapPost("/excel", ExcelDownload); // Excel-Datei generieren und ausliefern
             app.MapGet("/all", GetAllTagsConfig).RequireAuthorization(); // Alle Tags mit Kommentaren und Log-Flags als HTML-Tabelle ausliefern
@@ -45,11 +42,13 @@ namespace Gemini.Middleware
 
         }
 
-        private static IResult UserCreate([FromForm] string name, [FromForm] string role, [FromForm] string pwd)
-        {
-            Console.WriteLine($"UserCreate aufgerufen");
-
-           int result = Db.Db.CreateUser(name, pwd, role);
+        private static IResult UserCreate(HttpContext ctx)
+        {           
+            string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
+            string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
+            string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
+           
+            int result = Db.Db.CreateUser(name, pwd, role);
             Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);
 
             return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });

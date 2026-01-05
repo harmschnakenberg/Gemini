@@ -2,13 +2,16 @@
 using Gemini.Services;
 using Microsoft.Extensions.Primitives;
 using System.Data;
+using System.Reflection.Metadata;
 using System.Text;
+using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.DynContent
 {
     public class HtmlHelper
     {
-      
+
         internal static string ListAllUsers(List<User> users)
         {
             StringBuilder sb = new();
@@ -31,39 +34,61 @@ namespace Gemini.DynContent
 
             foreach (var u in users)
             {
-                sb.Append("<tr>");
-                sb.Append($"<td><input value='{u.Name}' disabled></td>");
-                sb.Append("<td><select>");
+                sb.Append("<tr onclick='getUserData(this);'>");
+                sb.Append($"<td><input value='{u.Name}' readonly></td>");
+                sb.Append("<td><select readonly>");
                 sb.Append(RoleOption(u.Role, "user", "Benutzer"));
                 sb.Append(RoleOption(u.Role, "admin", "Administrator"));
                 sb.Append("</select></td>");
                 sb.Append("</tr>");
             }
 
+            sb.Append("</table>");
+
+
+            sb.Append("<h2>Benutzer anlegen / ändern / löschen</h2>");
+            sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th><th>Passwort</th></tr>");
             sb.Append("<tr>");
             sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required></td>");
             sb.Append("<td><select id='role'>");
             sb.Append(RoleOption(string.Empty, "user", "Benutzer"));
             sb.Append(RoleOption(string.Empty, "admin", "Administrator"));
             sb.Append("</select></td>");
-            sb.Append($"<td><input id='pwd' type='password' placeholder='********'><label for='pwd'>Passwort</label></td>");
+            sb.Append($"<td><input id='pwd' type='password' placeholder='********'>");
             sb.Append("</tr>");
 
             sb.Append("</table></body></html>");
 
-            sb.Append("<button onclick='createUser()'>neu anlegen</button>");
+            sb.Append("<button onclick='updateUser(\"create\")'>neu anlegen</button>");
+            sb.Append("<button onclick='updateUser(\"update\")' disabled>löschen</button>");
+            sb.Append("<button onclick='updateUser(\"delete\")'>löschen</button>");
 
             sb.Append(@"
             <script>
-                function createUser() {                    
+                function getUserData(row)
+                {
+                    const username = row.children[0].children[0].value;
+                    const userrole = row.children[1].children[0].value;
+                    document.getElementById('username').value = username;
+                    document.getElementById('role').value = userrole;
+                }
+
+                function updateUser(verb)
+                {
                     const username = document.getElementById('username').value;
                     const userrole = document.getElementById('role').value;
                     const userpwd = document.getElementById('pwd').value;
-
-                    post2('/user/create', { name: username, role: userrole, pwd: userpwd });
+                   
+                    fetchSecure('/user/' + verb, {
+                          method: 'POST', 
+                          contentType: 'application/x-www-form-urlencoded',
+                          body: new URLSearchParams({ name: username, role: userrole, pwd: userpwd })
+                        });
                 }
-            </script>");
 
+
+            </script>");
+      
             return sb.ToString();
         }
 

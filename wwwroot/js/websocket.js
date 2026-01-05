@@ -135,7 +135,6 @@ function createLink(href, display) {
     return a;
 }
 
-
 // Funktion zum Überprüfen des Login-Status beim Laden der Seite
 function checkLoginStatus() {
     let span = document.getElementById('loginMessage');
@@ -165,6 +164,7 @@ function checkLoginStatus() {
 /**
  * Holt ein frisches Token vom Server
  */
+
 async function refreshCsrfToken() {
     try {
         const response = await fetch('/antiforgery/token', { method: 'GET' });
@@ -180,9 +180,7 @@ async function refreshCsrfToken() {
     return false;
 }
 
-/**
- * Ein Wrapper um fetch, der CSRF automatisch handhabt
- */
+// Ein Wrapper um fetch, der CSRF automatisch handhabt
 async function fetchSecure(url, options = {}) {
     // Sicherstellen, dass wir überhaupt ein Token haben (z.B. beim ersten Start)
     if (!currentCsrfToken) {
@@ -223,6 +221,23 @@ async function fetchSecure(url, options = {}) {
     return response;
 }
 
+//function updateUser(verb) {
+//    const username = document.getElementById('username').value;
+//    const userrole = document.getElementById('role').value;
+//    const userpwd = document.getElementById('pwd').value;
+    
+//    const res = fetchSecure('/user/' + verb, {
+//        method: 'POST',
+//        contentType: 'application/x-www-form-urlencoded',
+//        body: new URLSearchParams({
+//            name: username,
+//            role: userrole,
+//            pwd: userpwd
+//        })
+//    });
+
+//    console.info(res.status);
+//}
 
 //async function post2(path, params, method = 'post') {
 //    const token = sessionStorage.getItem('RequestVerificationToken');
@@ -261,11 +276,4 @@ window.onload = () => {
     checkLoginStatus();
     initWebsocket(initTags());
     loadMenu('soll', '/js/sollmenu.json');
-
-    // Service Worker registrieren
-    //if ('serviceWorker' in navigator) {
-    //    navigator.serviceWorker.register('/js/auth.js').then(reg => {
-    //        console.log('SW registriert');
-    //    });
-    //}
 }
