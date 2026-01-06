@@ -67,12 +67,19 @@ namespace Gemini.Db
                           Category TEXT NOT NULL,
                           Message TEXT 
                           ); 
+                    CREATE TABLE IF NOT EXISTS Roles ( 
+                          Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                          Role TEXT NOT NULL UNIQUE
+                          ); 
                     CREATE TABLE IF NOT EXISTS User ( 
                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                           Name TEXT NOT NULL UNIQUE,                         
                           Hash TEXT,
-                          Role TEXT DEFAULT 'User'
+                          RoleId INTEGER,
+                         
+                          CONSTRAINT fk_RoleId FOREIGN KEY (RoleId) REFERENCES Roles (Id) ON DELETE NO ACTION
                           ); 
+                    
                     CREATE TABLE IF NOT EXISTS Source ( 
                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                           Name TEXT NOT NULL UNIQUE,     
@@ -94,10 +101,14 @@ namespace Gemini.Db
             command.CommandText =
             $@"
                     INSERT INTO Log (Category, Message) VALUES ('System', 'Datenbank neu erstellt.');                      
-                    INSERT INTO Source (Name, Ip) VALUES ('A01', '192.168.0.10'); ";
+                    INSERT INTO Source (Name, Ip) VALUES ('A01', '192.168.0.10'); 
+                    INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Unbekannt}, '{Role.Unbekannt}'); 
+                    INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Admin},'{Role.Admin}'); 
+                    INSERT INTO Roles (Id, Role) VALUES ({(int)Role.User},'{Role.User}'); 
+            ";
             _ = command.ExecuteNonQuery();
 
-            _ = Db.CreateUser("Admin", "Admin", "Admin");
+            _ = Db.CreateUser("Admin", "Admin", Role.Admin);
         }
 
         private static async void CreateDayDatabaseAsync()

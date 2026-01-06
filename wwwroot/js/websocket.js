@@ -140,9 +140,18 @@ function checkLoginStatus() {
     let span = document.getElementById('loginMessage');
 
     if (!span) {
-        span = document.createElement("span");
+        span = document.createElement('span');
         span.setAttribute('id', 'loginMessage');
-        document.body.appendChild(span);
+        //span.style.backgroundColor = 'grey';
+        span.style.padding = '0.2rem 0.5rem';
+        span.style.border = '1px solid grey';
+        span.style.borderRadius = '0.5rem';
+
+        const a = document.createElement('a');
+        a.setAttribute('href', '/');        
+        a.appendChild(span);
+
+        document.body.appendChild(a);
     }
 
     const loggedUser = sessionStorage.getItem(LOGGED_USER);
@@ -155,27 +164,19 @@ function checkLoginStatus() {
     }
 }
 
-// Hilfsfunktion für Fetch mit Cookies
-//async function fetchWithCookies(url, options = {}) {
-//    options.credentials = 'include';
-//    return fetch(url, options);
-//}
 
-/**
- * Holt ein frisches Token vom Server
- */
-
+/* Holt ein frisches Token vom Server */
 async function refreshCsrfToken() {
     try {
         const response = await fetch('/antiforgery/token', { method: 'GET' });
         if (response.ok) {
-            const data = await response.json();
-            currentCsrfToken = data.token;
-            console.log("Token erneuert:", currentCsrfToken);
+            //const data = await response.json();
+            //currentCsrfToken = data.token;
+            console.log("🔐 Token erneuert."); //, currentCsrfToken
             return true;
         }
     } catch (e) {
-        console.error("Konnte Token nicht erneuern", e);
+        console.error("🔓 Konnte Token nicht erneuern.", e);
     }
     return false;
 }
@@ -220,55 +221,6 @@ async function fetchSecure(url, options = {}) {
 
     return response;
 }
-
-//function updateUser(verb) {
-//    const username = document.getElementById('username').value;
-//    const userrole = document.getElementById('role').value;
-//    const userpwd = document.getElementById('pwd').value;
-    
-//    const res = fetchSecure('/user/' + verb, {
-//        method: 'POST',
-//        contentType: 'application/x-www-form-urlencoded',
-//        body: new URLSearchParams({
-//            name: username,
-//            role: userrole,
-//            pwd: userpwd
-//        })
-//    });
-
-//    console.info(res.status);
-//}
-
-//async function post2(path, params, method = 'post') {
-//    const token = sessionStorage.getItem('RequestVerificationToken');
-//    console.log(JSON.stringify(params) + '| SessionToken ' + token);
-//    const searchParams = new URLSearchParams(params);
-
-//    for (const p of searchParams) {
-//        console.log(p);
-//    }
-
-//    const res = await fetch(path, {
-//        method: method,
-//        credentials: "include", // wichtig für Cookie
-//        headers: {
-//            // Ohne diesen Header => 400 Bad Request (Antiforgery failure)
-//            'RequestVerificationToken': token
-//        },
-//        body: searchParams
-//    });
-
-//    if (res.status === 401) console.error("Nicht eingeloggt!");
-//    else if (res.status === 400) console.error("CSRF Token ungültig/fehlt!");
-//    else {
-//        //const text = await res.t
-
-//        //console.log("Server antwortet:", res.text());
-//    }
-
-//    return res;
-//}
-
 
 
 window.onload = () => {

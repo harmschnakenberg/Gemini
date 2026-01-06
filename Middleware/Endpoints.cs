@@ -24,6 +24,8 @@ namespace Gemini.Middleware
 
             app.MapGet("/user", SelectUsers).RequireAuthorization();
             app.MapPost("/user/create", UserCreate);
+            app.MapPost("/user/update", UserUpdate);
+            app.MapPost("/user/delete", UserDelete);
 
             app.MapGet("favicon.ico", Favicon).AllowAnonymous();
             app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien ausliefern
@@ -42,32 +44,66 @@ namespace Gemini.Middleware
 
         }
 
-        private static IResult UserCreate(HttpContext ctx)
-        {           
+        private static IResult UserCreate(HttpContext ctx, ClaimsPrincipal user)
+        {
+            bool isAdmin = user.IsInRole("Admin");
+            if (!isAdmin) // Nur Admins können Benutzer erstellen
+                return Results.Unauthorized();
+
             string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
             string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
             string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
-           
-            int result = Db.Db.CreateUser(name, pwd, role);
+            
+            int result = Db.Db.CreateUser(name, pwd, Enum.Parse<Role>(role));
+            //Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);
+
+            if (result > 0)
+                //return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
+                return Results.Redirect("/user");
+            else
+                return Results.InternalServerError();
+        }
+
+        private static IResult UserUpdate(HttpContext ctx, ClaimsPrincipal user)
+        {       
+            string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
+            string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
+            string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
+
+            bool isAdmin = user.IsInRole("Admin");
+            bool isCurrentUser = user.Identity?.Name == name;
+            
+            if (!isAdmin && !isCurrentUser) //Benutzer können sich nur selbst ändern 
+                return Results.Unauthorized();
+
+            int result = Db.Db.UpdateUser(name, pwd, Enum.Parse<Role>(role));
             Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);
 
-            return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
+
+            if (result > 0)
+                return Results.Redirect("/user"); 
+                //return Results.Ok(new { Message = $"Benutzer {name} in der Datenbank geändert.", Timestamp = DateTime.Now });
+            else
+                return Results.InternalServerError();
+        }
+
+        private static IResult UserDelete(HttpContext ctx, ClaimsPrincipal user)
+        {
+            bool isAdmin = user.IsInRole("Admin");
+            if (!isAdmin) // Nur Admins können Benutzer löschen
+                return Results.Unauthorized();
+
+            string name = ctx.Request.Form["name"].ToString() ?? string.Empty;            
+            Db.Db.DeleteUser(name);
+            
+            return Results.Redirect("/user");
+            //return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
         }
 
         private static IResult SelectUsers(ClaimsPrincipal user)
         {
-            var username = user.Identity?.Name ?? "Unbekannt";
-            string role = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value.ToLower() ?? "Unbekannt";
-            bool isAdmin = role.Equals("admin");
-
-            if (isAdmin)
-            {
-                List<User> users = Db.Db.SelectAllUsers();
-                return Results.Content(HtmlHelper.ListAllUsers(users), "text/html");
-            }
-            else
-                return Results.Ok(new { Message = $"Hallo {username}, du bist als {role} eingeloggt!", Timestamp = DateTime.Now });
-
+            List<User> users = Db.Db.SelectAllUsers();
+            return Results.Content(HtmlHelper.ListAllUsers(users, user), "text/html");
         }
 
 
@@ -75,7 +111,7 @@ namespace Gemini.Middleware
         {
             
 
-            if (Db.Db.AuthenticateUser(request.Username, request.Password, out string userRole))
+            if (Db.Db.AuthenticateUser(request.Username, request.Password, out Role userRole))
             {
 #if DEBUG
                 Console.WriteLine($"Anmeldung {request.Username}");
@@ -83,7 +119,7 @@ namespace Gemini.Middleware
                 // A. User einloggen (Setzt das Auth-Cookie)
                 var claims = new List<Claim> { 
                     new(ClaimTypes.Name, request.Username), 
-                    new(ClaimTypes.Role, userRole)
+                    new(ClaimTypes.Role, userRole.ToString())
                 };
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -232,6 +268,9 @@ namespace Gemini.Middleware
         {
             bool isAdmin = claimsPrincipal.IsInRole("Admin");
             string userName = claimsPrincipal.Identity?.Name ?? "unbekannt";
+
+            //var headers = ctx.Request.Headers;
+            //foreach (var h in headers) { Console.WriteLine($"{h.Key}\t= {h.Value}");}
 
             string tagName = ctx.Request.Form["tagName"].ToString() ?? string.Empty;
             string tagComm = ctx.Request.Form["tagComm"].ToString() ?? string.Empty;

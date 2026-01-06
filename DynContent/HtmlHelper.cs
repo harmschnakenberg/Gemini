@@ -1,19 +1,24 @@
 ﻿using Gemini.Db;
 using Gemini.Services;
-using Microsoft.Extensions.Primitives;
 using System.Data;
-using System.Reflection.Metadata;
+using System.Security.Claims;
 using System.Text;
-using System.Xml.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.DynContent
 {
     public class HtmlHelper
     {
 
-        internal static string ListAllUsers(List<User> users)
+        internal static string ListAllUsers(List<User> users, ClaimsPrincipal currentUser)
         {
+            var username = currentUser.Identity?.Name ?? "Unbekannt";
+            string role = currentUser.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value.ToLower() ?? "Unbekannt";
+            //Console.WriteLine($"ListAllUsers()) als {role}");
+
+            bool isAdmin = role.Equals("admin");
+            bool isUser = role.Equals("user");
+
+
             StringBuilder sb = new();
 
             sb.Append(@"<!DOCTYPE html>
@@ -29,39 +34,50 @@ namespace Gemini.DynContent
                             </head>
                             <body>");
 
-            sb.Append($"<h1>Benutzerübersicht</h1>");
+            sb.Append("<h1>Benutzerübersicht</h1>");
+            //sb.Append($"<div>{role}</div>");
             sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th></tr>");
 
-            foreach (var u in users)
-            {
-                sb.Append("<tr onclick='getUserData(this);'>");
-                sb.Append($"<td><input value='{u.Name}' readonly></td>");
-                sb.Append("<td><select readonly>");
-                sb.Append(RoleOption(u.Role, "user", "Benutzer"));
-                sb.Append(RoleOption(u.Role, "admin", "Administrator"));
-                sb.Append("</select></td>");
-                sb.Append("</tr>");
-            }
+            if(isAdmin || isUser)
+                foreach (var u in users)
+                {
+                    if (isUser && u.Name != username) //Benutzer können nur sich selbst sehen.
+                        continue;
 
-            sb.Append("</table>");
+                    sb.Append("<tr onclick='getUserData(this);'>");
+                    sb.Append($"<td><input value='{u.Name}' readonly></td>");
+                    sb.Append("<td><select disabled>");
+                    sb.Append(RoleOption(u.Role, Role.User, "Benutzer"));
+                    sb.Append(RoleOption(u.Role, Role.Admin, "Administrator"));
+                    sb.Append("</select></td>");
+                    sb.Append("</tr>");
+                }
+
+            sb.Append("</table><hr/>");
 
 
-            sb.Append("<h2>Benutzer anlegen / ändern / löschen</h2>");
+            sb.Append("<h2>Benutzer verwalten</h2>");
             sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th><th>Passwort</th></tr>");
             sb.Append("<tr>");
-            sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required></td>");
+            sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required {(isUser ? $"value='{username}' readonly" : string.Empty)}></td>");
             sb.Append("<td><select id='role'>");
-            sb.Append(RoleOption(string.Empty, "user", "Benutzer"));
-            sb.Append(RoleOption(string.Empty, "admin", "Administrator"));
+            sb.Append(RoleOption(0, Role.User, "Benutzer"));
+            
+            if (isAdmin) //nur Admins können Admins auswählen
+                sb.Append(RoleOption(0, Role.Admin, "Administrator"));
+            
             sb.Append("</select></td>");
             sb.Append($"<td><input id='pwd' type='password' placeholder='********'>");
             sb.Append("</tr>");
 
             sb.Append("</table></body></html>");
 
-            sb.Append("<button onclick='updateUser(\"create\")'>neu anlegen</button>");
-            sb.Append("<button onclick='updateUser(\"update\")' disabled>löschen</button>");
-            sb.Append("<button onclick='updateUser(\"delete\")'>löschen</button>");
+            if (isAdmin) 
+                sb.Append("<button class='myButton' onclick='updateUser(\"create\")'>neu anlegen</button>");
+            if (isAdmin || isUser) 
+                sb.Append("<button class='myButton' onclick='updateUser(\"update\")'>ändern</button>");
+            if (isAdmin) 
+                sb.Append("<button class='myButton' onclick='updateUser(\"delete\")'>löschen</button>");
 
             sb.Append(@"
             <script>
@@ -81,21 +97,19 @@ namespace Gemini.DynContent
                    
                     fetchSecure('/user/' + verb, {
                           method: 'POST', 
-                          contentType: 'application/x-www-form-urlencoded',
+                          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
                           body: new URLSearchParams({ name: username, role: userrole, pwd: userpwd })
                         });
                 }
-
-
             </script>");
       
             return sb.ToString();
         }
 
 
-        private static string RoleOption(string role, string roleOption, string roleName)
+        private static string RoleOption(Role role, Role roleOption, string roleName)
         {
-            return $"<option value='{roleOption}' {(role.Equals(roleOption, StringComparison.CurrentCultureIgnoreCase) ? "selected" : string.Empty)}>{roleName}</option>";
+            return $"<option value='{roleOption}' {(role == roleOption ? "selected" : string.Empty)}>{roleName}</option>";
         }
 
         internal static async Task<string> ListAllTags() {             
@@ -143,7 +157,8 @@ namespace Gemini.DynContent
                     const tagChck = obj.parentNode.parentNode.children[3].children[0].checked;
 
                     fetchSecure('/tagupdate', {
-                      method: 'POST',                      
+                      method: 'POST',   
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },                      
                       body: new URLSearchParams({ tagName: tagName, tagComm: tagComm, tagChck: tagChck })
                     });
                 }
