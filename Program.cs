@@ -74,11 +74,6 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddAntiforgery();
-//builder.Services.AddAntiforgery(options =>
-//{
-//    options.HeaderName = "RequestVerificationToken";
-//});
-
 
 #endregion
 

@@ -57,6 +57,7 @@ namespace Gemini.DynContent
 
 
             sb.Append("<h2>Benutzer verwalten</h2>");
+            sb.Append("<div class='container controls'>");
             sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th><th>Passwort</th></tr>");
             sb.Append("<tr>");
             sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required {(isUser ? $"value='{username}' readonly" : string.Empty)}></td>");
@@ -70,16 +71,17 @@ namespace Gemini.DynContent
             sb.Append($"<td><input id='pwd' type='password' placeholder='********'>");
             sb.Append("</tr>");
 
-            sb.Append("</table></body></html>");
+            sb.Append("</table>");
+            sb.Append("</div><div class='container controls'>");
 
             if (isAdmin) 
                 sb.Append("<button class='myButton' onclick='updateUser(\"create\")'>neu anlegen</button>");
             if (isAdmin || isUser) 
                 sb.Append("<button class='myButton' onclick='updateUser(\"update\")'>ändern</button>");
             if (isAdmin) 
-                sb.Append("<button class='myButton' onclick='updateUser(\"delete\")'>löschen</button>");
+                sb.Append("<button class='delete-btn' onclick='updateUser(\"delete\")'>löschen</button>");
 
-            sb.Append(@"
+            sb.Append(@"</div>
             <script>
                 function getUserData(row)
                 {
@@ -102,7 +104,8 @@ namespace Gemini.DynContent
                         });
                 }
             </script>");
-      
+
+            sb.Append("</body></html>");
             return sb.ToString();
         }
 

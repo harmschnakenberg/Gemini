@@ -8,6 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script> <!-- für PAN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js" integrity="sha512-FRGbE3pigbYamZnw4+uT4t63+QJOfg4MXSgzPn2t8AWg9ofmFvZ/0Z37ZpCawjfXLBSVX2p2CncsmUH2hzsgJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src='/js/chart.js'></script>
     <script src='/js/excel.js'></script>
     <script src='/js/websocket.js'></script>
@@ -15,7 +17,7 @@
 <body>
     <h1>Demo Kurvendarstellung</h1>
 
-    <div style="position:absolute; right:0.5rem; top:3rem;">
+    <div style="position:absolute; right:0.5rem; top:3.5rem;">
         <input type="hidden" id="hour" data-name='A01_DB10_DBW2' />
         <input type="hidden" id="min" data-name='A01_DB10_DBW4' />
         <input type="hidden" id="sec" data-name='A01_DB10_DBW6' />
@@ -33,11 +35,17 @@
 
     <canvas id="myChart1" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
     <div class="container controls" style="max-width: fit-content; margin-left: auto; margin-right: auto;">
+        <div class="myButton" id="chartTimespan"></div>
         <input type="datetime-local" id="start" name="start" onfocusout="loadAllCharts();">
         <input type="datetime-local" id="end" name="end" onfocusout="loadAllCharts();">
-        <input type="button" class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();" value="8 Stunden" />
-        <input type="button" class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();" value="24 Stunden" />
-        <input type="button" class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));" value="Excel Export" />
+        <button class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();">8 Stunden</button>
+        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();">24 Stunden</button>
+        <button class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));">Excel Export</button>
+        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 1.2);">Zoom In</button>
+        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 0.8);">Zoom Out</button>
+        <button class="myButton" onclick="resetZoom(['myChart1', 'myChart2'])">Reset Zoom</button>
+        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], 100);">nach links</button>
+        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], -100);">nach rechts</button>
     </div>
     <canvas id="myChart2" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
 
@@ -66,10 +74,27 @@
         loadAllCharts();
 
         function loadAllCharts() {
-            loadChart('myChart1', 'start', 'end', tags1);
-            loadChart('myChart2', 'start', 'end', tags2);
+            if (checkDuration('start', 'end', 'chartTimespan')) {
+                loadChart('myChart1', 'start', 'end', tags1);
+                loadChart('myChart2', 'start', 'end', tags2);
+            }          
         }
 
+        function checkDuration(startId, endId, outputId) {
+            const start = new Date(document.getElementById(startId).value);
+            const end = new Date(document.getElementById(endId).value);
+            const duration = (end - start) / 86400000;
+            const obj = document.getElementById(outputId)
+            obj.innerHTML = duration.toFixed(0) + ' Tage';
+
+            if (duration > 91 || duration < 0) {
+                obj.style.color = 'red';
+                return false;
+            } else {
+                obj.style.color = 'inherit';
+                return true;              
+            }
+        }
 
 
     </script> 

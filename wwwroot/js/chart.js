@@ -22,6 +22,31 @@ function initChart(chartId) {
         return;
     }
 
+    const zoomOptions = {
+        //limits: {
+        //    x: { min: 'original', max: 200, minRange: 50 },
+        //    y: { min: 'original', max: 200, minRange: 50 }
+        //},
+        pan: {
+            enabled: true,
+            mode: 'x', // Enables horizontal panning
+            scaleMode: 'x',
+        },
+        zoom: {
+            wheel: {
+                enabled: true,                
+            },
+            pinch: {
+                enabled: true
+            },
+            mode: 'xy',
+            onZoomComplete({ chart }) {
+                chart.update('none');
+            },
+            scaleMode: 'x'
+        }
+    };
+
     const ctx = elm.getContext('2d');
 
     let myChart = new Chart(ctx, {
@@ -74,6 +99,7 @@ function initChart(chartId) {
                 }
             },
             plugins: {
+                zoom: zoomOptions,
                 legend: {
                     labels: {
                         color: '#ffffff'
@@ -141,9 +167,6 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
 /**
  * Empfängt die verarbeiteten Daten vom Web Worker und aktualisiert das Chart.
  */
-
-//worker.onmessage =
-
     function workermessage(e) {
 
         const message = e.data;
@@ -198,4 +221,28 @@ function getAllTags(tags) {
         });
     }
     return allTags;
+}
+
+function zoom(chartIds, factor) {
+    chartIds.forEach(function (value) {
+        if (myCharts.has(value)) {
+            myCharts.get(value).zoom(factor);
+        }
+    });
+}
+
+function resetZoom(chartIds) {
+    chartIds.forEach(function (value) {
+        if (myCharts.has(value)) {
+            myCharts.get(value).resetZoom();
+        }
+    });
+}
+
+function panX(chartIds, pixel) {
+    chartIds.forEach(function (value) {
+        if (myCharts.has(value)) {
+            myCharts.get(value).pan({ x: pixel }, undefined, 'default')
+        }
+    });
 }
