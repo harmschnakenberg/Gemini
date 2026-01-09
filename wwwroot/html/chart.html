@@ -5,6 +5,7 @@
     <title>Demo Kurve</title>
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <link rel='stylesheet' href='/css/style.css'>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
@@ -38,14 +39,14 @@
         <div class="myButton" id="chartTimespan"></div>
         <input type="datetime-local" id="start" name="start" onfocusout="loadAllCharts();">
         <input type="datetime-local" id="end" name="end" onfocusout="loadAllCharts();">
-        <button class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();">8 Stunden</button>
-        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();">24 Stunden</button>
-        <button class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));">Excel Export</button>
-        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 1.2);">Zoom In</button>
-        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 0.8);">Zoom Out</button>
-        <button class="myButton" onclick="resetZoom(['myChart1', 'myChart2'])">Reset Zoom</button>
-        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], 100);">nach links</button>
-        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], -100);">nach rechts</button>
+        <button class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();"><i class="material-icons">schedule</i>8</button>
+        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>
+        <button class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));"><i class="material-icons">save</i></button>
+        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 1.2);"><i class="material-icons">zoom_in</i></button>
+        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 0.8);"><i class="material-icons">zoom_out</i></button>
+        <button class="myButton" onclick="resetZoom(['myChart1', 'myChart2'])"><i class="material-icons">center_focus_weak</i></button>
+        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], 100);"><i class="material-icons">arrow_left</i></button>
+        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], -100);"><i class="material-icons">arrow_right</i></button>
     </div>
     <canvas id="myChart2" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
 

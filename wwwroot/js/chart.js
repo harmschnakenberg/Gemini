@@ -64,29 +64,31 @@ function initChart(chartId) {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'minute',
+                        unit: 'hour',
                         displayFormats: {
-                            minute: 'HH:mm '
+                            day: 'dd.MM.yyyy HH:mm',
+                            hour: 'HH:mm',
+                            minute: 'HH:mm:ss'                            
                         },
                         tooltipFormat: 'dd.MM.yyyy HH:mm'   
+                    },
+                    //min: startDate,
+                    ticks: {
+                        source: 'auto', //'data',
+                        //minRotation: 90,   
+                        major: { enabled: true },
+                        stepSize: 0.25,
+                        color: '#ffffff'
                     },
                     title: {
                         display: true,
                         color: '#ffffff',
                         text: 'Zeit'
-                    },
-                    //min: startDate,
-                    ticks: {
-                        source: 'data',
-                        //minRotation: 90,   
-                        major: { enabled: true },
-                        stepSize: 15,
-                        color: '#ffffff'
-                    },
+                    },                   
                     grid: {
                         display: true,
-                        drawTicks: true,
-                        color: '#666666'
+                        drawTicks: true
+                        //color: '#666666'
                     }
                 },
                 y: {

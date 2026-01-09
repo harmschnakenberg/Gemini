@@ -11,10 +11,23 @@
 <body>
     <h1>Kreutzträger WebApp</h1>
 
+    <div id="logincard">
+        <div id="loginheader" onclick="checkLoginStatus();">Login</div>
+        <input type="text" id="username" placeholder="Benutzername (testuser)" value="testuser"><br />
+        <input type="password" id="password" placeholder="Passwort (password123)" value="password123"><br />
+        <button onclick="login()">Login</button><button onclick="logout()">Logout</button>
+    </div>
+
+    <h3>Hauptmenü</h3>      
+    <ul>
+        <li><a class="menuitem" href="/source">Datenquellen</a></li>
+        <li><a class="menuitem" href="/user">Benutzerverwaltung</a></li>
+    </ul>
+
+    <h3>Demo</h3>
     <ul>
         <li><a class="menuitem" href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a></li>
         <li><a class="menuitem" href="/html/soll/1">Demo Sollwertfenster</a></li>
-        <li><a class="menuitem" href="/user">Demo Benutzerverwaltung</a></li>
         <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
         <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
         <li><a class="menuitem" href="/excel">Demo Datenexport via Excel</a></li>
@@ -40,7 +53,7 @@
             const password = document.getElementById("password").value;
 
             try {
-                const response = await fetchSecure(`${API_URL}/login`, { // fetchWithCookies(`${API_URL}/login`, {
+                const response = await fetchSecure(`${API_URL}/login`, { 
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ username, password })
@@ -48,7 +61,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    const csrfToken = data.requestToken;                    
+                    const csrfToken = data.requestToken;
                     sessionStorage.setItem(TOKEN_NAME, csrfToken);
                     sessionStorage.setItem(LOGGED_USER, username);
                     el.textContent = username;
@@ -63,8 +76,8 @@
         async function logout() {
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge aus...';
-            
-            const response = await fetchSecure(`${API_URL}/logout`, { method: "POST" });     
+
+            const response = await fetchSecure(`${API_URL}/logout`, { method: "POST" });
             sessionStorage.removeItem(TOKEN_NAME);
             if (response.ok) {
                 const loggedUser = sessionStorage.getItem(LOGGED_USER);
@@ -81,12 +94,7 @@
         }
     </script>
 
-    <div id="logincard">
-            <div id="loginheader" onclick="checkLoginStatus();">Login</div>    
-            <input type="text" id="username" placeholder="Benutzername (testuser)" value="testuser"><br/>
-            <input type="password" id="password" placeholder="Passwort (password123)" value="password123"><br/>
-            <button onclick="login()">Login</button><button onclick="logout()">Logout</button>
-    </div>
+
 
     <style>
         #logincard {
@@ -98,8 +106,9 @@
 
         @media (max-width: 1000px) {
             #logincard {
-                right: 1rem;
-                margin-right: 1rem;
+                position: relative;
+                left: 2.5rem;
+                top: 0;
             }
         }
 

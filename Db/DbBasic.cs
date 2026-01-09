@@ -78,8 +78,7 @@ namespace Gemini.Db
                           RoleId INTEGER,
                          
                           CONSTRAINT fk_RoleId FOREIGN KEY (RoleId) REFERENCES Roles (Id) ON DELETE NO ACTION
-                          ); 
-                    
+                          );                     
                     CREATE TABLE IF NOT EXISTS Source ( 
                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                           Name TEXT NOT NULL UNIQUE,     
@@ -87,9 +86,21 @@ namespace Gemini.Db
                           Ip TEXT,                                                     
                           Rack INTEGER DEFAULT 0,
                           Slot INTEGER DEFAULT 0,
+                          IsActive INTEGER DEFAULT 1,
                           Comment TEXT                          
                           );
+                    CREATE TABLE IF NOT EXISTS ReadFailure ( 
+                          Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                          Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,                               
+                          Ip STRING NOT NULL,  
+                          Db INTEGER,
+                          StartByte INTEGER,
+                          Length INTEGER                      
+                          );
+
                     PRAGMA journal_mode=WAL;
+                    PRGAMA foreign_keys = ON;
+                    PRAGMA synchronous = NORMAL;
                     ";
             int result = command.ExecuteNonQuery();
             Console.WriteLine("Mastertabelle erstellt. Ergebnis: " + result);

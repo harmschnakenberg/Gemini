@@ -141,8 +141,7 @@ function checkLoginStatus() {
 
     if (!span) {
         span = document.createElement('span');
-        span.setAttribute('id', 'loginMessage');
-        //span.style.backgroundColor = 'grey';
+        span.setAttribute('id', 'loginMessage');        
         span.style.padding = '0.2rem 0.5rem';
         span.style.border = '1px solid grey';
         span.style.borderRadius = '0.5rem';

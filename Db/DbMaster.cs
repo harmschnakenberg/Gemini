@@ -1,11 +1,8 @@
 ﻿using Microsoft.Data.Sqlite;
+using S7.Net;
 
 namespace Gemini.Db
 {
-
-
-    #region Benutzerverwaltung 
-
     public enum Role
     {
         Unbekannt,
@@ -19,10 +16,40 @@ namespace Gemini.Db
         public required Role Role { get; set; }
     }
 
+    internal class PlcConf
+    {
+        internal PlcConf(int id, string name, CpuType cpuType, string ip, short rack, short slot, bool isActive, string comment)
+        {
+            Id = id;
+            Name = name;
+            CpuType = cpuType;
+            Ip = ip;
+            Rack = rack;
+            Slot = slot;
+            IsActive = isActive;
+            Comment = comment;
+        }
+
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public CpuType CpuType { get; set; }
+        public string Ip { get; set; }
+        public short Rack { get; set; }
+        public  short Slot { get; set; }
+        public bool IsActive { get; set; }        
+        public string Comment { get; set; }
+
+        internal Plc GetPlc()
+        {
+            return new Plc(this.CpuType, this.Ip, this.Rack, this.Slot);
+        }
+
+    }
+
 
     internal partial class Db
     {
-  
+        #region Benutzerverwaltung
         internal static bool AuthenticateUser(string username, string userpassword, out Role userRole)
         {
             userRole = Role.Unbekannt;
@@ -133,12 +160,16 @@ namespace Gemini.Db
                 command.Parameters.AddWithValue("@RoleId", (int)role);
 
                 if (password.IsWhiteSpace())
+                {
+                    //Console.WriteLine("Benutzer geändert ohne Passwortänderung.");
                     command.CommandText =
                 @"  UPDATE User 
                     SET RoleId = @RoleId
                     WHERE Name = @Name; ";
+                }
                 else
                 {
+                    //Console.WriteLine("Benutzer geändert mit Passwortänderung.");
                     command.CommandText =
                 @"  UPDATE User 
                     SET Hash = @Hash, RoleId = @RoleId
@@ -187,6 +218,171 @@ namespace Gemini.Db
             command.Parameters.AddWithValue("@Message", message);
             await command.ExecuteNonQueryAsync();
         }
+
+        internal static void DbLogReadFailure(string plcIp, int db, int startByte, int length)
+        {
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+
+                command.Parameters.AddWithValue("@Ip", plcIp);
+                command.Parameters.AddWithValue("@Db", db);
+                command.Parameters.AddWithValue("@StartByte", startByte);
+                command.Parameters.AddWithValue("@Length", length);
+
+                command.CommandText = @" UPDATE ReadFailure SET Time = CURRENT_TIMESTAMP WHERE Ip = @Ip AND Db = @Db AND StartByte = @StartByte AND Length = @Length; ";
+                int result = command.ExecuteNonQuery();
+
+                if (result == 0) // Kein Eintrag vorhanden, neuen anlegen
+                {
+                    command.CommandText =
+                    @"INSERT INTO ReadFailure (Ip, Db, StartByte, Length) VALUES (@Ip, @Db, @StartByte, @Length); ";
+                    command.ExecuteNonQuery();
+                }
+            }
+        }
+
+        #endregion
+
+        #region SPS Quellen verwalten
+
+        internal static CpuType ParseCpuType(string cpuTypeStr)
+        {
+            return cpuTypeStr.ToUpper() switch
+            {
+                "S71200" => CpuType.S71200,
+                "S71500" => CpuType.S71500,
+                "S7300" => CpuType.S7300,
+                "S7400" => CpuType.S7400,
+                _ => CpuType.S71500,
+            };
+        }
+
+        internal static Dictionary<string, Plc> SelectActivePlcs()
+        {
+           lock (_dbLock)
+           {
+                Dictionary<string, Plc> plcs = [];
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+                var query = @"SELECT Name, CpuType, Ip, Rack, Slot FROM Source WHERE IsActive > 0;";
+                command.CommandText = query;
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    string name = reader.GetString(0);
+                    CpuType cpuType = ParseCpuType(reader.GetString(1));
+                    string ipAddress = reader.GetString(2);
+                    short rack = reader.GetInt16(3);
+                    short slot = reader.GetInt16(4);
+                    Plc plc = new(cpuType, ipAddress, rack, slot);
+                    plcs.Add(name, plc);
+                }
+                connection.Dispose();
+                return plcs;
+            }
+
+            /*
+             * CREATE TABLE IF NOT EXISTS Source ( 
+                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                           Name TEXT NOT NULL UNIQUE,     
+                           CpuType STRING NOT NULL DEFAULT 'S71500',  
+                           Ip TEXT,                                                     
+                           Rack INTEGER DEFAULT 0,
+                           Slot INTEGER DEFAULT 0,
+                           Comment TEXT                          
+                           );
+             */
+        }
+
+        internal static List<PlcConf> SelectAllPlcs()
+        {
+            lock (_dbLock)
+            {
+                List<PlcConf> plcs = [];
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+                var query = @"SELECT Id, Name, CpuType, Ip, Rack, Slot, IsActive, Comment FROM Source;";
+                command.CommandText = query;
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    int id = reader.GetInt32(0);
+                    string name = reader.GetString(1);
+                    CpuType cpuType = ParseCpuType(reader.GetString(2));
+                    string ipAddress = reader.GetString(3);
+                    short rack = reader.GetInt16(4);
+                    short slot = reader.GetInt16(5);
+                    bool isActive = !reader.IsDBNull(6) && reader.GetBoolean(6);
+                    string comment = reader.IsDBNull(7) ? string.Empty : reader.GetString(7);
+                    PlcConf plc = new(id, name, cpuType, ipAddress, rack, slot, isActive, comment);
+                    plcs.Add(plc);
+                }
+                connection.Dispose();
+                return plcs;
+            }
+
+            /*
+             * CREATE TABLE IF NOT EXISTS Source ( 
+                           Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                           Name TEXT NOT NULL UNIQUE,     
+                           CpuType STRING NOT NULL DEFAULT 'S71500',  
+                           Ip TEXT,                                                     
+                           Rack INTEGER DEFAULT 0,
+                           Slot INTEGER DEFAULT 0,
+                           Comment TEXT                          
+                           );
+             */
+        }
+
+        internal static int UpdatePlc(PlcConf plc)
+        {
+            /*
+              Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                          Name TEXT NOT NULL UNIQUE,     
+                          CpuType STRING NOT NULL DEFAULT 'S71500',  
+                          Ip TEXT,                                                     
+                          Rack INTEGER DEFAULT 0,
+                          Slot INTEGER DEFAULT 0,
+                          IsActive INTEGER DEFAULT 1,
+                          Comment TEXT 
+             */
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+
+                command.Parameters.AddWithValue("@Id", plc.Id);
+                command.Parameters.AddWithValue("@Name", plc.Name);
+                command.Parameters.AddWithValue("@CpuType", plc.CpuType);
+                command.Parameters.AddWithValue("@Ip", plc.Ip);
+                command.Parameters.AddWithValue("@Rack", plc.Rack);
+                command.Parameters.AddWithValue("@Slot", plc.Slot);
+                command.Parameters.AddWithValue("@IsActive", plc.IsActive ? 1 : 0);
+                command.Parameters.AddWithValue("@Comment", plc.Comment);
+
+                    //Console.WriteLine("Benutzer geändert mit Passwortänderung.");
+                command.CommandText =
+                @"  UPDATE Source
+                    SET 
+                     Name = @Name
+                    ,CpuType = @CpuType
+                    ,Ip = @Ip
+                    ,Rack = @Rack
+                    ,Slot = @Slot
+                    ,IsActive = @IsActive
+                    ,Comment = @Comment
+                    WHERE Id = @Id; ";
+
+                return command.ExecuteNonQuery();
+            }
+        }
+
 
         #endregion
     }

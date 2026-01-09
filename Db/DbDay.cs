@@ -3,6 +3,8 @@ using Gemini.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using MiniExcelLibs;
+using S7.Net;
+
 //using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using System.Text.Json;
 using System.Transactions;
@@ -465,5 +467,7 @@ namespace Gemini.Db
 #endif
             }               
         }
+
+
     }
 }

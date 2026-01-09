@@ -1,5 +1,7 @@
 ﻿using Gemini.Db;
+using Gemini.Models;
 using Gemini.Services;
+using S7.Net;
 using System.Data;
 using System.Security.Claims;
 using System.Text;
@@ -36,6 +38,7 @@ namespace Gemini.DynContent
 
             sb.Append("<h1>Benutzerübersicht</h1>");
             //sb.Append($"<div>{role}</div>");
+            sb.Append("<div class='container controls' style='width:600px;'>");
             sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th></tr>");
 
             if(isAdmin || isUser)
@@ -53,11 +56,11 @@ namespace Gemini.DynContent
                     sb.Append("</tr>");
                 }
 
-            sb.Append("</table><hr/>");
+            sb.Append("</table></div><hr/>");
 
 
             sb.Append("<h2>Benutzer verwalten</h2>");
-            sb.Append("<div class='container controls'>");
+            sb.Append("<div class='container controls' style='width:600px;'>");
             sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th><th>Passwort</th></tr>");
             sb.Append("<tr>");
             sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required {(isUser ? $"value='{username}' readonly" : string.Empty)}></td>");
@@ -72,7 +75,7 @@ namespace Gemini.DynContent
             sb.Append("</tr>");
 
             sb.Append("</table>");
-            sb.Append("</div><div class='container controls'>");
+            sb.Append("</div><div class='container controls' style='width:600px;'>");
 
             if (isAdmin) 
                 sb.Append("<button class='myButton' onclick='updateUser(\"create\")'>neu anlegen</button>");
@@ -97,11 +100,15 @@ namespace Gemini.DynContent
                     const userrole = document.getElementById('role').value;
                     const userpwd = document.getElementById('pwd').value;
                    
-                    fetchSecure('/user/' + verb, {
+                    const res = fetchSecure('/user/' + verb, {
                           method: 'POST', 
                           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
                           body: new URLSearchParams({ name: username, role: userrole, pwd: userpwd })
                         });
+
+                    if (res.ok) {
+                        location.reload();
+                    }
                 }
             </script>");
 
@@ -200,6 +207,121 @@ namespace Gemini.DynContent
 
             return sb.ToString();
         }
+
+
+        internal static async Task<string> ListAllPlcConfigs()
+        {
+           List<PlcConf> allPlcs = Db.Db.SelectAllPlcs();
+
+            StringBuilder sb = new();
+
+            sb.Append(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Datenquellen</title>                    
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                    <script src='/js/websocket.js'></script>
+                </head>
+                <body>");
+
+            sb.Append("<h1>Datenquellen</h1>");
+            sb.Append("<table>");
+            sb.Append("<tr><th>Name</th><th>Type</th><th>IP</th><th>Rack</th><th>Slot</th><th>Aktiv</th><th>Bemerkung</th></tr>");
+
+            foreach (PlcConf plc in allPlcs)
+            {
+                sb.Append("<tr>");
+                sb.Append($"<td><input onchange='updatePlc(this);' value='{plc.Name}'></td>");                
+                sb.Append("<td><select onchange='updatePlc(this);'>");
+
+                foreach (string type in Enum.GetNames<CpuType>())                                    
+                    sb.Append($"<option value='{type}' {(type == plc.CpuType.ToString() ? "selected" : string.Empty)}>{type}</option>");
+                
+                sb.Append("</select></td>");
+                sb.Append($"<td><input onchange='updatePlc(this);' pattern='[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' value='{plc.Ip}'></td>");
+                sb.Append($"<td><input onchange='updatePlc(this);' type='number' min='0' size='2' value='{plc.Rack}'></td>");
+                sb.Append($"<td><input onchange='updatePlc(this);' type='number' min='0' size='2' value='{plc.Slot}'></td>");         
+                sb.Append($"<td><input onchange='updatePlc(this); 'type='checkbox' value='{plc.IsActive}'{(plc.IsActive == true ? "checked" : "")} ></td>");
+                sb.Append($"<td><input onchange='updatePlc(this);' value='{plc.Comment}'></td>");
+                sb.Append($"<td><input type='hidden' value='{plc.Id}'></td>");
+
+                //sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}'></td>");
+                //sb.Append($"<td><input data-name='{tag.TagName}' disabled></td>");
+                //sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")} ></td>");
+                sb.Append("</tr>");
+            }
+
+            sb.Append("</table>");
+
+            sb.Append(@"
+            <script>
+                function updatePlc(obj) {                    
+                    const plcName = obj.parentNode.parentNode.children[0].children[0].value;
+                    const plcType = obj.parentNode.parentNode.children[1].children[0].value;
+                    const plcIp = obj.parentNode.parentNode.children[2].children[0].value;
+                    const plcRack = obj.parentNode.parentNode.children[3].children[0].value;
+                    const plcSlot = obj.parentNode.parentNode.children[4].children[0].value;                    
+                    const plcIsActive = obj.parentNode.parentNode.children[5].children[0].checked;
+                    const plcComm = obj.parentNode.parentNode.children[6].children[0].value;
+                    const plcId = obj.parentNode.parentNode.children[7].children[0].value;
+
+                    //document.getElementsByTagName('h1')[0].innerHTML = `Id ${plcId}, ${plcName}, ${plcType}, ${plcIp}, ${plcRack}, ${plcSlot}, ${plcIsActive}, ${plcComm}|`;
+
+                    fetchSecure('/source/update', {
+                      method: 'POST',   
+                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },                      
+                      body: new URLSearchParams({ 
+                        plcId : plcId, 
+                        plcName : plcName, 
+                        plcType: plcType, 
+                        plcIp: plcIp,
+                        plcRack: plcRack,
+                        plcSlot: plcSlot,
+                        plcIsActive: plcIsActive,
+                        plcComm: plcComm
+                        })
+                    });
+                }
+
+
+            </script>
+            ");
+
+            sb.Append("<h2>Steuerungen</h2>");
+            sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
+            sb.Append("<table>");
+
+            var plcs = PlcTagManager.Instance.GetAllPlcs();
+
+            foreach (var plcName in plcs.Keys)
+                if (plcName.StartsWith('A'))
+                {
+                    sb.AppendLine("<tr>");
+                    sb.AppendLine($"<td>{plcName}</td>");
+                    sb.AppendLine($"<td>{plcs[plcName].CPU.ToString()}<td/>");
+                    sb.AppendLine($"<td>{plcs[plcName].IP}<td/>");
+                    sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
+                    sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
+                    sb.AppendLine($"<td>" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2'/>:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4'/>:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6'/>" +
+                        $"</td>");
+                    sb.AppendLine("</tr>");
+                }
+
+            sb.Append("</table>");
+
+            sb.Append(@"
+                </body>
+                </html>");
+
+            return sb.ToString();
+        }
+
 
         internal static string ExitForm()
         {

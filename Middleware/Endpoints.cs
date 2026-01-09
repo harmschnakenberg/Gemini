@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using S7.Net;
+using System.Drawing.Drawing2D;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -18,18 +20,22 @@ namespace Gemini.Middleware
         
         public static void MapEndpoints(this IEndpointRouteBuilder app)
         {
+            app.MapGet("favicon.ico", Favicon).AllowAnonymous();
+            app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien ausliefern
+            app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien ausliefern
+
             app.MapPost("/login", Login).AllowAnonymous();
             app.MapPost("/logout", Logout).RequireAuthorization(); // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann)
             app.MapGet("/antiforgery/token", RefreshAntiForgeryToken).AllowAnonymous();
 
             app.MapGet("/user", SelectUsers).RequireAuthorization();
-            app.MapPost("/user/create", UserCreate);
-            app.MapPost("/user/update", UserUpdate);
-            app.MapPost("/user/delete", UserDelete);
+            app.MapPost("/user/create", UserCreate).RequireAuthorization();
+            app.MapPost("/user/update", UserUpdate).RequireAuthorization();
+            app.MapPost("/user/delete", UserDelete).RequireAuthorization();
 
-            app.MapGet("favicon.ico", Favicon).AllowAnonymous();
-            app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien ausliefern
-            app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien ausliefern
+            app.MapGet("/source", GetAllPlcConfig).RequireAuthorization();
+            app.MapPost("/source/update", PlcUpdate).RequireAuthorization();
+
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
             app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
@@ -42,6 +48,52 @@ namespace Gemini.Middleware
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
 
 
+        }
+
+        private static IResult PlcUpdate(HttpContext ctx, ClaimsPrincipal user)
+        {
+            /*
+                        plcId: plcId, 
+                        plcName: plcName, 
+                        plcType: plcType, 
+                        plcIp: plcIp,
+                        plcRack; plcRack,
+                        plcSlot; plcSlot,
+                        plcIsActive; plcIsActive,
+                        plcComm; plcComm
+            */
+
+            string plcIdStr = ctx.Request.Form["plcId"].ToString() ?? "0";
+            string plcName = ctx.Request.Form["plcName"].ToString() ?? string.Empty;
+            string plcTypeStr = ctx.Request.Form["plcType"].ToString() ?? string.Empty;
+            string plcIp = ctx.Request.Form["plcIp"].ToString() ?? string.Empty;
+            string plcRackStr = ctx.Request.Form["plcRack"].ToString() ?? "0";
+            string plcSlotStr = ctx.Request.Form["plcSlot"].ToString() ?? "0";
+            string plcIsActiveStr = ctx.Request.Form["plcIsActive"].ToString() ?? "false";
+            string plcComm = ctx.Request.Form["plcComm"].ToString() ?? string.Empty;
+
+            _ = int.TryParse(plcIdStr, out int plcId);
+            CpuType plcType = Db.Db.ParseCpuType(plcTypeStr);
+            _ = short.TryParse(plcRackStr, out short plcRack);
+            _ = short.TryParse(plcSlotStr, out short plcSlot);
+            _ = bool.TryParse(plcIsActiveStr, out bool plcIsActive);
+
+            PlcConf plc = new(plcId, plcName, plcType, plcIp, plcRack, plcSlot, plcIsActive, plcComm);
+            Console.WriteLine($"Änderung für SPS: {plc.Id}, {plc.Name}, Ip:{plc.Ip} {plc.Rack}, {plc.Slot} {plc.IsActive}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+            
+            bool isAdmin = user.IsInRole("Admin");
+            if (!isAdmin) //Nur Administratoren dürfen SPSen konfigurieren
+                return Results.Unauthorized();
+
+            int result = Db.Db.UpdatePlc(plc);
+            Console.WriteLine($"PlcUpdate DatenbankQuery Result = " + result);
+
+
+            if (result > 0)
+                return Results.Ok();
+            //return Results.Ok(new { Message = $"Benutzer {name} in der Datenbank geändert.", Timestamp = DateTime.Now });
+            else
+                return Results.InternalServerError();
         }
 
         private static IResult UserCreate(HttpContext ctx, ClaimsPrincipal user)
@@ -59,7 +111,7 @@ namespace Gemini.Middleware
 
             if (result > 0)
                 //return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
-                return Results.Redirect("/user");
+                return Results.Ok();
             else
                 return Results.InternalServerError();
         }
@@ -72,16 +124,18 @@ namespace Gemini.Middleware
 
             bool isAdmin = user.IsInRole("Admin");
             bool isCurrentUser = user.Identity?.Name == name;
-            
+
+            Console.WriteLine($"Änderung für name: {name}, role: {role}, pwd:{pwd} von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+
             if (!isAdmin && !isCurrentUser) //Benutzer können sich nur selbst ändern 
                 return Results.Unauthorized();
 
             int result = Db.Db.UpdateUser(name, pwd, Enum.Parse<Role>(role));
-            Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);
+            Console.WriteLine($"UserUpdate DatenbankQuery Result = " + result);
 
 
             if (result > 0)
-                return Results.Redirect("/user"); 
+                return Results.Ok(); 
                 //return Results.Ok(new { Message = $"Benutzer {name} in der Datenbank geändert.", Timestamp = DateTime.Now });
             else
                 return Results.InternalServerError();
@@ -96,7 +150,7 @@ namespace Gemini.Middleware
             string name = ctx.Request.Form["name"].ToString() ?? string.Empty;            
             Db.Db.DeleteUser(name);
             
-            return Results.Redirect("/user");
+            return Results.Ok();
             //return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
         }
 
@@ -346,6 +400,12 @@ namespace Gemini.Middleware
 
             await fileStream.CopyToAsync(ctx.Response.Body);
             await ctx.Response.CompleteAsync();
+        }
+
+
+        private static IResult GetAllPlcConfig()
+        {
+            return Results.Content(HtmlHelper.ListAllPlcConfigs().Result, "text/html");
         }
 
         private static async Task GetAllTagsConfig(HttpContext ctx)

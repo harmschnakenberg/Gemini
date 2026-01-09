@@ -44,12 +44,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.LoginPath = "/";
+        
         // Bei API Calls wollen wir keinen Redirect auf eine Login-Seite bei 401
-        options.Events.OnRedirectToLogin = context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            return Task.CompletedTask;
-        };
+        //options.Events.OnRedirectToLogin = context =>
+        //{
+        //    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        //    return Task.CompletedTask;
+        //};
     });
 
 builder.Services.AddAuthorizationBuilder()

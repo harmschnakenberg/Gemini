@@ -9,7 +9,7 @@ body {
     font-family: Arial, Helvetica, sans-serif;
 }
 
-h1 {
+h1, h2, h3 {
     padding: 0rem 2.5rem;
 }
 
@@ -100,6 +100,14 @@ ul {
     font-size: 1rem;
 }
 
+.myInput {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
 .delete-btn {
     background-color: #ff4d4d;
     color: white;
@@ -122,18 +130,14 @@ ul {
 .nonsortable-item {
     margin: 5px 0px;
     padding: 2px;
-    /*border: 1px solid #ddd;*/
- /*   border-radius: 2px;    */
     display: flex;
     justify-content: space-between;
-    align-items: center;
-  /*  transition: opacity 0.2s;*/
+    align-items: center;  
 }
 
 .sortable-item {
     margin: 3px 0;
-    padding: 2px;
-   /* border: 1px solid #ddd;*/
+    padding: 2px;   
     border-radius: 2px;
     cursor: grab;
     display: flex;
@@ -157,8 +161,6 @@ ul {
     flex-grow: 1;
     border: none;
 }
-
-
 
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
@@ -303,10 +305,3 @@ input {
     margin: 0px;    
     box-sizing: border-box;
 }
-
-
-/*	.ist {
-			fill: white;
-			font-size: 1.2em;
-			text-anchor: start
-		}*/

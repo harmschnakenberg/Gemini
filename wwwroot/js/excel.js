@@ -237,29 +237,10 @@ function excelExport(startId, endId, ival, tags) {
         arr.push(new JsonTag(key, value, new Date()));
     })
 
-    if (arr.length > 0)
-        post('/excel', { start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) });
-}
-
-function post(path, params, method = 'post') {
-
-    // The rest of this code assumes you are not using a library.
-    // It can be made less verbose if you use one.
-    const form = document.createElement('form');
-    form.method = method;
-    form.action = path;
-    
-    for (const key in params) {
-        if (params.hasOwnProperty(key)) {
-            const hiddenField = document.createElement('input');
-            hiddenField.type = 'hidden';
-            hiddenField.name = key;
-            hiddenField.value = params[key];
-
-            form.appendChild(hiddenField);
-        }
-    }
-
-    document.body.appendChild(form);
-    form.submit();
+    if (arr.length > 0)       
+        const res = await fetchSecure('/excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) })
+        });
 }
