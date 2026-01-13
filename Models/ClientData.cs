@@ -15,6 +15,9 @@ namespace Gemini.Models
 
     public record CsrfTokenResponse(string Token);
 
+    public record AlertMessage(string type, string text);
+    
+
     public class JsonTag(string n, object? v, DateTime t)
     {        
         public string N { get; set; } = n;
@@ -59,6 +62,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(CsrfTokenResponse))]
 [JsonSerializable(typeof(Gemini.Models.FormPost))]
 [JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
+[JsonSerializable(typeof(AlertMessage))]
 [JsonSerializable(typeof(DateTime))]
 [JsonSerializable(typeof(double))]
 [JsonSerializable(typeof(int))]

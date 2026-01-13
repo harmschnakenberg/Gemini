@@ -8,6 +8,11 @@ function JsonTag(name, value, time) {
     this.T = time;
 }
 
+//function AlertMessage(t, txt) {
+//    this.type = t;
+//    this.text = txt;
+//}
+
 function initUnits() {
     //Form
     const inputs = document.getElementsByTagName('input');
@@ -36,6 +41,16 @@ function initTags() {
         if (!tagNames.includes(tagName)) {
             tagNames.push(tagName);
         }
+
+        if (inputs[i].classList.contains("checkbox")) {
+            inputs[i].setAttribute("readonly", "true"); 
+            inputs[i].addEventListener("click", function () {
+                if (this.value == "X")
+                    this.value = "";
+                else
+                    this.value = "X";
+            });
+        }
     }
     return tagNames.map(tagNameToObject);
 }
@@ -49,8 +64,12 @@ function drawTags(arr) {
         const tagName = inputs[i].getAttribute('data-name');
         let obj = arr.find(o => o.N === tagName);
         if (obj) {
-            if (inputs[i].nodeName == 'INPUT')
-                inputs[i].value = obj.V;
+            if (inputs[i].nodeName == 'INPUT') {
+                if (inputs[i].classList.contains("checkbox")) 
+                    inputs[i].value = obj.V > 0 ? "X" : "";                                   
+                else
+                    inputs[i].value = obj.V;
+            }
             else
                 inputs[i].innerHTML = obj.V;
         }
@@ -127,6 +146,39 @@ async function loadMenu(endpoint, path) {
     }
 }
 
+
+function alertSuccess(txt) {
+    message('success', txt)
+}
+
+function alertWarn(txt) {
+    message('warn', txt)
+}
+
+function alertError(txt) {
+    message('error', txt)
+}
+
+function message(adjClass, txt) {
+    let alert = document.getElementById('alert');
+
+    if (!alert) {
+        alert = document.createElement('span');
+        alert.setAttribute('id', 'alert');
+        alert.style.padding = '0.2rem 0.5rem';
+        alert.style.width = '30rem';
+        
+        document.body.appendChild(alert);
+    }
+
+    msg = document.createElement('div');
+    msg.classList.add(adjClass);
+    msg.innerHTML = `<b>|${txt}|</b>`
+
+    alert.appendChild(msg);
+}
+
+
 function createLink(href, display) {
     const a = document.createElement("a");
     a.setAttribute("href", href)
@@ -160,6 +212,8 @@ function checkLoginStatus() {
     } else {
         span.textContent = 'Kein Benutzer';
         span.style.color = 'grey';
+
+        fetchSecure("/logout");
     }
 }
 
@@ -217,6 +271,8 @@ async function fetchSecure(url, options = {}) {
             response = await fetch(url, options);
         }
     }
+    else
+        console.log(`${url} => ${response.status}`)
 
     return response;
 }
@@ -228,3 +284,6 @@ window.onload = () => {
     initWebsocket(initTags());
     loadMenu('soll', '/js/sollmenu.json');
 }
+
+              
+                    

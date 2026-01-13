@@ -68,6 +68,7 @@ namespace Gemini.Db
             catch (Exception ex)
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
+                //logger.LogError(ex, $"Fehler beim Senden an die Datenbank {clientId}. Client wird nicht entfernt.");
                 Console.WriteLine($"Error in sending to Database {clientId}. Client wird nicht entfernt.\r\n{ex}");
                 //PlcTagManager.Instance.RemoveClient(clientId);
             }

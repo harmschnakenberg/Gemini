@@ -4,12 +4,6 @@ using S7.Net;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Configuration;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using System;
-using System.Collections.Generic;
 
 namespace Gemini.Services
 {
@@ -375,6 +369,17 @@ namespace Gemini.Services
                 try { return new Plc(CpuType.S71500, key, 0, 0); }
                 catch { return new Plc(CpuType.S71500, "0.0.0.0", 0, 0); }
             });
+        }
+
+        internal void UpdatePlcConfig(string plcName, Plc plc)
+        {
+            _plcConfigs[plcName] = plc;
+            _connectionManager.UpdatePlc(plcName, plc);
+        }
+
+        internal void RemovePlcConfig(string plcName)
+        {
+            _plcConfigs.Remove(plcName, out _);
         }
 
         public void Dispose()

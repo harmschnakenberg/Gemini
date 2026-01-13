@@ -12,9 +12,9 @@
     <h1>Kreutzträger WebApp</h1>
 
     <div id="logincard">
-        <div id="loginheader" onclick="checkLoginStatus();">Login</div>
-        <input type="text" id="username" placeholder="Benutzername (testuser)" value="testuser"><br />
-        <input type="password" id="password" placeholder="Passwort (password123)" value="password123"><br />
+        <div id="loginheader" onclick="checkLoginStatus();">Login</div>   
+        <input type="text" id="username" placeholder="Benutzername" value="Admin"><br />
+        <input type="password" id="password" placeholder="Passwort" value="Admin"><br />
         <button onclick="login()">Login</button><button onclick="logout()">Logout</button>
     </div>
 
@@ -27,7 +27,7 @@
     <h3>Demo</h3>
     <ul>
         <li><a class="menuitem" href="/all">Demo Übersicht der aufgezeichneten Datenpunkte</a></li>
-        <li><a class="menuitem" href="/html/soll/1">Demo Sollwertfenster</a></li>
+        <li><a class="menuitem" href="/soll/1">Demo Sollwertfenster</a></li>
         <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
         <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
         <li><a class="menuitem" href="/excel">Demo Datenexport via Excel</a></li>
@@ -101,7 +101,7 @@
             position: absolute;
             right: 11rem;
             top: 3rem;
-            width: 10rem;
+            width: 15rem;
         }
 
         @media (max-width: 1000px) {
@@ -113,17 +113,21 @@
         }
 
         #logincard button {
-            width: 5rem;
+            width: 50%;
             background-color: white;
             font-size: 1.1rem;
         }
 
+        #logincard input {
+            width: 100%
+        }
+
         #loginheader {
-            padding: 0.2rem;
-            width: 10rem;
+            padding: 0.5rem 0.1rem;
             color: white;
             font-size: 1.3rem;
         }
+
     </style>
 </body>
 </html>

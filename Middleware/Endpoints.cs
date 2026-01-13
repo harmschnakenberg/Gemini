@@ -1,6 +1,7 @@
 ﻿using Gemini.Db;
 using Gemini.DynContent;
 using Gemini.Models;
+using Gemini.Services;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -14,7 +15,7 @@ using System.Text.Json;
 namespace Gemini.Middleware
 {
     
-    public static class Endpoints
+    public static partial class Endpoints
     {
         internal static bool PleaseStop = false;
         
@@ -34,7 +35,10 @@ namespace Gemini.Middleware
             app.MapPost("/user/delete", UserDelete).RequireAuthorization();
 
             app.MapGet("/source", GetAllPlcConfig).RequireAuthorization();
+            app.MapPost("/source/create", PlcCreate).RequireAuthorization();
             app.MapPost("/source/update", PlcUpdate).RequireAuthorization();
+            app.MapPost("/source/delete", PlcDelete).RequireAuthorization();
+            app.MapPost("/source/ping", PlcPing).RequireAuthorization();
 
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
             app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
@@ -50,159 +54,7 @@ namespace Gemini.Middleware
 
         }
 
-        private static IResult PlcUpdate(HttpContext ctx, ClaimsPrincipal user)
-        {
-            /*
-                        plcId: plcId, 
-                        plcName: plcName, 
-                        plcType: plcType, 
-                        plcIp: plcIp,
-                        plcRack; plcRack,
-                        plcSlot; plcSlot,
-                        plcIsActive; plcIsActive,
-                        plcComm; plcComm
-            */
 
-            string plcIdStr = ctx.Request.Form["plcId"].ToString() ?? "0";
-            string plcName = ctx.Request.Form["plcName"].ToString() ?? string.Empty;
-            string plcTypeStr = ctx.Request.Form["plcType"].ToString() ?? string.Empty;
-            string plcIp = ctx.Request.Form["plcIp"].ToString() ?? string.Empty;
-            string plcRackStr = ctx.Request.Form["plcRack"].ToString() ?? "0";
-            string plcSlotStr = ctx.Request.Form["plcSlot"].ToString() ?? "0";
-            string plcIsActiveStr = ctx.Request.Form["plcIsActive"].ToString() ?? "false";
-            string plcComm = ctx.Request.Form["plcComm"].ToString() ?? string.Empty;
-
-            _ = int.TryParse(plcIdStr, out int plcId);
-            CpuType plcType = Db.Db.ParseCpuType(plcTypeStr);
-            _ = short.TryParse(plcRackStr, out short plcRack);
-            _ = short.TryParse(plcSlotStr, out short plcSlot);
-            _ = bool.TryParse(plcIsActiveStr, out bool plcIsActive);
-
-            PlcConf plc = new(plcId, plcName, plcType, plcIp, plcRack, plcSlot, plcIsActive, plcComm);
-            Console.WriteLine($"Änderung für SPS: {plc.Id}, {plc.Name}, Ip:{plc.Ip} {plc.Rack}, {plc.Slot} {plc.IsActive}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
-            
-            bool isAdmin = user.IsInRole("Admin");
-            if (!isAdmin) //Nur Administratoren dürfen SPSen konfigurieren
-                return Results.Unauthorized();
-
-            int result = Db.Db.UpdatePlc(plc);
-            Console.WriteLine($"PlcUpdate DatenbankQuery Result = " + result);
-
-
-            if (result > 0)
-                return Results.Ok();
-            //return Results.Ok(new { Message = $"Benutzer {name} in der Datenbank geändert.", Timestamp = DateTime.Now });
-            else
-                return Results.InternalServerError();
-        }
-
-        private static IResult UserCreate(HttpContext ctx, ClaimsPrincipal user)
-        {
-            bool isAdmin = user.IsInRole("Admin");
-            if (!isAdmin) // Nur Admins können Benutzer erstellen
-                return Results.Unauthorized();
-
-            string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
-            string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
-            string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
-            
-            int result = Db.Db.CreateUser(name, pwd, Enum.Parse<Role>(role));
-            //Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);
-
-            if (result > 0)
-                //return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
-                return Results.Ok();
-            else
-                return Results.InternalServerError();
-        }
-
-        private static IResult UserUpdate(HttpContext ctx, ClaimsPrincipal user)
-        {       
-            string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
-            string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
-            string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
-
-            bool isAdmin = user.IsInRole("Admin");
-            bool isCurrentUser = user.Identity?.Name == name;
-
-            Console.WriteLine($"Änderung für name: {name}, role: {role}, pwd:{pwd} von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
-
-            if (!isAdmin && !isCurrentUser) //Benutzer können sich nur selbst ändern 
-                return Results.Unauthorized();
-
-            int result = Db.Db.UpdateUser(name, pwd, Enum.Parse<Role>(role));
-            Console.WriteLine($"UserUpdate DatenbankQuery Result = " + result);
-
-
-            if (result > 0)
-                return Results.Ok(); 
-                //return Results.Ok(new { Message = $"Benutzer {name} in der Datenbank geändert.", Timestamp = DateTime.Now });
-            else
-                return Results.InternalServerError();
-        }
-
-        private static IResult UserDelete(HttpContext ctx, ClaimsPrincipal user)
-        {
-            bool isAdmin = user.IsInRole("Admin");
-            if (!isAdmin) // Nur Admins können Benutzer löschen
-                return Results.Unauthorized();
-
-            string name = ctx.Request.Form["name"].ToString() ?? string.Empty;            
-            Db.Db.DeleteUser(name);
-            
-            return Results.Ok();
-            //return Results.Ok(new { Message = $"Neuer Benutzer {name} in die Datenbank eingefügt.", Timestamp = DateTime.Now });
-        }
-
-        private static IResult SelectUsers(ClaimsPrincipal user)
-        {
-            List<User> users = Db.Db.SelectAllUsers();
-            return Results.Content(HtmlHelper.ListAllUsers(users, user), "text/html");
-        }
-
-
-        private async static Task<IResult> Login(IAntiforgery antiforgery, LoginRequest request, HttpContext context)
-        {
-            
-
-            if (Db.Db.AuthenticateUser(request.Username, request.Password, out Role userRole))
-            {
-#if DEBUG
-                Console.WriteLine($"Anmeldung {request.Username}");
-#endif
-                // A. User einloggen (Setzt das Auth-Cookie)
-                var claims = new List<Claim> { 
-                    new(ClaimTypes.Name, request.Username), 
-                    new(ClaimTypes.Role, userRole.ToString())
-                };
-                var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                await context.SignInAsync(new ClaimsPrincipal(claimsIdentity));
-
-                // B. AntiForgery Token generieren und CSRF-Cookie setzen
-                // Das ist entscheidend: Der Client bekommt das Token für den NÄCHSTEN Request.
-                var tokens = antiforgery.GetAndStoreTokens(context);
-
-                return Results.Ok(new LoginResponse(tokens.RequestToken!));
-            }
-
-            return Results.Unauthorized();
-        }
-
-        private static IResult Logout(HttpContext context)
-        {
-            context.SignOutAsync();            
-            return Results.Ok(new { Message = "Ausgeloggt" });
-        }
-
-        private static IResult RefreshAntiForgeryToken(IAntiforgery antiforgery, HttpContext context)
-        {
-            // Generiert neue Tokens basierend auf dem aktuellen Auth-Status
-            // und setzt das Cookie im Response Header neu.
-            var tokens = antiforgery.GetAndStoreTokens(context);
-
-            return Results.Ok(new CsrfTokenResponse(tokens.RequestToken!));
-        }
 
         private static async Task Favicon(HttpContext ctx)
         {
@@ -267,81 +119,6 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
         }
 
-        private static async Task DbQuery(HttpContext ctx)
-        {
-            string[]? tagNames = [];
-            DateTime startUtc = DateTime.UtcNow.AddHours(-8);
-            DateTime endUtc = DateTime.UtcNow;
-
-            //Console.WriteLine($"DB Request received with query: {ctx.Request.QueryString}");
-
-
-            if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
-                tagNames = tagNamesStr.ToString().Split(',');
-
-            if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))
-            {
-                startUtc = s.ToUniversalTime(); //lokale Zeit in UTC
-                                                //Console.WriteLine($"Parsed start time {startStr} to {start}");
-            }
-
-            if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))
-            {
-                endUtc = e.ToUniversalTime();
-                //Console.WriteLine($"Parsed end time {endStr} to {end}");
-            }
-
-            //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
-            JsonTag[] obj = await Db.Db.GetDataSet(tagNames!, startUtc, endUtc);
-#if DEBUG
-            Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
-#endif
-            // Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
-            ctx.Response.StatusCode = 200;
-            ctx.Response.ContentType = "application/json";
-            await ctx.Response.WriteAsJsonAsync(obj, AppJsonSerializerContext.Default.JsonTagArray);
-            await ctx.Response.CompleteAsync();
-        }
-
-        private static async Task<IResult> GetTagComments()
-        {
-            List<Tag> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 3);
-
-            List<JsonTag> result = [];
-
-            foreach (var tag in allTags)
-            {
-               // Console.WriteLine($"{tag.TagName} = {tag.TagValue}");
-                result.Add(new JsonTag(tag.TagName, tag.TagComment, DateTime.Now));
-            }
-
-            return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
-        }
-
-        private static IResult TagConfigUpdate(HttpContext ctx, ClaimsPrincipal claimsPrincipal) //, IAntiforgery antiforgery
-        {
-            bool isAdmin = claimsPrincipal.IsInRole("Admin");
-            string userName = claimsPrincipal.Identity?.Name ?? "unbekannt";
-
-            //var headers = ctx.Request.Headers;
-            //foreach (var h in headers) { Console.WriteLine($"{h.Key}\t= {h.Value}");}
-
-            string tagName = ctx.Request.Form["tagName"].ToString() ?? string.Empty;
-            string tagComm = ctx.Request.Form["tagComm"].ToString() ?? string.Empty;
-            string tagChck = ctx.Request.Form["tagChck"].ToString() ?? string.Empty;
-            _ = bool.TryParse(tagChck, out bool isChecked);
-
-            Console.WriteLine($"{userName} veranlasst Tag-Update: {tagName}: {tagComm} | Log {isChecked}");
-
-            if (isAdmin)
-            {
-                Db.Db.TagUpdate(tagName, tagComm, isChecked);
-                return Results.Ok();
-            }
-            else
-                return Results.Unauthorized();
-        }
-
         private static async Task GetExcelForm(HttpContext ctx)
         {
             ctx.Response.StatusCode = 200;
@@ -402,19 +179,6 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
         }
 
-
-        private static IResult GetAllPlcConfig()
-        {
-            return Results.Content(HtmlHelper.ListAllPlcConfigs().Result, "text/html");
-        }
-
-        private static async Task GetAllTagsConfig(HttpContext ctx)
-        {
-            ctx.Response.StatusCode = 200;
-            ctx.Response.ContentType = "text/html";
-            await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
-            await ctx.Response.CompleteAsync();
-        }
 
         private static async Task ServerShutdown(HttpContext ctx)
         {

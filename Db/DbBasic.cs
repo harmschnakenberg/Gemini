@@ -1,16 +1,12 @@
-﻿using Gemini.Models;
-using Microsoft.Data.Sqlite;
-using SQLitePCL;
-using System.Data;
-using System.Data.Common;
-using System.Xml.Linq;
+﻿using Microsoft.Data.Sqlite;
+using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 
 namespace Gemini.Db
 {
    
     internal partial class Db
     {
-
         private static readonly Lock _dbLock = new();
 
         #region Pfade
@@ -21,8 +17,10 @@ namespace Gemini.Db
 
         public Db()
         {
+           
             //Stelle sicher, dass die Datenbankordner existieren
             string dbFolder = Path.Combine(AppFolder, "db");
+
             if (!Directory.Exists(dbFolder))
             {
                 Directory.CreateDirectory(dbFolder);
@@ -103,6 +101,7 @@ namespace Gemini.Db
                     PRAGMA synchronous = NORMAL;
                     ";
             int result = command.ExecuteNonQuery();
+
             Console.WriteLine("Mastertabelle erstellt. Ergebnis: " + result);
 
             if (result != 0) //Keine Änderungen geschrieben
@@ -180,11 +179,11 @@ namespace Gemini.Db
 
                 //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
 
-                command.CommandText = $@"
-                        ATTACH DATABASE '{dbPath}' AS old_db; 
-                        INSERT INTO Tag SELECT * FROM old_db.Tag; 
-                        DETACH DATABASE old_db; 
-                        ";
+                command.CommandText =
+                        $"ATTACH DATABASE '{dbPath}' AS old_db; " +
+                        "INSERT INTO Tag SELECT * FROM old_db.Tag " +
+                        "WHERE old_db.Tag.ChartFlag > 0 OR length( old_db.Tag.Comment ) > 0; " + //nur TagNames, die aufgezeichnet werden oder Kommentare erhalten haben. (Alle anderen werden beim ersten Lesen erneut in die Tabelle geschrieben).
+                        "DETACH DATABASE old_db; "; 
 
                 result = command.ExecuteNonQuery();
 

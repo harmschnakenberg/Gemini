@@ -2,6 +2,7 @@
 using S7.Net;
 using System;
 using System.Collections.Concurrent;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace Gemini.Services
@@ -19,12 +20,33 @@ namespace Gemini.Services
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
         private bool _disposed;
 
+        public static bool PingHost(string hostUri, int portNumber)
+        {
+            try
+            {
+                using (var client = new TcpClient(hostUri, portNumber))
+                    return true;
+            }
+            catch (SocketException ex)
+            {
+                Console.WriteLine("Error pinging host:'" + hostUri + ":" + portNumber.ToString() + "' " + ex);
+                return false;
+            }
+        }
+
         public Plc GetOrCreate(string key, Plc plc)
         {
             ArgumentNullException.ThrowIfNull(key);
             ArgumentNullException.ThrowIfNull(plc);
 
             return _plcs.GetOrAdd(key, plc);
+        }
+
+        public void UpdatePlc(string key, Plc plc)
+        {
+            ArgumentNullException.ThrowIfNull(key);
+            ArgumentNullException.ThrowIfNull(plc);
+            _plcs[key] = plc;
         }
 
         public void EnsureOpen(string key)
@@ -46,6 +68,7 @@ namespace Gemini.Services
                     catch
                     {
                         // swallowing here; caller should log/handle
+                        Db.Db.DbLogReadFailure(plc.IP, 0, 0, 0);
                     }
                 }
             }

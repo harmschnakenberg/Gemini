@@ -183,7 +183,7 @@ namespace Gemini.Db
             }
         }
 
-        internal static void DeleteUser(string name)
+        internal static int DeleteUser(string name)
         {
             lock (_dbLock)
             {
@@ -192,10 +192,13 @@ namespace Gemini.Db
                 var command = connection.CreateCommand();
                 command.CommandText =
                 $@" DELETE FROM User 
-                    WHERE Name = @Name AND 
-                    (SELECT COUNT(RoleId) FROM User WHERE RoleId = {(int)Role.Admin}) > 1; "; // ein Admin muss immer übrig bleiben
+                    WHERE Name = @Name AND (
+                      RoleId != @AdminRoleId OR
+                      (SELECT COUNT(RoleId) FROM User WHERE RoleId = @AdminRoleId) > 1
+                    ); "; // ein Admin muss immer übrig bleiben
                 command.Parameters.AddWithValue("@Name", name);
-                command.ExecuteNonQuery();
+                command.Parameters.AddWithValue("@AdminRoleId", (int)Role.Admin);
+                return command.ExecuteNonQuery();
             }
         }
 
@@ -339,6 +342,38 @@ namespace Gemini.Db
              */
         }
 
+        internal static int CreatePlc(PlcConf plc)
+        {
+            /*
+              Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                          Name TEXT NOT NULL UNIQUE,     
+                          CpuType STRING NOT NULL DEFAULT 'S71500',  
+                          Ip TEXT,                                                     
+                          Rack INTEGER DEFAULT 0,
+                          Slot INTEGER DEFAULT 0,
+                          IsActive INTEGER DEFAULT 1,
+                          Comment TEXT 
+             */
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText =
+                @"
+                    INSERT INTO Source (Name, CpuType, Ip, Rack, Slot, IsActive, Comment) 
+                    VALUES (@Name, @CpuType, @Ip, @Rack, @Slot, @IsActive, @Comment); ";
+                command.Parameters.AddWithValue("@Name", plc.Name);
+                command.Parameters.AddWithValue("@CpuType", plc.CpuType.ToString());
+                command.Parameters.AddWithValue("@Ip", plc.Ip);
+                command.Parameters.AddWithValue("@Rack", plc.Rack);
+                command.Parameters.AddWithValue("@Slot", plc.Slot);
+                command.Parameters.AddWithValue("@IsActive", plc.IsActive ? 1 : 0);
+                command.Parameters.AddWithValue("@Comment", plc.Comment);
+                return command.ExecuteNonQuery();
+            }
+        }
+
         internal static int UpdatePlc(PlcConf plc)
         {
             /*
@@ -359,7 +394,7 @@ namespace Gemini.Db
 
                 command.Parameters.AddWithValue("@Id", plc.Id);
                 command.Parameters.AddWithValue("@Name", plc.Name);
-                command.Parameters.AddWithValue("@CpuType", plc.CpuType);
+                command.Parameters.AddWithValue("@CpuType", plc.CpuType.ToString());
                 command.Parameters.AddWithValue("@Ip", plc.Ip);
                 command.Parameters.AddWithValue("@Rack", plc.Rack);
                 command.Parameters.AddWithValue("@Slot", plc.Slot);
@@ -383,7 +418,22 @@ namespace Gemini.Db
             }
         }
 
+        internal static int DeletePlc(int plcId)
+        {
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.Parameters.AddWithValue("@Id", plcId);
+      
+                command.CommandText =
+                @"  DELETE FROM Source                    
+                    WHERE Id = @Id; ";
 
+                return command.ExecuteNonQuery();
+            }
+        }
         #endregion
     }
 }

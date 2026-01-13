@@ -225,7 +225,7 @@ function getExcelFromForm() {
         console.warn("Keine Tags für Excel-Export ausgewählt.");
 }
 
-function excelExport(startId, endId, ival, tags) {
+async function excelExport(startId, endId, ival, tags) {
     const s = new Date(document.getElementById(startId).value);
     const e = new Date(document.getElementById(endId).value);
     const arr = [];
@@ -238,7 +238,7 @@ function excelExport(startId, endId, ival, tags) {
     })
 
     if (arr.length > 0)       
-        const res = await fetchSecure('/excel', {
+        await fetchSecure('/excel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({ start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) })

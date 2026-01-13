@@ -94,20 +94,27 @@ namespace Gemini.DynContent
                     document.getElementById('role').value = userrole;
                 }
 
-                function updateUser(verb)
+                async function updateUser(verb)
                 {
                     const username = document.getElementById('username').value;
                     const userrole = document.getElementById('role').value;
                     const userpwd = document.getElementById('pwd').value;
                    
-                    const res = fetchSecure('/user/' + verb, {
+                    try
+                    {
+                        const res = await fetchSecure('/user/' + verb, {
                           method: 'POST', 
                           headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
                           body: new URLSearchParams({ name: username, role: userrole, pwd: userpwd })
                         });
 
-                    if (res.ok) {
-                        location.reload();
+                        if (res.ok) {
+                            location.reload();
+                        } else {
+                            alert('Benuterverwaltung - Nicht erlaubte Operation - Status ' + res.status);
+                        }
+                    } catch (error) {
+                        console.error(error.message);
                     }
                 }
             </script>");
@@ -209,7 +216,7 @@ namespace Gemini.DynContent
         }
 
 
-        internal static async Task<string> ListAllPlcConfigs()
+        internal static async Task<string> ListAllPlcConfigs(bool isReadonly)
         {
            List<PlcConf> allPlcs = Db.Db.SelectAllPlcs();
 
@@ -234,61 +241,84 @@ namespace Gemini.DynContent
             foreach (PlcConf plc in allPlcs)
             {
                 sb.Append("<tr>");
-                sb.Append($"<td><input onchange='updatePlc(this);' value='{plc.Name}'></td>");                
-                sb.Append("<td><select onchange='updatePlc(this);'>");
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' value='{plc.Name}' {(isReadonly ? "disabled": string.Empty)}></td>");                
+                sb.Append($"<td><select onchange='updPlc(\"update\", this);' {(isReadonly ? "disabled": string.Empty)}>");
 
                 foreach (string type in Enum.GetNames<CpuType>())                                    
                     sb.Append($"<option value='{type}' {(type == plc.CpuType.ToString() ? "selected" : string.Empty)}>{type}</option>");
                 
                 sb.Append("</select></td>");
-                sb.Append($"<td><input onchange='updatePlc(this);' pattern='[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' value='{plc.Ip}'></td>");
-                sb.Append($"<td><input onchange='updatePlc(this);' type='number' min='0' size='2' value='{plc.Rack}'></td>");
-                sb.Append($"<td><input onchange='updatePlc(this);' type='number' min='0' size='2' value='{plc.Slot}'></td>");         
-                sb.Append($"<td><input onchange='updatePlc(this); 'type='checkbox' value='{plc.IsActive}'{(plc.IsActive == true ? "checked" : "")} ></td>");
-                sb.Append($"<td><input onchange='updatePlc(this);' value='{plc.Comment}'></td>");
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' pattern='[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' value='{plc.Ip}' {(isReadonly ? "disabled" : string.Empty)}></td>");
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' type='number' min='0' size='2' value='{plc.Rack}'  {(isReadonly ? "disabled" : string.Empty)} ></td>");
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' type='number' min='0' size='2' value='{plc.Slot}'  {(isReadonly ? "disabled" : string.Empty)} ></td>");         
+                sb.Append($"<td><input onchange='updPlc(\"update\", this); 'type='checkbox' value='{plc.IsActive}'{(plc.IsActive == true ? "checked" : "")} {(isReadonly ? "disabled" : string.Empty)}></td>");
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' value='{plc.Comment}' {(isReadonly ? "disabled" : string.Empty)}></td>");
                 sb.Append($"<td><input type='hidden' value='{plc.Id}'></td>");
-
-                //sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}'></td>");
-                //sb.Append($"<td><input data-name='{tag.TagName}' disabled></td>");
-                //sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")} ></td>");
+                
+                if (!isReadonly)
+                {
+                    sb.Append("<td><input onclick='updPlc(\"ping\", this);' type='button' value='Ping'></td>");
+                    sb.Append("<td><input onclick='updPlc(\"create\", this);' type='button' value='Duplizieren'></td>");
+                    if (allPlcs.Count > 1)
+                        sb.Append($"<td><input onclick='updPlc(\"delete\", this);' type='button' class='delete-btn' value='Löschen' {(allPlcs.Count > 1 ? string.Empty : "disabled")}></td>");
+                }
                 sb.Append("</tr>");
             }
 
             sb.Append("</table>");
 
-            sb.Append(@"
-            <script>
-                function updatePlc(obj) {                    
+            if (!isReadonly)
+                sb.Append(@"
+                <script>
+                    
+                async function updPlc(verb, obj) {
                     const plcName = obj.parentNode.parentNode.children[0].children[0].value;
                     const plcType = obj.parentNode.parentNode.children[1].children[0].value;
                     const plcIp = obj.parentNode.parentNode.children[2].children[0].value;
                     const plcRack = obj.parentNode.parentNode.children[3].children[0].value;
-                    const plcSlot = obj.parentNode.parentNode.children[4].children[0].value;                    
+                    const plcSlot = obj.parentNode.parentNode.children[4].children[0].value;
                     const plcIsActive = obj.parentNode.parentNode.children[5].children[0].checked;
                     const plcComm = obj.parentNode.parentNode.children[6].children[0].value;
                     const plcId = obj.parentNode.parentNode.children[7].children[0].value;
 
                     //document.getElementsByTagName('h1')[0].innerHTML = `Id ${plcId}, ${plcName}, ${plcType}, ${plcIp}, ${plcRack}, ${plcSlot}, ${plcIsActive}, ${plcComm}|`;
+                    try {
+                        const res = await fetchSecure('/source/' + verb, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({
+                                plcId: plcId,
+                                plcName: plcName,
+                                plcType: plcType,
+                                plcIp: plcIp,
+                                plcRack: plcRack,
+                                plcSlot: plcSlot,
+                                plcIsActive: plcIsActive,
+                                plcComm: plcComm
+                            })
+                        });
 
-                    fetchSecure('/source/update', {
-                      method: 'POST',   
-                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },                      
-                      body: new URLSearchParams({ 
-                        plcId : plcId, 
-                        plcName : plcName, 
-                        plcType: plcType, 
-                        plcIp: plcIp,
-                        plcRack: plcRack,
-                        plcSlot: plcSlot,
-                        plcIsActive: plcIsActive,
-                        plcComm: plcComm
-                        })
-                    });
+                        if (!res.ok)
+                            alertError('Datenquellenverwaltung - Nicht erlaubte Operation - Status ' + res.status);
+                        else {
+                            const data = await res.json();
+       console.log(data.type + ' ' + data.text);
+                            if (data.type == 'reload') {
+                                alertSuccess(`Operation ${verb} erfolgreich. ${data.text}`);
+                                setTimeout(location.reload(), 5000);                
+                            }
+                            else
+                                message(data.type, data.text);
+                        }  
+
+                    } catch (error) {
+                        console.error(""Fehler beim Abrufen: "", error);
+                    }
+  
                 }
-
-
-            </script>
-            ");
+       
+                </script>
+                ");
 
             sb.Append("<h2>Steuerungen</h2>");
             sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
@@ -306,12 +336,13 @@ namespace Gemini.DynContent
                     sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
                     sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
                     sb.AppendLine($"<td>" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2'/>:" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4'/>:" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6'/>" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2' readonly />:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4' readonly />:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6' readonly />" +
                         $"</td>");
                     sb.AppendLine("</tr>");
                 }
+
 
             sb.Append("</table>");
 

@@ -1,10 +1,9 @@
+using Gemini.Db;
 using Gemini.Middleware;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
-using System.Security.Claims;
 
 Gemini.Db.Db db = new(); //Datenbanken initialisieren
 Gemini.Db.Db.InitiateDbWriting();
@@ -77,10 +76,14 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddAntiforgery();
 
+builder.Services.AddScoped<Db>();
 #endregion
 
 
 var app = builder.Build();
+ILogger logger = app.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Die Anwendung wurde gestartet!");
+
 app.UseForwardedHeaders(); // Muss GANZ OBEN in der Pipeline stehen, vor Auth oder HSTS!
 if (!app.Environment.IsDevelopment())
 {
@@ -89,22 +92,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
-
-//AntiForgeryToken auswerten
-//app.Use(async (ctx, next) =>
-//{   
-//    if (HttpMethods.IsPost(ctx.Request.Method) && ctx.Request.Path != "/login")
-//    {
-//        var antiforgery = ctx.RequestServices.GetRequiredService<IAntiforgery>();
-//#if DEBUG
-//        var t = antiforgery.GetTokens(ctx);
-//        Console.WriteLine($"Antiforgery '{ctx.Request.Path}'\tHeaderName={t.HeaderName}\tCookieToken={t.CookieToken}\tRequestToken={t.RequestToken}\tFormFieldName={t.FormFieldName}");
-//#endif
-//        await antiforgery.ValidateRequestAsync(ctx);
-//    }
-//    await next();
-//});
-
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
@@ -116,7 +103,7 @@ app.MapEndpoints();
 
 while (!Endpoints.PleaseStop)
 {
-    Console.WriteLine("Webserver neu gestartet.");
+    logger.LogTrace("Webserver neu gestartet.");
     app.Run();    
 }
 

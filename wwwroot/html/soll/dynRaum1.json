@@ -1,0 +1,70 @@
+{
+  "room1": [
+    {
+      "label": "Raumtemperatur",
+      "ist": {
+        "data-name": "A01_DB25_DBD100",
+        "data-unit": "°C"
+      },
+      "soll": {
+        "data-name": "A01_DB2001_DBD50",
+        "data-unit": "°C",
+        "min": 0,
+        "max": 30
+      }
+    },
+    {
+      "label": "Hysterese",
+      "ist": null,
+      "soll": {
+        "data-name": "A01_DB2001_DBD54",
+        "data-unit": "K",
+        "min": 0,
+        "max": 10
+      }
+    },
+    {
+      "label": "Grenzwert Übertemperatur",
+      "ist": null,
+      "soll": {
+        "data-name": "A01_DB2001_DBD60",
+        "data-unit": "K",
+        "min": 0,
+        "max": 30
+      }
+    },
+    {
+      "label": "Grenzwert Untertemperatur",
+      "ist": null,
+      "soll": {
+        "data-name": "A01_DB2001_DBD64",
+        "data-unit": "K",
+        "min": 0,
+        "max": 30
+      }
+    },
+    {
+      "label": "verzögert Über/Untertemperatur",
+      "ist": {
+        "data-name": "A01_DB2001_DBW8",
+        "data-unit": "min"
+      },
+      "soll": {
+        "data-name": "A01_DB2001_DBW10",
+        "data-unit": "min",
+        "min": 0
+      }
+    },
+    {
+      "label": "Freigabe Temperaturüberwachung wenn Raum aus",
+      "ist": null,
+      "soll": {
+        "data-name": "A01_DB2001_DBD64",
+        "data-unit": "K",
+        "min": 0,
+        "max": 30
+      }
+    }
+
+  ]
+}
