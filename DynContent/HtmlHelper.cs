@@ -3,6 +3,8 @@ using Gemini.Models;
 using Gemini.Services;
 using S7.Net;
 using System.Data;
+using System.Net;
+using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
 
@@ -320,6 +322,8 @@ namespace Gemini.DynContent
                 </script>
                 ");
 
+            
+
             sb.Append("<h2>Steuerungen</h2>");
             sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
             sb.Append("<table>");
@@ -346,6 +350,12 @@ namespace Gemini.DynContent
 
             sb.Append("</table>");
 
+            sb.Append("<h2>Dieses Gerät</h2>");
+            sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");            
+            sb.AppendLine("<p>Serverzeit (lokal): " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
+            long dbSizeOnDisc = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
+            sb.AppendLine($"<p>Datenbank: {dbFileCount} Dateien mit gesamt {dbSizeOnDisc} MB ({Math.Round((double)(dbSizeOnDisc/1024),2)} GB, ca. {(int)dbSizeOnDisc/dbFileCount} MB pro Tag)<p>");
+
             sb.Append(@"
                 </body>
                 </html>");
@@ -353,30 +363,27 @@ namespace Gemini.DynContent
             return sb.ToString();
         }
 
-
-        internal static string ExitForm()
+        public static string GetIPV4()
         {
-            StringBuilder sb = new();
+            // Ermittelt den Hostnamen des lokalen Computers
+            string hostname = Dns.GetHostName();
+            List<string> ipAddresses = [];
 
-            sb.Append(@"<!DOCTYPE html>
-                <html lang='de'>
-                <head>
-                    <meta charset='UTF-8'>
-                    <title>Server Beendet</title>
-                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
-                    <link rel='shortcut icon' href='/favicon.ico'>
-                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                    <link rel='stylesheet' href='/css/style.css'>                    
-                </head>
-                <body>");
+            // Holt die IP-Adresse(n) für den Hostnamen
+            IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
 
-            sb.AppendLine("<h1>Der Server wurde beendet.</h1>");
-            sb.AppendLine("<p>Neustart nur über die Console möglich.</p>");
-            sb.Append(@"
-                </body>
-                </html>");
+            // Durchläuft alle gefundenen IP-Adressen (IPv4 und IPv6)
+            foreach (IPAddress ipAddress in hostEntry.AddressList)
+            {
+                // Prüft, ob es eine IPv4-Adresse ist
+                if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipAddresses.Add(ipAddress.ToString());
+                }
+            }
 
-            return sb.ToString();
+            return $"{hostname}, {string.Join(", ", ipAddresses)}"; //, {IPAddress.Loopback}
         }
+
     }
 }

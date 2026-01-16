@@ -6,7 +6,7 @@
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
 function processData(jsonData, aliases, colors) {
-    const REPORT_INTERVAL = 1000;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
+    const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
     const totalItems = jsonData.length;

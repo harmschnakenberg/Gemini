@@ -24,8 +24,8 @@ namespace Gemini.Services
         {
             try
             {
-                using (var client = new TcpClient(hostUri, portNumber))
-                    return true;
+                using var client = new TcpClient(hostUri, portNumber);
+                return true;
             }
             catch (SocketException ex)
             {

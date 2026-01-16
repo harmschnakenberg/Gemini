@@ -18,7 +18,7 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- JWT vs. Cookie Authentifizierung => Cookie Authentifizierung 
 	- dynamisch erzeugtes, eingeblendetes Sollwerte-Menü 	
 	- ToDo: dynamische Dashboards
-	- ToDo: HTTPS Support über Rechnernamen
+	- HTTPS Support über Rechnernamen
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder	

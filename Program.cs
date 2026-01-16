@@ -41,6 +41,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.Cookie.Name = "MyAuthCookie";
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur über HTTPS senden
+        options.Cookie.IsEssential = true; // Für GDPR/DSGVO-Konformität //nicht notwendig, wenn keine Einwilligungspflicht besteht
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.LoginPath = "/";
@@ -66,8 +68,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy => policy
-        //.AllowAnyOrigin() //mit https nicht möglich?
-        .WithOrigins("http://localhost:3000", "http://127.0.0.1:5500", "http://localhost:5500", "https://127.0.0.1:5500", "https://localhost:5500", "https://localhost:442", "https://localhost:443") // Deine Client-URL explizit nennen!
+        //.AllowAnyOrigin() //mit https nicht möglich
+        .WithOrigins(
+        "https://harm.local",
+        "http://localhost:3000", 
+        "http://127.0.0.1:5500",
+        "https://localhost:443"        
+        ) // Deine Client-URL explizit nennen!
         .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials()// <-- Zwingend erforderlich für Cookies
@@ -84,13 +91,18 @@ var app = builder.Build();
 ILogger logger = app.Services.GetRequiredService<ILogger<Program>>();
 logger.LogInformation("Die Anwendung wurde gestartet!");
 
-app.UseForwardedHeaders(); // Muss GANZ OBEN in der Pipeline stehen, vor Auth oder HSTS!
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+}); // Muss GANZ OBEN in der Pipeline stehen, vor Auth oder HSTS!
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
     //app.UseHttpsRedirection();
 }
 
+app.UseForwardedHeaders();
 app.UseCors("AllowFrontend");
 app.UseStaticFiles();
 app.UseRouting();
@@ -104,6 +116,10 @@ app.MapEndpoints();
 while (!Endpoints.PleaseStop)
 {
     logger.LogTrace("Webserver neu gestartet.");
+    app.Lifetime.ApplicationStopping.Register(() =>
+    {
+        Endpoints.cancelTokenSource.Cancel();
+    });
     app.Run();    
 }
 

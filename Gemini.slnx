@@ -1,5 +1,14 @@
 <Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
   <Project Path="Gemini.csproj">
-    <Build Solution="Release|*" Project="false" />
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Build Solution="*|ARM64" Project="false" />
+    <Build Solution="*|x64" Project="false" />
+    <Build Solution="Release|Any CPU" Project="false" />
   </Project>
 </Solution>

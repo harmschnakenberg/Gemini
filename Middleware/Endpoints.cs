@@ -18,12 +18,13 @@ namespace Gemini.Middleware
     public static partial class Endpoints
     {
         internal static bool PleaseStop = false;
-        
+        internal static CancellationTokenSource cancelTokenSource = new();
+
         public static void MapEndpoints(this IEndpointRouteBuilder app)
         {
             app.MapGet("favicon.ico", Favicon).AllowAnonymous();
-            app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien ausliefern
-            app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien ausliefern
+            app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien dynamisch ausliefern oder über wwwroot?
+            app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien dynamisch ausliefern oder über wwwroot?
 
             app.MapPost("/login", Login).AllowAnonymous();
             app.MapPost("/logout", Logout).RequireAuthorization(); // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann)
@@ -48,6 +49,7 @@ namespace Gemini.Middleware
             app.MapGet("/excel", GetExcelForm); // Excel-Export Formular ausliefern
             app.MapPost("/excel", ExcelDownload); // Excel-Datei generieren und ausliefern
             app.MapGet("/all", GetAllTagsConfig).RequireAuthorization(); // Alle Tags mit Kommentaren und Log-Flags als HTML-Tabelle ausliefern
+            app.MapGet("/restart", ServerRestart); // Kestrel-Server neu starten
             app.MapGet("/exit", ServerShutdown); // Server herunterfahren
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
 
@@ -103,11 +105,36 @@ namespace Gemini.Middleware
             if (id == 0 || string.IsNullOrEmpty(menuLink?.Link))
                 link = "wwwroot/html/menu.html";
 
-            ctx.Response.StatusCode = 200;
-            ctx.Response.ContentType = "text/html";
-            var file = File.ReadAllText(link, Encoding.UTF8);
-            await ctx.Response.WriteAsync(file);
-            await ctx.Response.CompleteAsync();
+            if (link.EndsWith(".html"))
+            {   //statische HTML-Datei ausliefern
+                ctx.Response.StatusCode = 200;
+                ctx.Response.ContentType = "text/html";
+                var file = File.ReadAllText(link, Encoding.UTF8);
+                await ctx.Response.WriteAsync(file);
+                await ctx.Response.CompleteAsync();
+            }
+            else if (link.EndsWith(".svg")) //ToDo: SVG Implementieren
+            {   //statische SVG-Datei ausliefern
+                var fileBytes = await File.ReadAllBytesAsync(link);
+                ctx.Response.StatusCode = 200;
+                ctx.Response.ContentType = "image/svg+xml";
+                var file = File.ReadAllText(link, Encoding.UTF8);
+                await ctx.Response.WriteAsync(file);
+                await ctx.Response.CompleteAsync();
+            }
+            else if (link.EndsWith(".json"))
+            {
+                string html = await SollPageBuilder.BuildSollPageFromJsonFile(link);
+                //dynamisches Erstellen der Sollwert-Seite aus JSON-Datei
+                ctx.Response.StatusCode = 200;
+                ctx.Response.ContentType = "text/html";
+                await ctx.Response.WriteAsync(html);
+                await ctx.Response.CompleteAsync();
+
+            }
+
+
+
         }
 
         private static async Task Chart(HttpContext ctx)
@@ -179,12 +206,61 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
         }
 
+        private static async Task ServerRestart(HttpContext ctx)
+        {
+            StringBuilder sb = new();
+
+            sb.Append(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Server neu gestartet</title>
+                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                </head>
+                <body>");
+
+            sb.AppendLine("<h1>Der Server wurde neu gestartet.</h1>");
+            sb.AppendLine("<p>-ohne Weiterleitung-</p>");
+            sb.Append(@"
+                </body>
+                </html>");
+
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "text/html";
+            await ctx.Response.WriteAsync(sb.ToString());
+            await ctx.Response.CompleteAsync();
+
+            cancelTokenSource.Cancel();
+        }
 
         private static async Task ServerShutdown(HttpContext ctx)
         {
+            StringBuilder sb = new();
+
+            sb.Append(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Server Beendet</title>
+                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                </head>
+                <body>");
+
+            sb.AppendLine("<h1>Der Server wurde beendet.</h1>");
+            sb.AppendLine("<p>Neustart nur über die Console möglich.</p>");
+            sb.Append(@"
+                </body>
+                </html>");
+
             ctx.Response.StatusCode = 200;
             ctx.Response.ContentType = "text/html";
-            await ctx.Response.WriteAsync(HtmlHelper.ExitForm());
+            await ctx.Response.WriteAsync(sb.ToString());
             await ctx.Response.CompleteAsync();
 
             PleaseStop = true;
@@ -199,5 +275,60 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
         }
 
+        private class SollPageBuilder
+        {
+            /// <summary>
+            /// TODO: Implement this method
+            /// Asynchronously builds a SOLL page by processing the JSON file located at the specified link.
+            /// </summary>
+            /// <param name="link">The URL or file path to the JSON file containing the data required to construct the SOLL page. Cannot be
+            /// null or empty.</param>
+            /// <returns>A string containing the generated SOLL page content based on the provided JSON file.</returns>
+            /// <exception cref="NotImplementedException">Thrown in all cases as the method is not yet implemented.</exception>
+            internal static async Task<string> BuildSollPageFromJsonFile(string linkToJson)
+            {
+                StringBuilder sb = new();
+
+                sb.Append(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Datenquellen</title>                    
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                    <script src='/js/websocket.js'></script>
+                </head>
+                <body>");
+
+
+                string json;                
+                using (TextReader reader = new StreamReader(linkToJson))
+                {
+                    json = await reader.ReadToEndAsync();
+                };
+#if DEBUG
+                Console.WriteLine(json);
+#endif
+                SollwertFromJson[]? sollList = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.SollwertFromJsonArray);
+
+                if (sollList == null)
+                {
+#if DEBUG
+                    Console.WriteLine("BuildSollPageFromJsonFile() Konnte nicht geparsed werden: " + json);
+#endif
+                    return string.Empty;
+                }
+
+                foreach (var item in sollList)
+                {
+
+
+                   // item.Comment
+                }
+
+                throw new NotImplementedException();
+            }
+        }
     }
 }

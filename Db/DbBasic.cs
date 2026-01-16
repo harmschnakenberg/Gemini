@@ -200,5 +200,25 @@ namespace Gemini.Db
         }
 
 
+        internal static long GetAllDbSizesInMBytes(out int dbFileCount)
+        {
+            long totalSize = 0;
+            dbFileCount = 0;
+            string dbFolder = Path.Combine(AppFolder, "db");
+
+            if (Directory.Exists(dbFolder))
+            {
+                var dbFiles = Directory.GetFiles(dbFolder, "*.db", SearchOption.TopDirectoryOnly);
+                foreach (var file in dbFiles)
+                {
+                    FileInfo fileInfo = new(file);
+                    totalSize += fileInfo.Length;
+                }
+                dbFileCount = dbFiles.Length;
+            }
+            //Größe in MB zurückgeben
+            return totalSize / (1024 * 1024); ;
+        }
+
     }
 }

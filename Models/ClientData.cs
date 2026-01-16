@@ -15,7 +15,7 @@ namespace Gemini.Models
 
     public record CsrfTokenResponse(string Token);
 
-    public record AlertMessage(string type, string text);
+    public record AlertMessage(string Type, string Text);
     
 
     public class JsonTag(string n, object? v, DateTime t)
@@ -50,18 +50,62 @@ namespace Gemini.Models
         public string Link { get; set; } = link;
     }
 
+    /// <summary>
+    /// Represents a deserialized setpoint (Sollwert) object obtained from JSON data, including associated metadata such
+    /// as comments, hints, and PLT number.
+    /// </summary>
+    /// <remarks>This class is typically used to map setpoint information from JSON sources into strongly
+    /// typed objects for further processing or display. The properties provide descriptive and contextual information
+    /// related to the setpoint, such as user comments, display hints, and identification numbers. The nested structs
+    /// 'Ist' and 'Soll' encapsulate additional details about actual and target values, including units and value
+    /// constraints.</remarks>
+    public class SollwertFromJson
+    {
+        public string Comment { get; set; } = string.Empty; // Kommentar / Beschreibung zum Sollwert
+        public string Hint { get; set; } = string.Empty; // Rechtsbündig in grau im Kommentarfeld angezeigt
+        public string Plt { get; set; } = string.Empty; //PLT-Nummer rechtsbündig in gelbem Feld im Kommentarfeld angezeigt
+
+        public struct Ist(string tagname, string unit)
+        {
+            public string TagName { get; private set; } = tagname;
+            public string Unit { get; private set; } = unit;
+            public bool IsBoolean { get; private set; } = false;
+
+        }
+
+        public struct Soll(string tagname, string unit)
+        {
+            public string TagName { get; private set; } = tagname;
+            public string Unit { get; private set; } = unit;
+
+            public bool IsBoolean { get; private set; } = false;
+
+            public double StepValue { get; private set; } = 0.1;
+            public int MinValue { get; private set; } = -100000;
+            public int MaxValue { get; private set; } = 100000;
+
+        }
+
+
+    }
+
+
    
+    
+
+
 }
 
 // Source Generator Context
 
-[JsonSerializable(typeof(Dictionary<string, Gemini.Models.MenuLink[]>))]
-[JsonSerializable(typeof(Gemini.Models.MenuLink[]))]
+[JsonSerializable(typeof(Dictionary<string, MenuLink[]>))]
+[JsonSerializable(typeof(MenuLink[]))]
+[JsonSerializable(typeof(SollwertFromJson[]))]
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(CsrfTokenResponse))]
-[JsonSerializable(typeof(Gemini.Models.FormPost))]
-[JsonSerializable(typeof(Gemini.Models.JsonTag[]))]
+[JsonSerializable(typeof(FormPost))]
+[JsonSerializable(typeof(JsonTag[]))]
 [JsonSerializable(typeof(AlertMessage))]
 [JsonSerializable(typeof(DateTime))]
 [JsonSerializable(typeof(double))]

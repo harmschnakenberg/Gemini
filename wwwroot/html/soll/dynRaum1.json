@@ -1,4 +1,6 @@
 {
+  "roomname": "Raum 1",
+  "caption": "Sollwerte Raum 1",
   "room1": [
     {
       "label": "Raumtemperatur",
