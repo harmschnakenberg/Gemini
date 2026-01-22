@@ -5,10 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 
-Gemini.Db.Db db = new(); //Datenbanken initialisieren
 Gemini.Db.Db.InitiateDbWriting();
 
-// 1. Native AOT Vorbereitung: CreateSlimBuilder verwenden
+// 1. Native AOT: CreateSlimBuilder verwenden
 var builder = WebApplication.CreateSlimBuilder(args);
 
 #region https
@@ -39,20 +38,18 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "MyAuthCookie";
+        options.Cookie.Name = "KreuAuthCookie";
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur über HTTPS senden
-        options.Cookie.IsEssential = true; // Für GDPR/DSGVO-Konformität //nicht notwendig, wenn keine Einwilligungspflicht besteht
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur über HTTPS senden        
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.LoginPath = "/";
-        
-        // Bei API Calls wollen wir keinen Redirect auf eine Login-Seite bei 401
-        //options.Events.OnRedirectToLogin = context =>
-        //{
-        //    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-        //    return Task.CompletedTask;
-        //};
+        options.Events.OnRedirectToLogin = context =>
+        {
+            var newRedirectUri = context.RedirectUri + (context.RedirectUri.Contains("?") ? "&" : "?") + "auth=failed";
+            context.Response.Redirect(newRedirectUri);
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services.AddAuthorizationBuilder()
@@ -73,7 +70,8 @@ builder.Services.AddCors(options =>
         "https://harm.local",
         "http://localhost:3000", 
         "http://127.0.0.1:5500",
-        "https://localhost:443"        
+        "https://localhost:443",
+        "https://localhost"
         ) // Deine Client-URL explizit nennen!
         .AllowAnyMethod()
         .AllowAnyHeader()
@@ -89,6 +87,7 @@ builder.Services.AddScoped<Db>();
 
 var app = builder.Build();
 ILogger logger = app.Services.GetRequiredService<ILogger<Program>>();
+
 logger.LogInformation("Die Anwendung wurde gestartet!");
 
 app.UseForwardedHeaders(new ForwardedHeadersOptions
@@ -112,14 +111,16 @@ app.UseAntiforgery();
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 app.MapEndpoints();
+app.MapGet("/restart", () => { app.Lifetime.StopApplication(); });
 
 while (!Endpoints.PleaseStop)
 {
     logger.LogTrace("Webserver neu gestartet.");
-    app.Lifetime.ApplicationStopping.Register(() =>
-    {
-        Endpoints.cancelTokenSource.Cancel();
-    });
+    
+    //app.Lifetime.ApplicationStopping.Register(() =>
+    //{
+    //    Endpoints.cancelTokenSource.Cancel();
+    //});
     app.Run();    
 }
 

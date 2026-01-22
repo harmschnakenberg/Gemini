@@ -34,7 +34,7 @@ function initChart(chartId) {
         },
         zoom: {
             wheel: {
-                enabled: true,                
+                enabled: true,
             },
             pinch: {
                 enabled: true
@@ -60,6 +60,7 @@ function initChart(chartId) {
             maintainAspectRatio: false,
             animation: false,
             spanGaps: true,
+            // parsing: false, //Geht nicht?
             scales: {
                 x: {
                     type: 'time',
@@ -68,9 +69,9 @@ function initChart(chartId) {
                         displayFormats: {
                             day: 'dd.MM.yyyy HH:mm',
                             hour: 'HH:mm',
-                            minute: 'HH:mm:ss'                            
+                            minute: 'HH:mm:ss'
                         },
-                        tooltipFormat: 'dd.MM.yyyy HH:mm'   
+                        tooltipFormat: 'dd.MM.yyyy HH:mm'
                     },
                     //min: startDate,
                     ticks: {
@@ -84,7 +85,7 @@ function initChart(chartId) {
                         display: true,
                         color: '#ffffff',
                         text: 'Zeit'
-                    },                   
+                    },
                     grid: {
                         display: true,
                         drawTicks: true
@@ -108,7 +109,10 @@ function initChart(chartId) {
                     },
                     position: 'bottom',
                     display: true
-                }
+                }//,
+                //decimation: {
+                //    enabled: true
+                //}
             }
         }
     });
@@ -166,6 +170,26 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
     });
 }
 
+/*
+  Lade laufend aktuelle Werte nach
+*/
+//function updateChart(chartId, LABEL_ALIASES) {
+
+//    const params = new URLSearchParams();
+//    const tagnames = Array.from(LABEL_ALIASES.keys());
+//    params.append("tagnames", tagnames);
+//    const link = `/ws?${params}`;
+
+
+//    // Sende alle notwendigen Daten an den Worker
+//    workers.get(chartId).postMessage({
+//        chartId: chartId,
+//        url: link,
+//        aliases: LABEL_ALIASES,
+//        colors: CHART_COLORS
+//    });
+//}
+
 /**
  * Empfängt die verarbeiteten Daten vom Web Worker und aktualisiert das Chart.
  */
@@ -179,6 +203,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
             //     console.log(percentage);
             progressBar.value = percentage;
             progressText.textContent = `${percentage}%,  ${message.processedCount}/${message.totalCount} Datensätze`;
+            document.getElementById('rawDataLink').innerHTML = `Rohdaten [${message.totalCount} Datensätze]`;
 
         } else if (message.type === 'complete') {
             const chartId = message.chartId;
@@ -194,7 +219,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
             //console.log('Chart aktualisiert.');
             progressContainer.style.display = 'none';
             document.body.style.opacity = "1";
-            document.body.style.cursor = "auto";
+            document.body.style.cursor = "auto";            
         } else if (message.type === 'error') {
             // Fehlerbehandlung
             progressContainer.style.display = 'none';

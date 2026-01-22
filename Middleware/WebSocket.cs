@@ -53,7 +53,9 @@ namespace Gemini.Middleware
             {
                 if (webSocket.State != WebSocketState.Open)
                 {
+#if DEBUG
                     Console.WriteLine("WebSocket to client " + clientId + " is not open anymore.");
+#endif
                     return;
                 }
 
@@ -120,7 +122,9 @@ namespace Gemini.Middleware
             catch (Exception ex)
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
+#if DEBUG
                 Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
+#endif
                 PlcTagManager.Instance.RemoveClient(clientId);
             }
         }
@@ -165,20 +169,26 @@ namespace Gemini.Middleware
 
                             if (newTags != null)
                             {
+#if DEBUG
                                 Console.WriteLine($"Updating tags for client {clientId}.");
+#endif
                                 // Registrierung mit dem GLEICHEN Callback und der NEUEN Tag-Liste
                                 PlcTagManager.Instance.AddOrUpdateClient(clientId, newTags, sendCallback);
                             }
                         }
                         catch
                         {
+#if DEBUG
                             Console.WriteLine($"Invalid tag payload from client {clientId}.");
                             // Ignoriere ungültige Payload
+#endif
                         }
                     }
                     else
                     {
+#if DEBUG
                         Console.WriteLine($"Websocket Status: " + r.MessageType);
+#endif
                     }
                 }
             }
@@ -186,7 +196,9 @@ namespace Gemini.Middleware
             // um die Ressourcenfreigabe zu garantieren, auch wenn dieser Loop abstürzt.
             catch (Exception ex)
             {
+#if DEBUG
                 Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
+#endif
                 // WICHTIG: Wenn der Loop abbricht, muss die Verbindung entfernt werden.
                 PlcTagManager.Instance.RemoveClient(clientId);
                 throw; // Wir werfen die Ausnahme weiter, damit sie im outer finally (ReadTagsLoop) behandelt wird.
@@ -202,7 +214,9 @@ namespace Gemini.Middleware
 
             if (receiveResult.MessageType != WebSocketMessageType.Text || receiveResult.Count <= 0)
             {
+#if DEBUG
                 Console.WriteLine("Received invalid initial message from WebSocket client. Closing connection.");
+#endif
                 await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid initial message", CancellationToken.None);
                 return;
             }
@@ -211,7 +225,9 @@ namespace Gemini.Middleware
 
             if (jsonString?.Trim().Length == 0)
             {
+#if DEBUG
                 Console.WriteLine("Received empty payload from WebSocket client. Closing connection.");
+#endif
                 await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Empty payload", CancellationToken.None);
                 return;
             }
@@ -221,7 +237,9 @@ namespace Gemini.Middleware
 
             if (clientData is null || clientData?.Length == 0)
             {
+#if DEBUG
                 Console.WriteLine("WebSocket connection closed or invalid initial message.");
+#endif
                 return;
             }
             var clientId = Guid.NewGuid();

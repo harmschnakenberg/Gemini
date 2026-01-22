@@ -15,7 +15,7 @@ namespace Gemini.Middleware
             bool isAdmin = user.IsInRole("Admin");
             if (!isAdmin) // Nur Admins können Benutzer erstellen
             {
-                Console.WriteLine($"Keine Berechtigung {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+                Db.Db.DbLogInfo($"Keine Berechtigung {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
                 return Results.Unauthorized();
             }
 
@@ -66,6 +66,7 @@ namespace Gemini.Middleware
         {
             bool isAdmin = user.IsInRole("Admin");
             string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
+            
             Console.WriteLine($"Benutzer {name} löschen durch {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
             if (!isAdmin) // Nur Admins können Benutzer löschen
             {

@@ -40,7 +40,7 @@ namespace Gemini.DynContent
             List<DynamicExcelColumn> colStyle = [new("Zeit") { Index = i, Format = timeFormat, Width = 19 }];
 
             foreach (var tagName in tagNamesAndComment.Keys)            
-                colStyle.Add(new(tagName) { Index = ++i, Name = tagNamesAndComment[tagName] });
+                colStyle.Add(new(tagName) { Index = ++i, Name = tagNamesAndComment[tagName]});
             
             var config = new OpenXmlConfiguration
             {
@@ -54,7 +54,7 @@ namespace Gemini.DynContent
 
             foreach (var group in groups)
             {
-                var z = new Dictionary<string, object?>
+                var cols = new Dictionary<string, object?>
                 {
                     { "Zeit", group.Key }
                 };
@@ -62,10 +62,10 @@ namespace Gemini.DynContent
                 foreach (var tagName in tagNamesAndComment.Keys)
                 {
                     JsonTag? x = group.Where(o => o.N == tagName).FirstOrDefault();
-                    z.Add(tagName, x?.V);
+                    cols.Add(tagName, x?.V);
                 }
 
-                values.Add(z);
+                values.Add(cols);
             }
 
             var sheets = new Dictionary<string, object>

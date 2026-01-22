@@ -9,6 +9,11 @@
       "Id": 2,
       "Name": "Schaltwarte",
       "Link": "schaltwarte.html"
+    },
+    {
+      "Id": 3,
+      "Name": "NK1 - Kühlung Fisch",
+      "Link": "Kuehlung_Fisch.html"
     }
   ]
   }

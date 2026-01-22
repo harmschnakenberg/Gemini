@@ -6,6 +6,7 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 - ASP.NET WebServer
 	- Json Based Web API
 	- WebSocket Support
+	- keine Auslieferung von statischen Dateien (Bilder, JS, CSS, etc.) über Nginx
 	- Statische Sollwert-Bilder
 	- Charts zur Visualisierung von Prozessdaten	
 	- Chartes mit Echtzeit-Datenaktualisierung
@@ -17,20 +18,23 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Benutzerverwaltung
 	- JWT vs. Cookie Authentifizierung => Cookie Authentifizierung 
 	- dynamisch erzeugtes, eingeblendetes Sollwerte-Menü 	
-	- ToDo: dynamische Dashboards
 	- HTTPS Support über Rechnernamen
+	- Neu-einladen von SPS-Configuration im laufenden Betrieb
+	
+	- Todo: Status-Kurven
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
-	- ToDo: SVG Support für Bilder	
-	- Neu-einladen von SPS-Configuration im laufenden Betrieb
-	- Todo: Logging mit Source Generated Logging für bessere Performance
+	- ToDo: SVG Support für Bilder		
+	
+	- NiceToHave: Logging mit Source Generated Logging für bessere Performance
 	
 - S700/1200/1500/300/400 PLC Communication Library
 	- TCP/IP Communication mit mehreren SPSen gleichzeitig
 	- Multiple Data Types (Bool, Int, DInt, Real, etc.)
 	- Meldung nur bei geänderten Werten (Polling)
-	- ToDo: keine doppelten Abfragen bei mehreren Clients // TESTEN!!
-		
+	- keine doppelten Abfragen bei mehreren Clients
+	- ToDo: Unterstützung für OpcUa Kommunikation
+			
 - SQLite Database
 	- SPS Verwaltung in Datenbank und Confifg-Datei (Datenbank mit Vorrang vor Config-Datei)
 	- Auslesen über mehrere Datenbankdateien

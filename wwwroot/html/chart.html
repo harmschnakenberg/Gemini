@@ -66,7 +66,8 @@
         ]);
 
         const tags2 = new Map([
-            ['A01_DB10_DBW4', 'Alternative Minuten']
+            ['A01_DB10_DBX7_5', 'Sekunde Bit2'],
+            ['A01_DB10_DBX7_4', 'Sekunde Bit3']
         ]);
 
         initChart('myChart1');
@@ -78,7 +79,9 @@
             if (checkDuration('start', 'end', 'chartTimespan')) {
                 loadChart('myChart1', 'start', 'end', tags1);
                 loadChart('myChart2', 'start', 'end', tags2);
-            }          
+            }   
+
+            //updateChart('myChart1', tags1)
         }
 
         function checkDuration(startId, endId, outputId) {

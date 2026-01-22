@@ -1,12 +1,11 @@
 ﻿using Gemini.Db;
-using Gemini.Models;
 using Gemini.Services;
 using S7.Net;
-using System.Data;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
 using System.Text;
+using static Gemini.Db.Db;
 
 namespace Gemini.DynContent
 {
@@ -151,10 +150,13 @@ namespace Gemini.DynContent
 
             List<Models.Tag> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 1);
 
-
             sb.Append("<h1>Datenpunkte</h1>");
-            sb.Append("<table>");
+            sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
+            sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
+            sb.Append("<h2>Gelesene Datenpunkte</h2>");
+            sb.Append("<hr/><table>");
             sb.Append("<tr><th>Item-Name</th><th>Beschreibung</th><th>mom. Wert</th><th>Log</th></tr>");
+
 
             foreach (Models.Tag tag in allTags)
             {
@@ -175,7 +177,7 @@ namespace Gemini.DynContent
                     const tagComm = obj.parentNode.parentNode.children[1].children[0].value;
                     const tagChck = obj.parentNode.parentNode.children[3].children[0].checked;
 
-                    fetchSecure('/tagupdate', {
+                    fetchSecure('/tag/update', {
                       method: 'POST',   
                       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },                      
                       body: new URLSearchParams({ tagName: tagName, tagComm: tagComm, tagChck: tagChck })
@@ -186,27 +188,76 @@ namespace Gemini.DynContent
             </script>
             ");
 
-            sb.Append("<h2>Steuerungen</h2>");
-            sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
-            sb.Append("<table>");
 
-            var plcs = PlcTagManager.Instance.GetAllPlcs();
+          
+            //sb.Append("<h2>Steuerungen</h2>");
+            //sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
+            //sb.Append("<table>");
 
-            foreach (var plcName in plcs.Keys)
-                if (plcName.StartsWith('A')) {
-                    sb.AppendLine("<tr>");
-                    sb.AppendLine($"<td>{plcName}</td>");
-                    sb.AppendLine($"<td>{plcs[plcName].CPU.ToString()}<td/>");
-                    sb.AppendLine($"<td>{plcs[plcName].IP}<td/>");
-                    sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
-                    sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
-                    sb.AppendLine($"<td>" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2'/>:" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4'/>:" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6'/>" +
-                        $"</td>");                   
-                    sb.AppendLine("</tr>");
-                }
+            //var plcs = PlcTagManager.Instance.GetAllPlcs();
+
+            //foreach (var plcName in plcs.Keys)
+            //    if (plcName.StartsWith('A')) {
+            //        sb.AppendLine("<tr>");
+            //        sb.AppendLine($"<td>{plcName}</td>");
+            //        sb.AppendLine($"<td>{plcs[plcName].CPU.ToString()}<td/>");
+            //        sb.AppendLine($"<td>{plcs[plcName].IP}<td/>");
+            //        sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
+            //        sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
+            //        sb.AppendLine($"<td>" +
+            //            $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2'/>:" +
+            //            $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4'/>:" +
+            //            $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6'/>" +
+            //            $"</td>");                   
+            //        sb.AppendLine("</tr>");
+            //    }
+
+            //sb.Append("</table>");
+
+            sb.Append(@"
+                </body>
+                </html>");
+
+            return sb.ToString();
+        }
+
+        internal static string TagReadFailures()
+        {
+            List<ReadFailure> readFailures = Db.Db.DbLogGetReadFailures();
+
+            var sb = new StringBuilder(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Alle Werte</title>                    
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                    <script src='/js/websocket.js'></script>
+                    <script src='/js/excel.js'></script>
+                </head>
+                <body>");
+
+            sb.Append("<h1>Lesefehler</h1>");
+            sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
+            sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
+            sb.Append("<p>Zuletzt aufgetretene Fehler beim Lesen aus SPS</p>");
+            sb.Append("<table id='tagfailtable'>");
+            sb.Append("<tr><th>IP</th><th>DB</th><th>Startbyte</th><th>Länge</th><th>Zeitpunkt</th></tr>");
+         
+            foreach (var fail in readFailures)
+            {
+                sb.Append($"<tr>");
+                sb.Append($"<td>{fail.Ip}</td>");
+                sb.Append($"<td>{fail.Db}</td>");
+                sb.Append($"<td>{fail.StartByte}</td>");
+                sb.Append($"<td>{fail.Length}</td>");
+                sb.Append($"<td>{fail.Time.ToString("yyyy-MM-dd HH:mm:ss")}</td>");
+                sb.Append($"</tr>");
+            }
+
+            sb.AppendLine($"<tr><td colspan='5'>Anzahl Lesefehler: {(readFailures.Count > 0 ? readFailures.Count : "keine Lesefehler")}</td></tr>");
+            //sb.AppendLine($"<tr><td colspan='5'>Letzter Lesefehler: {(readFailures.Count > 0 ? readFailures.Max(rf => rf.Time).ToString("yyyy-MM-dd HH:mm:ss") : "keine Lesefehler")}</td></tr>");
 
             sb.Append("</table>");
 
@@ -216,7 +267,6 @@ namespace Gemini.DynContent
 
             return sb.ToString();
         }
-
 
         internal static async Task<string> ListAllPlcConfigs(bool isReadonly)
         {
@@ -237,6 +287,10 @@ namespace Gemini.DynContent
                 <body>");
 
             sb.Append("<h1>Datenquellen</h1>");
+            sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
+            sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
+            sb.Append("<h2>Datenquellen konfigurieren</h2>");
+            sb.Append("<hr/><table>");
             sb.Append("<table>");
             sb.Append("<tr><th>Name</th><th>Type</th><th>IP</th><th>Rack</th><th>Slot</th><th>Aktiv</th><th>Bemerkung</th></tr>");
 
@@ -340,9 +394,9 @@ namespace Gemini.DynContent
                     sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
                     sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
                     sb.AppendLine($"<td>" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2' readonly />:" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4' readonly />:" +
-                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6' readonly />" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2' disabled/>:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4' disabled/>:" +
+                        $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6' disabled/>" +
                         $"</td>");
                     sb.AppendLine("</tr>");
                 }
@@ -353,8 +407,10 @@ namespace Gemini.DynContent
             sb.Append("<h2>Dieses Gerät</h2>");
             sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");            
             sb.AppendLine("<p>Serverzeit (lokal): " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
-            long dbSizeOnDisc = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
-            sb.AppendLine($"<p>Datenbank: {dbFileCount} Dateien mit gesamt {dbSizeOnDisc} MB ({Math.Round((double)(dbSizeOnDisc/1024),2)} GB, ca. {(int)dbSizeOnDisc/dbFileCount} MB pro Tag)<p>");
+            long dbSizeOnDiscMB = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
+            float dbSizeOnDiscGB = (float)dbSizeOnDiscMB / 1024;
+            float avgDbSizeMB = (float)dbSizeOnDiscMB / (float)dbFileCount;
+            sb.AppendLine($"<p>Datenbank: {dbFileCount} Dateien mit insgesamt {dbSizeOnDiscMB} MB ({dbSizeOnDiscGB.ToString("F2")} GB, ca. {avgDbSizeMB.ToString("F2")} MB pro Tag)<p>");
 
             sb.Append(@"
                 </body>

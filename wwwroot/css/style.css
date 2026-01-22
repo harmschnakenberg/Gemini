@@ -1,4 +1,4 @@
-﻿:root {
+﻿.sollwerte label span:root {
     --primary-bg-color: rgb(60, 60, 60);
     --primary-color: #eeeeee;
 }
@@ -121,6 +121,12 @@ ul {
         background-color: #e60000;
     }
 
+#tagfailtable td {
+    padding: 0.5rem 2rem;
+    font-size: 1.1rem;   
+    border-top: 1px solid;
+}
+
 #sortable-list {
     list-style-type: initial;
     padding: 0;
@@ -235,11 +241,8 @@ input[type=number] {
         background-color: lightgoldenrodyellow;
         color: black;
         float: right !important;
-        width: 5rem;
+        padding: 0rem 0.5rem;
         text-align: center;
-        /* position: relative;
-				 right: 0px !important; 
-		padding: 2px 0px;*/
     }
 
 .sollwerte input {
@@ -301,7 +304,7 @@ input[type="checkbox"] {
 
 input.checkbox {
     text-align: center;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     text-transform: capitalize;
     outline: 0.1rem solid grey;
     outline-offset: -0.5rem;

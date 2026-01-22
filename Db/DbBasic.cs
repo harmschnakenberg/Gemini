@@ -6,7 +6,8 @@ namespace Gemini.Db
 {
    
     internal partial class Db
-    {
+    {        
+        
         private static readonly Lock _dbLock = new();
 
         #region Pfade
@@ -15,9 +16,8 @@ namespace Gemini.Db
         private static readonly string MasterDbSource = "Data Source=" + masterDbPath;
         private static readonly string DayDbSource = "Data Source=" + GetDayDbPath(DateTime.UtcNow);
 
-        public Db()
-        {
-           
+        static Db()
+        {           
             //Stelle sicher, dass die Datenbankordner existieren
             string dbFolder = Path.Combine(AppFolder, "db");
 
@@ -102,8 +102,8 @@ namespace Gemini.Db
                     ";
             int result = command.ExecuteNonQuery();
 
-            Console.WriteLine("Mastertabelle erstellt. Ergebnis: " + result);
-
+            Db.DbLogInfo("Mastertabelle erstellt. Ergebnis: " + result);
+            
             if (result != 0) //Keine Änderungen geschrieben
                 return;
 
@@ -146,11 +146,19 @@ namespace Gemini.Db
 
                           CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
                           ); 
+                          CREATE TABLE IF NOT EXISTS Setpoint (                         
+                          Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+                          TagId INT NOT NULL,
+                          TagValue NUMERIC,
+                          User TEXT,
+
+                          CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
+                          );
                           PRAGMA journal_mode=WAL;
                     ";
             int result = command.ExecuteNonQuery();
 
-            Console.WriteLine("Tagestabelle erstellt. Ergebnis: " + result);
+            Db.DbLogInfo("Tagestabelle erstellt. Ergebnis: " + result);
 
             if (result != 0) //Keine Änderungen geschrieben. Warum 0?
                 return;
@@ -194,7 +202,7 @@ namespace Gemini.Db
                 }
             }
 
-            Console.WriteLine("Tagestabelle erstellt; Keine Tags übernommen.");
+            Db.DbLogWarn("Tagestabelle erstellt; Keine Tags übernommen.");
             #endregion
 
         }

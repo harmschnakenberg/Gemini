@@ -1,0 +1,115 @@
+﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Kühlung Fisch</title>
+    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='/css/style.css'>
+    <script src='/js/websocket.js'></script>
+</head>
+<body>
+    <h1>NK1 - Kühlung Fisch</h1>
+
+    <div class="sollwerte">
+
+        <h2>Raum</h2>
+
+        <label>Raumtemperatur<span>xx.08</span></label>
+        <input data-name='A01_DB10_DBW2' data-unit='°C' disabled>
+        <input type="number" min="0" max="30" data-unit='°C' data-name='A01_DB10_DBW24'>
+
+        <label>Hysterese</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="10" data-unit='K' data-name='A01_DB10_DBW26'>
+
+        <label>Grenzwert Übertemperatur</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="20" data-unit='K' data-name='A01_DB10_DBW28'>
+
+        <label>Grenzwert Untertemperatur</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="20" data-unit='K' data-name='A01_DB10_DBW28'>
+
+        <label>verz. Über-/Untertemperatur</label>
+        <input data-name='A01_DB10_DBW4' data-unit='min' disabled>
+        <input type="number" min="0" max="60" data-unit='min' data-name='A01_DB10_DBW26'>
+
+        <label>Temperaturstörungen bei Raum aus</label>
+        <div>&nbsp;</div>
+        <input class="checkbox" data-name='A01_DB10_DBX7_1' data-unit='FRG'>
+
+        <label>Lüfternachlaufzeit</label>
+        <input data-name='A01_DB10_DBW4' data-unit='min' disabled>
+        <input type="number" min="0" max="60" data-unit='min' data-name='A01_DB10_DBW26'>
+
+        <h2>Überhitzung</h2>
+
+        <label>Maximlale Verdampfungstemperatur<span>xx.15</span></label>
+        <input data-name='A01_DB10_DBW2' data-unit='°C' disabled>
+        <input type="number" min="-30" max="0" data-unit='°C' data-name='A01_DB10_DBW24'>
+
+        <label>Differenz Rtg. tiefere Temperatur</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="20" data-unit='K' data-name='A01_DB10_DBW26'>
+
+        <label>Sauggastemperatur<span>xx.40</span></label>
+        <input data-name='A01_DB10_DBW2' data-unit='°C' disabled>
+        <div>&nbsp;</div>
+
+        <label>Überhitzung<span>xx.40&nbsp;-&nbsp;xx.15</span></label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="10" data-unit='K' data-name='A01_DB10_DBW26'>
+
+        <label>Regler Überhitzung</label>
+        <input class="checkbox" data-name='A01_DB10_DBX7_0' data-unit='Aktiv' disabled>
+        <a href="#" class="button">Regler</a>
+
+        <label>Stellwert<span>xx.38</span></label>
+        <input data-name='A01_DB10_DBW2' data-unit='%' disabled>
+        <div>&nbsp;</div>
+
+        <label>Einspritzventil<span>xx.38</span></label>
+        <input data-name='A01_DB10_DBW2' data-unit='%' disabled>
+        <div>&nbsp;</div>
+
+        <label>Grenzwert max. Öffnungsgrad</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="100" data-unit='%' data-name='A01_DB10_DBW26'>
+
+        <label>Grenzwert min. Öffnungsgrad</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="100" data-unit='%' data-name='A01_DB10_DBW26'>
+
+        <label>Öffnungsgrad bei Anlauf</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="100" data-unit='%' data-name='A01_DB10_DBW26'>
+
+        <label>Öffnungsdauer bei Anlauf</label>
+        <input data-name='A01_DB10_DBW4' data-unit='s' disabled>
+        <input type="number" min="0" max="60" data-unit='s' data-name='A01_DB10_DBW26'>
+
+        <label>Grenzwert min. Überhitzung</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="50" data-unit='K' data-name='A01_DB10_DBW26'>
+
+        <label>Differenz Rtg. höherer Überhitzung</label>
+        <div>&nbsp;</div>
+        <input type="number" min="0" max="20" data-unit='K' data-name='A01_DB10_DBW26'>
+
+
+
+        <h2>Abtauung</h2>
+
+        <label>DB10,X7.0</label>
+        <input class="checkbox" data-name='A01_DB10_DBX7_0' data-unit='RM' disabled>
+        <input class="checkbox" data-name='A01_DB10_DBX99_1' data-unit='FRG'>
+
+        <label>Laufzeitüberwachung MoV Warmsole</label>
+        <input data-name='A01_DB10_DBW4' data-unit='s' disabled>
+        <input type="number" min="0" max="60" data-unit='s' data-name='A01_DB10_DBW26'>
+
+
+    </div>   
+</body>
+</html>

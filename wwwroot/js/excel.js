@@ -1,4 +1,5 @@
-﻿function addCol() {    
+﻿/*
+function addCol() {    
     const i = document.forms['myForm'].getElementsByTagName('li').length;
 
     var y = document.createElement('LI');
@@ -24,7 +25,7 @@
     y.appendChild(x)
     
     document.getElementById('myForm').getElementsByTagName('ol')[0].appendChild(y);
-}
+} //*/
 
 document.addEventListener('DOMContentLoaded', (event) => {
     // Initialisierung der Drag-and-Drop-Funktionalität für vorhandene Elemente
@@ -163,7 +164,7 @@ function isValid(input) {
 const allTagComments = new Map();
 
 async function loadComments() {
-    const link = `/tagcomments`;
+    const link = `/tag/comments`;
     const response = await fetchSecure(link, {
         method: 'POST',
         //headers: {
@@ -237,10 +238,25 @@ async function excelExport(startId, endId, ival, tags) {
         arr.push(new JsonTag(key, value, new Date()));
     })
 
-    if (arr.length > 0)       
+    let filename = 'excel.xlsx';
+    if (arr.length > 0)
         await fetchSecure('/excel', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            },
             body: new URLSearchParams({ start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) })
-        });
+        }) //https://stackoverflow.com/questions/44168090/fetch-api-to-force-download-file
+            .then((res) => {
+                filename = res.headers.get('Content-Disposition').split('filename=')[1];
+                return res.blob();
+            })
+            .then(blob => URL.createObjectURL(blob))
+            .then(url => {
+                var link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                link.click();
+            });           
 }

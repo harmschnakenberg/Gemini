@@ -32,7 +32,6 @@ function initUnits() {
 function tagNameToObject(name) {
     return new JsonTag(name, null, new Date());
 }
-
 function initTags() {
     const tagNames = [];
     const inputs = document.querySelectorAll('[data-name]')
@@ -51,6 +50,33 @@ function initTags() {
                     this.value = "X";
             });
         }
+
+        if (!inputs[i].disabled) {
+            //Script zum Schreiben in die SPS anfügen
+            inputs[i].addEventListener("blur", async function () {
+                   
+                const t = this.getAttribute('data-name');
+                const v = this.value;
+                console.info(`Änderung von ${t} auf ${v}`);
+                const tag = new JsonTag(t, v, new Date());
+                
+                const link = `/tag/write`;
+
+                const res = await fetchSecure(link, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(tag)
+                });
+
+                if (res.ok) {
+                    console.log('Wertänderung ' + tag);
+                    message(res.type, res.text);
+                } else {
+                    console.error('Wertänderung - Nicht erlaubte Operation - Status ' + res.status);
+                }
+            });
+        }
+
     }
     return tagNames.map(tagNameToObject);
 }
@@ -203,6 +229,12 @@ function checkLoginStatus() {
         a.appendChild(span);
 
         document.body.appendChild(a);
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('auth') || urlParams.get('auth') == 'failed') { 
+        sessionStorage.removeItem(LOGGED_USER);
+        console.log("SessionStorage bereinigt.");
     }
 
     const loggedUser = sessionStorage.getItem(LOGGED_USER);

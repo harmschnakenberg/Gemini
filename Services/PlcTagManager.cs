@@ -44,8 +44,8 @@ namespace Gemini.Services
         private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(1);
         private readonly Task _pollTask;
 
-        private const int MaxBlockBytes = 2000;
-        private const double ChangeThreshold = 0.1;
+        private const int MaxBlockBytes = 2000; // maximale Bytes pro Block-Read
+        private const double ChangeThreshold = 0.1; // minimaler Unterschied, um als Wertänderung zu gelten
 
         public static PlcTagManager Instance { get; } = new PlcTagManager();
 

@@ -29,7 +29,9 @@ namespace Gemini.Services
             }
             catch (SocketException ex)
             {
+#if DEBUG
                 Console.WriteLine("Error pinging host:'" + hostUri + ":" + portNumber.ToString() + "' " + ex);
+#endif
                 return false;
             }
         }

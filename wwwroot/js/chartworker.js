@@ -48,7 +48,7 @@ function processData(jsonData, aliases, colors) {
             y: value
         });
 
-        // ******* NEU: Fortschritt melden *******
+        // ******* Fortschritt melden *******
         i++;
         if ((i + 1) % REPORT_INTERVAL === 0 || (i + 1) === totalItems) {
             const percentage = Math.round(((i + 1) / totalItems) * 100);

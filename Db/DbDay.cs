@@ -28,7 +28,7 @@ namespace Gemini.Db
            
             var dbClientId = Guid.NewGuid(); //Datenbank wie jeden anderen Client im PlcTagManager anmelden.
 #if DEBUG
-            Console.WriteLine($"Die Datenbank loggt sich ein als Client {dbClientId}");
+            //Console.WriteLine($"Die Datenbank loggt sich ein als Client {dbClientId}");
 #endif
 
             async Task SendDbUpdateCallback(Models.JsonTag[] tagsToSend)
@@ -68,9 +68,7 @@ namespace Gemini.Db
             catch (Exception ex)
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
-                //logger.LogError(ex, $"Fehler beim Senden an die Datenbank {clientId}. Client wird nicht entfernt.");
-                Console.WriteLine($"Error in sending to Database {clientId}. Client wird nicht entfernt.\r\n{ex}");
-                //PlcTagManager.Instance.RemoveClient(clientId);
+                DbLogInfo($"Fehler beim Senden an die Datenbank {clientId}. Client wird nicht entfernt.\r\n{ex}");                
             }
         }
 
@@ -98,7 +96,7 @@ namespace Gemini.Db
 
                     if (!File.Exists(dbPath))
                     {
-#if DEBUG
+#if DEBUG                        
                         Db.DbLogInfo($"Tagestabelle: Datei {dbPath} nicht gefunden.");
 #endif
                         continue;
@@ -170,6 +168,8 @@ namespace Gemini.Db
                     // 3. Iteriere und führe den Command für jedes Objekt aus
                     foreach (var tag in jsonTags)
                     {
+                        if (tag?.N is null) continue;
+
                         nameParam.Value = tag.N;
                         valueParam.Value = tag.V;
                         timeParam.Value = tag.T.ToString("yyyy-MM-dd HH:mm:ss");
@@ -322,7 +322,7 @@ namespace Gemini.Db
                         //Console.WriteLine($"GetDataSet2() Lese Datenbanken im Bereich {pos} für {steps} Steps (bis insgesamt {dataBases.Count})");
 
                         List<string> attach = [];
-                        List<string> query = [];
+                        List<string> query = ["PRAGMA wal_checkpoint(FULL);"]; //konsolidiert die Write-Ahead-Log-Datei vor der Abfrage
                         List<string> detach = [];
 
                         #region Querys zusammenschrauben
@@ -403,7 +403,7 @@ namespace Gemini.Db
                 {
                     // Bei einem Fehler: Rollback der Transaktion
                     //transaction.Rollback(); Transaction hier nicht gut, weil Datenbanken gelockt werden könnten.
-                    Console.WriteLine($"GetDataSet() Fehler bei der Abfrage\r\n\r\n{ex}\r\n");
+                    Db.DbLogInfo($"Fehler bei der Abfrage in GetDataSet(). {ex}");
                 }
                 //finally
                 //{
@@ -464,11 +464,40 @@ namespace Gemini.Db
                 command.CommandText = @"UPDATE Tag SET Comment = @TagComment, ChartFlag = @ChartFlag WHERE Name = @TagName;";
                 int result = command.ExecuteNonQuery();
 #if DEBUG
-                Console.WriteLine($"Beim Ändern von {tagName} wurden {result} Zeilen in der Datenbank geändert.");
+                DbLogInfo($"Beim Ändern von {tagName} wurden {result} Zeilen in der Datenbank geändert.");
 #endif
             }               
         }
 
+        internal static int WriteTag(string tagName, string tagVal, string username)
+        {
+            try
+            {
+                lock (_dbLock)
+                {
+                    using var connection = new SqliteConnection(DayDbSource);
+                    connection.Open();
+                    var command = connection.CreateCommand();
 
+                    command.Parameters.Add("@TagName", SqliteType.Text).Value = tagName;
+                    command.Parameters.Add("@TagTagValue", SqliteType.Blob).Value = tagVal;
+                    command.Parameters.Add("@User", SqliteType.Text).Value = username;
+
+                    command.CommandText = @$"
+                      INSERT OR IGNORE INTO Tag (Name) VALUES (@TagName); 
+                      INSERT INTO Setpoint (TagId, TagValue, User) VALUES (                        
+                        (SELECT Id FROM Tag WHERE Name = @TagName)
+                        ,@TagValue
+                        ,@User
+                      );";
+
+                    return command.ExecuteNonQuery();
+                }
+            }
+            catch 
+            {
+                throw ;
+            }
+        }
     }
 }

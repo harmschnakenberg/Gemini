@@ -202,24 +202,60 @@ namespace Gemini.Db
             }
         }
 
-     
+
         #endregion
 
         #region Logging
 
-        internal static async void DbLogInfo(string message)
+        private static readonly ILogger<Db>? _logger;
+
+        private static async void DbLog(string category, string message)
         {
             CreateMasterDatabaseAsync();
 
-            await using var connection = new SqliteConnection(MasterDbSource);
-            await connection.OpenAsync();
+            try
+            {
+                await using var connection = new SqliteConnection(MasterDbSource);
+                await connection.OpenAsync();
 
-            var command = connection.CreateCommand();
-            command.CommandText =
-                @"INSERT INTO Log (Category, Message) VALUES ('Info', @Message); ";
+                var command = connection.CreateCommand();
+                command.CommandText =
+                    @"INSERT INTO Log (Category, Message) VALUES (@Category, @Message); ";
 
-            command.Parameters.AddWithValue("@Message", message);
-            await command.ExecuteNonQueryAsync();
+                command.Parameters.AddWithValue("@Category", category);
+                command.Parameters.AddWithValue("@Message", message);
+                await command.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError("Fehler beim Schreiben des Logs in die Datenbank: {ErrorMessage}", ex.Message);
+            }
+        }
+
+        internal static async void DbLogInfo(string message)
+        {            
+            DbLog("Info", message);
+            if (_logger?.IsEnabled(LogLevel.Information) == true)            
+                _logger.LogInformation("{Message}", message);
+        }
+
+        //[LoggerMessage(Level = LogLevel.Information, Message = "Verarbeitung von ID {Id} gestartet.")]
+        //static partial void LogProcessingStarted(ILogger logger, int id);
+
+        internal static async void DbLogWarn(string message)
+        {
+            DbLog("Warn", message);
+
+            if (_logger?.IsEnabled(LogLevel.Warning) == true)            
+                _logger.LogWarning("{Message}", message);            
+        }
+
+        internal static async void DbLogError(string message)
+        {
+            DbLog("Error", message);
+
+            if (_logger?.IsEnabled(LogLevel.Error) == true)            
+                _logger.LogError("{Message}", message);            
         }
 
         internal static void DbLogReadFailure(string plcIp, int db, int startByte, int length)
@@ -245,6 +281,44 @@ namespace Gemini.Db
                     command.ExecuteNonQuery();
                 }
             }
+        }
+
+        internal static List<ReadFailure> DbLogGetReadFailures()
+        {
+            List<ReadFailure> failures = [];
+
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+                var query = @"SELECT Ip, Db, StartByte, Length, Time FROM ReadFailure ORDER BY Time DESC;";
+                command.CommandText = query;
+                using var reader = command.ExecuteReader();
+                
+                while (reader.Read())
+                {
+                    failures.Add(new ReadFailure()
+                    {
+                        Ip = reader.GetString(0),
+                        Db = reader.GetInt32(1),
+                        StartByte = reader.GetInt32(2),
+                        Length = reader.GetInt32(3),
+                        Time = DateTime.Parse(reader.GetString(4))
+                    });                   
+                }
+                connection.Dispose();
+                return failures;
+            }
+        }
+
+        internal class ReadFailure
+        {
+            public string Ip { get; set; } = string.Empty;
+            public int Db { get; set; }
+            public int StartByte { get; set; }
+            public int Length { get; set; }
+            public DateTime Time { get; set; }
         }
 
         #endregion

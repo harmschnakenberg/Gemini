@@ -4,6 +4,7 @@ using Gemini.Models;
 using Gemini.Services;
 using S7.Net;
 using System.Security.Claims;
+using System.Text;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Gemini.Middleware
@@ -25,6 +26,12 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
         }
 
+        private static IResult TagReadFailes()
+        {
+            string html = HtmlHelper.TagReadFailures();
+            return Results.File(Encoding.UTF8.GetBytes(html), "text/html");
+        }
+
         private static IResult TagConfigUpdate(HttpContext ctx, ClaimsPrincipal claimsPrincipal) //, IAntiforgery antiforgery
         {
             bool isAdmin = claimsPrincipal.IsInRole("Admin");
@@ -38,7 +45,7 @@ namespace Gemini.Middleware
             string tagChck = ctx.Request.Form["tagChck"].ToString() ?? string.Empty;
             _ = bool.TryParse(tagChck, out bool isChecked);
 
-            Console.WriteLine($"{userName} veranlasst Tag-Update: {tagName}: {tagComm} | Log {isChecked}");
+            Db.Db.DbLogInfo($"{userName} veranlasst Tag-Update: {tagName}: {tagComm} | Log {isChecked}");
 
             if (isAdmin)
             {
@@ -77,7 +84,7 @@ namespace Gemini.Middleware
             //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
             JsonTag[] obj = await Db.Db.GetDataSet(tagNames!, startUtc, endUtc);
 #if DEBUG
-            Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
+            //Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
 #endif
             // Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
             ctx.Response.StatusCode = 200;
@@ -99,6 +106,30 @@ namespace Gemini.Middleware
             }
 
             return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
+        }
+
+        private static IResult WriteTagValue(HttpContext ctx, ClaimsPrincipal user)
+        {
+            string username = user.Identity?.Name ?? "-unbekannt-";
+            string tagName = ctx.Request.Form["N"].ToString() ?? string.Empty;
+            string tagVal = ctx.Request.Form["V"].ToString() ?? string.Empty;
+
+
+            if (!user.IsInRole("Admin") && !user.IsInRole("User"))
+            {
+                Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung {tagName} zu ändern.");
+                return Results.Unauthorized();
+            }
+            else
+                Console.WriteLine($"Benutzer {user.Identity?.Name} [{user.Claims.FirstOrDefault()?.Value}] - Versucht {tagName} auf '{tagVal}' zu ändern.");
+                        
+                int result = Db.Db.WriteTag(tagName, tagVal, username);
+
+                if (result > 0)
+                    return Results.Json(new AlertMessage("success", $"Tag [{tagName}] auf Wert [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
+                else
+                    return Results.Json(new AlertMessage("error", $"Tag [{tagName}] konnte nicht auf Wert [{tagVal}] gesetzt werden [{result}]"), AppJsonSerializerContext.Default.AlertMessage);
+           
         }
 
 
@@ -124,7 +155,7 @@ namespace Gemini.Middleware
             plcName += DateTime.Now.Millisecond; //Name ist UNIQUE
 
             PlcConf plc = new(0, plcName, plcType, plcIp, plcRack, plcSlot, plcIsActive, plcComm);
-            Console.WriteLine($"Neue SPS: {plc.Name}, Ip:{plc.Ip}, Type {plcType}, Rack {plc.Rack}, Slot {plc.Slot} {(plc.IsActive ? "Aktiv" : "Pausiert")}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+            Db.Db.DbLogInfo($"Neue SPS: {plc.Name}, Ip:{plc.Ip}, Type {plcType}, Rack {plc.Rack}, Slot {plc.Slot} {(plc.IsActive ? "Aktiv" : "Pausiert")}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
             int result = Db.Db.CreatePlc(plc); // Insert in Datenbank
 
             if (result > 0)
@@ -162,7 +193,7 @@ namespace Gemini.Middleware
             _ = bool.TryParse(plcIsActiveStr, out bool plcIsActive);
 
             PlcConf plc = new(plcId, plcName, plcType, plcIp, plcRack, plcSlot, plcIsActive, plcComm);
-            Console.WriteLine($"Änderung für SPS: {plc.Id}, {plc.Name}, Ip:{plc.Ip}, Type {plcType}, Rack {plc.Rack}, Slot {plc.Slot} {(plc.IsActive ? "Aktiv" : "Pausiert")}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+            Db.Db.DbLogInfo($"Änderung für SPS: {plc.Id}, {plc.Name}, Ip:{plc.Ip}, Type {plcType}, Rack {plc.Rack}, Slot {plc.Slot} {(plc.IsActive ? "Aktiv" : "Pausiert")}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
 
             bool isAdmin = user.IsInRole("Admin");
             if (!isAdmin) //Nur Administratoren dürfen SPSen konfigurieren
@@ -195,7 +226,10 @@ namespace Gemini.Middleware
             int result = Db.Db.DeletePlc(plcId);
 
             if (result > 0)
+            {
+                Db.Db.DbLogInfo($"SPS {plcId} gelöscht von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
                 return Results.Json(new AlertMessage("success", $"SPS [{plcId}] gelöscht"), AppJsonSerializerContext.Default.AlertMessage);
+            }
             else
                 return Results.InternalServerError();
         }
