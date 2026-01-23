@@ -21,6 +21,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- HTTPS Support über Rechnernamen
 	- Neu-einladen von SPS-Configuration im laufenden Betrieb
 	
+	- Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
+	- ToDo: Warte-Cursor bei Excel Download
 	- Todo: Status-Kurven
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)

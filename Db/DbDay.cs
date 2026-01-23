@@ -322,7 +322,7 @@ namespace Gemini.Db
                         //Console.WriteLine($"GetDataSet2() Lese Datenbanken im Bereich {pos} für {steps} Steps (bis insgesamt {dataBases.Count})");
 
                         List<string> attach = [];
-                        List<string> query = ["PRAGMA wal_checkpoint(FULL);"]; //konsolidiert die Write-Ahead-Log-Datei vor der Abfrage
+                        List<string> query = []; // "PRAGMA wal_checkpoint(FULL);"//konsolidiert die Write-Ahead-Log-Datei vor der Abfrage
                         List<string> detach = [];
 
                         #region Querys zusammenschrauben
@@ -480,7 +480,7 @@ namespace Gemini.Db
                     var command = connection.CreateCommand();
 
                     command.Parameters.Add("@TagName", SqliteType.Text).Value = tagName;
-                    command.Parameters.Add("@TagTagValue", SqliteType.Blob).Value = tagVal;
+                    command.Parameters.Add("@TagValue", SqliteType.Blob).Value = tagVal;
                     command.Parameters.Add("@User", SqliteType.Text).Value = username;
 
                     command.CommandText = @$"
@@ -490,6 +490,8 @@ namespace Gemini.Db
                         ,@TagValue
                         ,@User
                       );";
+
+                    Console.WriteLine($"WriteTag: Schreibe Tag {tagName} mit Wert {tagVal} von Benutzer {username} in die Datenbank.");
 
                     return command.ExecuteNonQuery();
                 }

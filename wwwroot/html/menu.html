@@ -47,6 +47,7 @@
         const API_URL = 'https://' + window.location.host;
 
         async function login() {
+            const body = document.getElementsByTagName('BODY')[0];            
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge ein...';
 
@@ -54,7 +55,8 @@
             const password = document.getElementById("password").value;
 
             try {
-                const response = await fetchSecure(`${API_URL}/login`, { 
+                body.style.cursor = 'wait';
+                const response = await fetchSecure(`${API_URL}/login`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ username, password })
@@ -72,11 +74,16 @@
                     el.style.color = 'red';
                 }
             } catch (e) { console.error("Fehler beim Login: " + e); }
+            finally {
+                body.style.cursor = 'auto';
+            }
         }
 
         async function logout() {
+            const body = document.getElementsByTagName('BODY')[0]; 
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge aus...';
+            body.style.cursor = 'wait';
 
             const response = await fetchSecure(`${API_URL}/logout`, { method: "POST" });
             sessionStorage.removeItem(TOKEN_NAME);
@@ -92,6 +99,7 @@
                 el.textContent = 'Kein Benutzer ?';
                 el.style.color = 'orange';
             }
+            body.style.cursor = 'auto';
         }
     </script>
 

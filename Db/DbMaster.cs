@@ -6,8 +6,9 @@ namespace Gemini.Db
     public enum Role
     {
         Unbekannt,
-        Admin,
-        User
+        Admin,        
+        User,
+        Guest
     }
 
     internal class User 
@@ -129,7 +130,7 @@ namespace Gemini.Db
         //    return "Unknown";
         //}
 
-        internal static int CreateUser(string name, string password, Role role = Role.User)
+        internal static int CreateUser(string name, string password, Role role = Role.Guest)
         {
             lock (_dbLock)
             {
@@ -148,7 +149,7 @@ namespace Gemini.Db
             }
         }
 
-        internal static int UpdateUser(string name, string password, Role role = Role.User)
+        internal static int UpdateUser(string name, string password, Role role = Role.Guest)
         {
             lock (_dbLock)
             {
@@ -209,9 +210,26 @@ namespace Gemini.Db
 
         private static readonly ILogger<Db>? _logger;
 
+        internal static void DbLogPurge(int limit = 100000)
+        {
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+
+                command.Parameters.AddWithValue("@Limit", limit);
+                command.CommandText =
+                @" DELETE FROM Log WHERE Id NOT IN (SELECT Id FROM Log ORDER BY Id DESC LIMIT @Limit); ";
+
+                _ = command.ExecuteNonQuery();
+            }
+
+        }
+
         private static async void DbLog(string category, string message)
         {
-            CreateMasterDatabaseAsync();
+            //CreateMasterDatabaseAsync();
 
             try
             {
@@ -503,7 +521,7 @@ namespace Gemini.Db
       
                 command.CommandText =
                 @"  DELETE FROM Source                    
-                    WHERE Id = @Id; ";
+                    WHERE Id = @Id AND (SELECT COUNT(Id) FROM Source) > 1; "; // die letzt SPS kann nicht gelöscht werden.
 
                 return command.ExecuteNonQuery();
             }

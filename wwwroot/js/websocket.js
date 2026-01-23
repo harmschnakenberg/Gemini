@@ -1,5 +1,7 @@
 ﻿const LOGGED_USER = 'userName';
 const TOKEN_NAME = 'RequestVerificationToken';
+const TICKEDBOX = '☒';
+const UNTICKEDBOX = '☐';
 let currentCsrfToken = null; // Hier speichern wir das Token global
 
 function JsonTag(name, value, time) {
@@ -32,6 +34,7 @@ function initUnits() {
 function tagNameToObject(name) {
     return new JsonTag(name, null, new Date());
 }
+
 function initTags() {
     const tagNames = [];
     const inputs = document.querySelectorAll('[data-name]')
@@ -44,41 +47,50 @@ function initTags() {
         if (inputs[i].classList.contains("checkbox")) {
             inputs[i].setAttribute("readonly", "true"); 
             inputs[i].addEventListener("click", function () {
-                if (this.value == "X")
-                    this.value = "";
+                if (this.value == TICKEDBOX)
+                    this.value = UNTICKEDBOX;
                 else
-                    this.value = "X";
+                    this.value = TICKEDBOX;
+            });
+            inputs[i].addEventListener("blur", function () {   
+                //Script zum Schreiben in die SPS anfügen
+                updInputEvent(this);
             });
         }
 
         if (!inputs[i].disabled) {
             //Script zum Schreiben in die SPS anfügen
-            inputs[i].addEventListener("blur", async function () {
-                   
-                const t = this.getAttribute('data-name');
-                const v = this.value;
-                console.info(`Änderung von ${t} auf ${v}`);
-                const tag = new JsonTag(t, v, new Date());
-                
-                const link = `/tag/write`;
-
-                const res = await fetchSecure(link, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams(tag)
-                });
-
-                if (res.ok) {
-                    console.log('Wertänderung ' + tag);
-                    message(res.type, res.text);
-                } else {
-                    console.error('Wertänderung - Nicht erlaubte Operation - Status ' + res.status);
-                }
+            inputs[i].addEventListener("change", function () {                
+                updInputEvent(this);               
             });
         }
 
     }
     return tagNames.map(tagNameToObject);
+}
+
+async function updInputEvent(obj) {
+    const t = obj.getAttribute('data-name');
+    let v = obj.value;
+    if (v == TICKEDBOX) v = 1;
+    if (v == UNTICKEDBOX) v = 0;
+
+    //console.info(`Trigger Änderung von ${t} auf ${v}`);
+    const tag = new JsonTag(t, v, new Date());
+    const link = `/tag/write`;
+    const res = await fetchSecure(link, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(tag)
+    });
+
+    if (res.ok) {
+        const result = await res.json();
+        console.log(result.Text);
+        message(result.Type, result.Text);
+    } else {
+        console.error('Wertänderung - Nicht erlaubte Operation - Status ' + res.status);
+    }
 }
 
 function drawTags(arr) {
@@ -92,7 +104,7 @@ function drawTags(arr) {
         if (obj) {
             if (inputs[i].nodeName == 'INPUT') {
                 if (inputs[i].classList.contains("checkbox")) 
-                    inputs[i].value = obj.V > 0 ? "X" : "";                                   
+                    inputs[i].value = obj.V > 0 ? TICKEDBOX : UNTICKEDBOX;
                 else
                     inputs[i].value = obj.V;
             }
@@ -190,16 +202,13 @@ function message(adjClass, txt) {
 
     if (!alert) {
         alert = document.createElement('span');
-        alert.setAttribute('id', 'alert');
-        alert.style.padding = '0.2rem 0.5rem';
-        alert.style.width = '30rem';
-        
-        document.body.appendChild(alert);
+        alert.setAttribute('id', 'alert');        
+        document.body.insertBefore(alert, document.body.children[0]);
     }
 
     msg = document.createElement('div');
     msg.classList.add(adjClass);
-    msg.innerHTML = `<b>|${txt}|</b>`
+    msg.innerHTML = `<b>${txt}</b>`
 
     alert.appendChild(msg);
 }

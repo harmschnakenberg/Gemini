@@ -126,9 +126,9 @@ namespace Gemini.Middleware
                 int result = Db.Db.WriteTag(tagName, tagVal, username);
 
                 if (result > 0)
-                    return Results.Json(new AlertMessage("success", $"Tag [{tagName}] auf Wert [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
+                    return Results.Json(new AlertMessage(Type: "success", Text: $"Tag [{tagName}] auf Wert [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
                 else
-                    return Results.Json(new AlertMessage("error", $"Tag [{tagName}] konnte nicht auf Wert [{tagVal}] gesetzt werden [{result}]"), AppJsonSerializerContext.Default.AlertMessage);
+                    return Results.Json(new AlertMessage(Type: "error", Text: $"Tag [{tagName}] konnte nicht auf Wert [{tagVal}] gesetzt werden [{result}]"), AppJsonSerializerContext.Default.AlertMessage);
            
         }
 

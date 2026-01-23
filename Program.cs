@@ -1,14 +1,14 @@
-using Gemini.Db;
+using static Gemini.Db.Db;
 using Gemini.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 
-Gemini.Db.Db.InitiateDbWriting();
+InitiateDbWriting(); //Daten mit Log-Flag in DB schreiben
+DbLogPurge(); //DbLog begrenzen
 
-// 1. Native AOT: CreateSlimBuilder verwenden
-var builder = WebApplication.CreateSlimBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args); // Native AOT: CreateSlimBuilder verwenden
 
 #region https
 
@@ -46,7 +46,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/";
         options.Events.OnRedirectToLogin = context =>
         {
-            var newRedirectUri = context.RedirectUri + (context.RedirectUri.Contains("?") ? "&" : "?") + "auth=failed";
+            var newRedirectUri = context.RedirectUri + (context.RedirectUri.Contains('?') ? "&" : "?") + "auth=failed";
             context.Response.Redirect(newRedirectUri);
             return Task.CompletedTask;
         };
@@ -68,9 +68,9 @@ builder.Services.AddCors(options =>
         //.AllowAnyOrigin() //mit https nicht möglich
         .WithOrigins(
         "https://harm.local",
-        "http://localhost:3000", 
-        "http://127.0.0.1:5500",
-        "https://localhost:443",
+        
+        "http://127.0.0.1",
+        
         "https://localhost"
         ) // Deine Client-URL explizit nennen!
         .AllowAnyMethod()
@@ -81,7 +81,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddAntiforgery();
 
-builder.Services.AddScoped<Db>();
+builder.Services.AddScoped<Gemini.Db.Db>();
 #endregion
 
 

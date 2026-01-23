@@ -75,7 +75,7 @@ function initChart(chartId) {
                     },
                     //min: startDate,
                     ticks: {
-                        source: 'auto', //'data',
+                        source: 'data', //'data', //'auto'
                         //minRotation: 90,   
                         major: { enabled: true },
                         stepSize: 0.25,

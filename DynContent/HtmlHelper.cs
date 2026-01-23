@@ -1,6 +1,7 @@
 ﻿using Gemini.Db;
 using Gemini.Services;
 using S7.Net;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Claims;
@@ -20,6 +21,7 @@ namespace Gemini.DynContent
 
             bool isAdmin = role.Equals("admin");
             bool isUser = role.Equals("user");
+            bool isGuest = role.Equals("guest");
 
 
             StringBuilder sb = new();
@@ -28,7 +30,7 @@ namespace Gemini.DynContent
                             <html lang='de'>
                             <head>
                                 <meta charset='UTF-8'>
-                                <title>Alle Werte</title>                    
+                                <title>Benutzerverwaltung</title>                    
                                 <link rel='shortcut icon' href='/favicon.ico'>
                                 <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                                 <link rel='stylesheet' href='/css/style.css'>                    
@@ -51,6 +53,7 @@ namespace Gemini.DynContent
                     sb.Append("<tr onclick='getUserData(this);'>");
                     sb.Append($"<td><input value='{u.Name}' readonly></td>");
                     sb.Append("<td><select disabled>");
+                    sb.Append(RoleOption(u.Role, Role.Guest, "Gast"));
                     sb.Append(RoleOption(u.Role, Role.User, "Benutzer"));
                     sb.Append(RoleOption(u.Role, Role.Admin, "Administrator"));
                     sb.Append("</select></td>");
@@ -66,7 +69,12 @@ namespace Gemini.DynContent
             sb.Append("<tr>");
             sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required {(isUser ? $"value='{username}' readonly" : string.Empty)}></td>");
             sb.Append("<td><select id='role'>");
-            sb.Append(RoleOption(0, Role.User, "Benutzer"));
+            
+            if (isAdmin || isGuest)
+                sb.Append(RoleOption(0, Role.Guest, "Gast"));
+
+            if (isAdmin || isUser)
+                sb.Append(RoleOption(0, Role.User, "Benutzer"));
             
             if (isAdmin) //nur Admins können Admins auswählen
                 sb.Append(RoleOption(0, Role.Admin, "Administrator"));
@@ -289,10 +297,16 @@ namespace Gemini.DynContent
             sb.Append("<h1>Datenquellen</h1>");
             sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
             sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
+
+            #region SPS konfigurieren
+
             sb.Append("<h2>Datenquellen konfigurieren</h2>");
             sb.Append("<hr/><table>");
             sb.Append("<table>");
             sb.Append("<tr><th>Name</th><th>Type</th><th>IP</th><th>Rack</th><th>Slot</th><th>Aktiv</th><th>Bemerkung</th></tr>");
+
+            if (allPlcs.Count == 0)
+                sb.AppendLine("<tr><td span='7'>- keine SPS-Konfiguration in der Datenbank gefunden -</td></tr>");
 
             foreach (PlcConf plc in allPlcs)
             {
@@ -358,13 +372,14 @@ namespace Gemini.DynContent
                             alertError('Datenquellenverwaltung - Nicht erlaubte Operation - Status ' + res.status);
                         else {
                             const data = await res.json();
-       console.log(data.type + ' ' + data.text);
-                            if (data.type == 'reload') {
-                                alertSuccess(`Operation ${verb} erfolgreich. ${data.text}`);
+                            
+                            console.log(data);
+                            if (data.Type == 'reload') {
+                                alertSuccess(`Operation ${verb} erfolgreich. ${data.Text}`);
                                 setTimeout(location.reload(), 5000);                
                             }
                             else
-                                message(data.type, data.text);
+                                message(data.Type, data.Text);
                         }  
 
                     } catch (error) {
@@ -376,10 +391,10 @@ namespace Gemini.DynContent
                 </script>
                 ");
 
-            
+            #endregion
 
-            sb.Append("<h2>Steuerungen</h2>");
-            sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
+            #region zur Zeit konfigurierte Steuerungen
+            sb.Append("<h2>Aktive Steuerungen</h2>");           
             sb.Append("<table>");
 
             var plcs = PlcTagManager.Instance.GetAllPlcs();
@@ -404,6 +419,10 @@ namespace Gemini.DynContent
 
             sb.Append("</table>");
 
+            #endregion
+
+            #region Informationen zum Host
+
             sb.Append("<h2>Dieses Gerät</h2>");
             sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");            
             sb.AppendLine("<p>Serverzeit (lokal): " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
@@ -411,6 +430,71 @@ namespace Gemini.DynContent
             float dbSizeOnDiscGB = (float)dbSizeOnDiscMB / 1024;
             float avgDbSizeMB = (float)dbSizeOnDiscMB / (float)dbFileCount;
             sb.AppendLine($"<p>Datenbank: {dbFileCount} Dateien mit insgesamt {dbSizeOnDiscMB} MB ({dbSizeOnDiscGB.ToString("F2")} GB, ca. {avgDbSizeMB.ToString("F2")} MB pro Tag)<p>");
+
+            sb.AppendLine("<h3>Laufwerke</h3>");
+            sb.AppendLine("<table><tr>" +                
+                "<th>Laufwerk</th>" +
+                "<th>Bezeichnung</th>" +
+                "<th>Art</th>" +
+                "<th>Format</th>" +
+                "<th>Speicher gesamt</th>" +
+                "<th>Speicher frei</th>" +
+                "</tr>");
+
+            DriveInfo[] drives = DriveInfo.GetDrives();
+            foreach (DriveInfo drive in drives)
+            {              
+                bool isCurrentDrive = AppDomain.CurrentDomain.BaseDirectory.StartsWith(drive.Name);                              
+                long totalSize = 0;
+                long freeSpace = 0;
+                string volLabel = string.Empty;
+                string driveFormat = string.Empty;
+                string driveType = string.Empty;
+
+                switch (drive.DriveType)
+                {   
+                    case DriveType.Unknown:
+                        driveType = "-unbekannt-";
+                        break;
+                    case DriveType.NoRootDirectory:
+                        driveType = "ohne Wurzelverzeichnis";
+                        break;
+                    case DriveType.Removable:
+                        driveType = "Wechseldatenträger";
+                        break;
+                    case DriveType.Fixed:
+                        driveType = "fest";
+                        break;
+                    case DriveType.Network:
+                        driveType = "Netzwerk";
+                        break;
+                    case DriveType.CDRom:
+                        driveType = "CD-ROM";
+                        break;
+                    case DriveType.Ram:
+                        driveType = "RAM";
+                        break;
+                    default:
+                        break;
+                }
+
+                try { totalSize = drive.TotalSize / 1074000000; } catch { }
+                try { freeSpace = drive.AvailableFreeSpace / 1074000000;  } catch { }
+                try { volLabel = drive.VolumeLabel; } catch { }
+                try { driveFormat = drive.DriveFormat; } catch { }
+
+                sb.Append($"<tr {(!drive.IsReady ? "style='opacity: 0.5;'" : string.Empty)}{(isCurrentDrive ? "style='font-weight: bold;" : string.Empty)}>");               
+                sb.Append($"<td>{(isCurrentDrive ? "<b>" : string.Empty)}{drive.Name}{(isCurrentDrive ? "</b>" : string.Empty)}</td>");
+                sb.Append($"<td>{volLabel}</td>");
+                sb.Append($"<td>{driveType}</td>");
+                sb.Append($"<td>{driveFormat}</td>");
+                sb.Append($"<td>{totalSize}&nbsp;GB</td>");
+                sb.Append($"<td>{freeSpace}&nbsp;GB</td>");
+                sb.Append("</tr>");
+            }
+            sb.AppendLine("</table>");
+
+            #endregion
 
             sb.Append(@"
                 </body>

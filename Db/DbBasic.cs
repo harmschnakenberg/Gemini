@@ -115,6 +115,7 @@ namespace Gemini.Db
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Unbekannt}, '{Role.Unbekannt}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Admin},'{Role.Admin}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.User},'{Role.User}'); 
+                    INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Guest},'{Role.Guest}'); 
             ";
             _ = command.ExecuteNonQuery();
 
@@ -189,7 +190,7 @@ namespace Gemini.Db
 
                 command.CommandText =
                         $"ATTACH DATABASE '{dbPath}' AS old_db; " +
-                        "INSERT INTO Tag SELECT * FROM old_db.Tag " +
+                        "INSERT INTO Tag SELECT Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die If sonst immer weiter gezählt werden.
                         "WHERE old_db.Tag.ChartFlag > 0 OR length( old_db.Tag.Comment ) > 0; " + //nur TagNames, die aufgezeichnet werden oder Kommentare erhalten haben. (Alle anderen werden beim ersten Lesen erneut in die Tabelle geschrieben).
                         "DETACH DATABASE old_db; "; 
 
