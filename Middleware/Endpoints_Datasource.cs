@@ -2,22 +2,23 @@
 using Gemini.DynContent;
 using Gemini.Models;
 using Gemini.Services;
+using Microsoft.AspNetCore.Mvc;
 using S7.Net;
+using System.Diagnostics;
+using System.IO.Compression;
+using System.Net.Mime;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.Middleware
 {
     public static partial class Endpoints
     {
 
-        private static IResult GetAllPlcConfig(ClaimsPrincipal claimsPrincipal)
-        {
-            bool isReadonly = !claimsPrincipal.IsInRole("Admin");
-            return Results.Content(HtmlHelper.ListAllPlcConfigs(isReadonly).Result, "text/html");
-        }
-
+        #region Tags
         private static async Task GetAllTagsConfig(HttpContext ctx)
         {
             ctx.Response.StatusCode = 200;
@@ -34,7 +35,7 @@ namespace Gemini.Middleware
 
         private static IResult TagConfigUpdate(HttpContext ctx, ClaimsPrincipal claimsPrincipal) //, IAntiforgery antiforgery
         {
-            bool isAdmin = claimsPrincipal.IsInRole("Admin");
+            bool isAdmin = claimsPrincipal.IsInRole(Role.Admin.ToString());
             string userName = claimsPrincipal.Identity?.Name ?? "unbekannt";
 
             //var headers = ctx.Request.Headers;
@@ -55,7 +56,6 @@ namespace Gemini.Middleware
             else
                 return Results.Unauthorized();
         }
-
 
         private static async Task DbQuery(HttpContext ctx)
         {
@@ -93,9 +93,9 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
         }
 
-        private static async Task<IResult> GetTagComments()
+        private static IResult GetTagComments()
         {
-            List<Tag> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 3);
+            List<Tag> allTags = Db.Db.GetDbTagNames(DateTime.UtcNow, 3);
 
             List<JsonTag> result = [];
 
@@ -113,29 +113,37 @@ namespace Gemini.Middleware
             string username = user.Identity?.Name ?? "-unbekannt-";
             string tagName = ctx.Request.Form["N"].ToString() ?? string.Empty;
             string tagVal = ctx.Request.Form["V"].ToString() ?? string.Empty;
+            string oldVal = ctx.Request.Form["oldVal"].ToString() ?? string.Empty;
 
-
-            if (!user.IsInRole("Admin") && !user.IsInRole("User"))
+            if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
             {
                 Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung {tagName} zu ändern.");
                 return Results.Unauthorized();
             }
             else
                 Console.WriteLine($"Benutzer {user.Identity?.Name} [{user.Claims.FirstOrDefault()?.Value}] - Versucht {tagName} auf '{tagVal}' zu ändern.");
-                        
-                int result = Db.Db.WriteTag(tagName, tagVal, username);
 
-                if (result > 0)
-                    return Results.Json(new AlertMessage(Type: "success", Text: $"Tag [{tagName}] auf Wert [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
-                else
-                    return Results.Json(new AlertMessage(Type: "error", Text: $"Tag [{tagName}] konnte nicht auf Wert [{tagVal}] gesetzt werden [{result}]"), AppJsonSerializerContext.Default.AlertMessage);
-           
+            int result = Db.Db.WriteTag(tagName, tagVal, oldVal, username);
+
+            if (result > 0)
+                return Results.Json(new AlertMessage(Type: "success", Text: $"Tag [{tagName}] auf Wert [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
+            else
+                return Results.Json(new AlertMessage(Type: "error", Text: $"Tag [{tagName}] konnte nicht auf Wert [{tagVal}] gesetzt werden [{result}]"), AppJsonSerializerContext.Default.AlertMessage);
+
         }
 
+        #endregion
+
+        #region SPS
+        private static IResult GetAllPlcConfig(ClaimsPrincipal claimsPrincipal)
+        {
+            bool isReadonly = !claimsPrincipal.IsInRole(Role.Admin.ToString());
+            return Results.Content(HtmlHelper.ListAllPlcConfigs(isReadonly).Result, "text/html");
+        }
 
         private static IResult PlcCreate(HttpContext ctx, ClaimsPrincipal user)
         {
-            bool isAdmin = user.IsInRole("Admin");
+            bool isAdmin = user.IsInRole(Role.Admin.ToString());
             if (!isAdmin) //Nur Administratoren dürfen SPSen konfigurieren
                 return Results.Unauthorized();
 
@@ -195,7 +203,7 @@ namespace Gemini.Middleware
             PlcConf plc = new(plcId, plcName, plcType, plcIp, plcRack, plcSlot, plcIsActive, plcComm);
             Db.Db.DbLogInfo($"Änderung für SPS: {plc.Id}, {plc.Name}, Ip:{plc.Ip}, Type {plcType}, Rack {plc.Rack}, Slot {plc.Slot} {(plc.IsActive ? "Aktiv" : "Pausiert")}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
 
-            bool isAdmin = user.IsInRole("Admin");
+            bool isAdmin = user.IsInRole(Role.Admin.ToString());
             if (!isAdmin) //Nur Administratoren dürfen SPSen konfigurieren
                 return Results.Unauthorized();
 
@@ -219,7 +227,7 @@ namespace Gemini.Middleware
 
             _ = int.TryParse(plcIdStr, out int plcId);
 
-            bool isAdmin = user.IsInRole("Admin");
+            bool isAdmin = user.IsInRole(Role.Admin.ToString());
             if (!isAdmin) //Nur Administratoren dürfen SPSen konfigurieren
                 return Results.Unauthorized();
 
@@ -246,6 +254,8 @@ namespace Gemini.Middleware
                 return Results.Json(new AlertMessage("warn", $"SPS [{ip}] nicht erreichbar"), AppJsonSerializerContext.Default.AlertMessage);
             throw new NotImplementedException();
         }
+
+        #endregion
 
     }
 }

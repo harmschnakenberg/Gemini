@@ -76,20 +76,37 @@ function initChart(chartId) {
                     //min: startDate,
                     ticks: {
                         source: 'data', //'data', //'auto'
+                        display: true,
+                        maxTicksLimit: 10, // Zeigt maximal 10 Ticks an
+                        //count: 20,
                         //minRotation: 90,   
                         major: { enabled: true },
                         stepSize: 0.25,
-                        color: '#ffffff'
+                        color: '#ffffff',
+                        z: 1,
+                        beforeBuildTicks: function(ax){
+                           console.log(ax._unit);
+                        },
+
+                        //callback: function (val, index, ticks) {
+                        //    if (ticks.length < 10)
+                        //        return this.getLabelForValue(val);
+                        //    else if (ticks.length < 100)
+                        //        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                        //    else
+                        //        return index % 10 === 0 ? this.getLabelForValue(val) : '';
+                        //}
+
                     },
                     title: {
                         display: true,
                         color: '#ffffff',
                         text: 'Zeit'
                     },
-                    grid: {
+                    grid: {                        
                         display: true,
-                        drawTicks: true
-                        //color: '#666666'
+                        drawTicks: true,
+                        color: '#666666'
                     }
                 },
                 y: {
@@ -98,6 +115,14 @@ function initChart(chartId) {
                         position: 'bottom',
                         color: '#ffffff',
                         text: 'Wert'
+                    },
+                    ticks: {
+                        color: '#ffffff',
+                    },
+                    grid: {
+                        display: true,
+                        drawTicks: true,
+                        color: '#555555'
                     }
                 }
             },
@@ -132,6 +157,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
 
     document.body.style.cursor = "wait";
     document.body.style.opacity = "0.5";
+    document.getElementById('customspinner').style.visibility = 'visible';
 
     // Setze die Fortschrittsanzeige zurück und zeige sie an
     document.getElementById('progressBar').value = 0;
@@ -158,8 +184,18 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
     params.append("start", startDate.toISOString());
     params.append("end", endDate.toISOString());
     const link = `/db?${params}`;
-    document.getElementById('rawDataLink').setAttribute("href", link);
 
+    if (!document.getElementById(chartId + 'link')) {
+        const aEl = document.createElement('a');
+        aEl.setAttribute("id", chartId + 'link');
+        aEl.setAttribute("href", link);
+        aEl.style.color = 'white';
+        aEl.style.textDecoration = 'none';
+        aEl.style.display = 'block';
+        aEl.innerHTML = 'Rohdaten';
+        //<a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;">Rohdaten</a>
+        document.getElementById('rawDataLinks').appendChild(aEl);
+    }
     
     // Sende alle notwendigen Daten an den Worker
     workers.get(chartId).postMessage({
@@ -203,7 +239,9 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
             //     console.log(percentage);
             progressBar.value = percentage;
             progressText.textContent = `${percentage}%,  ${message.processedCount}/${message.totalCount} Datensätze`;
-            document.getElementById('rawDataLink').innerHTML = `Rohdaten [${message.totalCount} Datensätze]`;
+
+            if (message.processedCount == message.totalCount)
+                document.getElementById(message.chartId + 'link').innerHTML = `Rohdaten [${message.totalCount} Datensätze]`;
 
         } else if (message.type === 'complete') {
             const chartId = message.chartId;
@@ -219,7 +257,8 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
             //console.log('Chart aktualisiert.');
             progressContainer.style.display = 'none';
             document.body.style.opacity = "1";
-            document.body.style.cursor = "auto";            
+            document.body.style.cursor = "auto";   
+            document.getElementById('customspinner').style.visibility = 'hidden';
         } else if (message.type === 'error') {
             // Fehlerbehandlung
             progressContainer.style.display = 'none';

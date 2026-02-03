@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using S7.Net;
+using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.Security.Claims;
 using System.Text;
@@ -49,18 +50,21 @@ namespace Gemini.Middleware
 
             app.MapGet("/excel", GetExcelForm); // Excel-Export Formular ausliefern
             app.MapPost("/excel", ExcelDownload); // Excel-Datei generieren und ausliefern
+            app.MapPost("/excel/config/create", ExcelConfCreate); // Excel-Konfiguration erstellen
+            app.MapPost("/excel/config/delete", ExcelConfDelete); // Excel-Konfiguration löschen //nicht implementiert  
+
+            app.MapGet("/excel/config/all", GetExcelConf);
 
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
             app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
-                                                                          // 
+            app.MapPost("/db/download", DbDownload); // Datenbank-Dateien ausliefern   
+            
             app.MapGet("/exit", ServerShutdown); // Server herunterfahren
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
 
 
         }
-
-
 
         private static IResult Favicon()
         {
@@ -150,93 +154,6 @@ namespace Gemini.Middleware
 
         }
 
-        private static IResult Chart()
-        {
-        //    ctx.Response.StatusCode = 200;
-        //    ctx.Response.ContentType = "text/html";
-        //    var file = File.ReadAllText("wwwroot/html/chart.html", Encoding.UTF8);
-        //    await ctx.Response.WriteAsync(file);
-        //    await ctx.Response.CompleteAsync();
-
-            var file = File.ReadAllText("wwwroot/html/chart.html");
-            return Results.Content(file, "text/html");
-        }
-
-        private static IResult GetExcelForm()
-        {
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "text/html";
-            //var file = File.ReadAllText("wwwroot/html/excel.html", Encoding.UTF8);
-            //await ctx.Response.WriteAsync(file);
-            //await ctx.Response.CompleteAsync();
-
-            var file = File.ReadAllText("wwwroot/html/excel.html");
-            return Results.Content(file, "text/html");
-        }
-
-        /// <summary>
-        /// Processes an HTTP request to generate and return an Excel file containing data for the specified tags and
-        /// time interval.
-        /// </summary>
-        /// <remarks>The method expects the form parameters 'start', 'end', 'interval', and 'tags' to be
-        /// present and valid. If any parameter is missing or invalid, an error message is returned instead of an Excel
-        /// file. The generated Excel file contains data for the specified tags within the given time range and
-        /// interval. The response is sent as an attachment with the appropriate content type for Excel files.</remarks>
-        /// <param name="ctx">The HTTP context for the current request. The request must include form parameters 'start' and 'end' (as
-        /// date/time strings), 'interval' (as an integer), and 'tags' (as a JSON array of tag objects).</param>
-        /// <returns>A task that represents the asynchronous operation. The response is written directly to the HTTP context as
-        /// an Excel file attachment if the parameters are valid; otherwise, a plain text error message is returned.</returns>
-        private static async Task ExcelDownload(HttpContext ctx)
-        {
-            string jsonString = ctx.Request.Form["tags"].ToString() ?? string.Empty;
-            //Console.WriteLine("/excel : " + jsonString);
-
-            if (
-            !DateTime.TryParse(ctx.Request.Form["start"], out DateTime start) ||
-            !DateTime.TryParse(ctx.Request.Form["end"], out DateTime end) ||
-            !int.TryParse(ctx.Request.Form["interval"], out int interval) ||
-            jsonString?.Length < 3
-            )
-            {
-                string msg = $"Mindestens ein Übergabeparameter war nicht korrekt.\r\n";
-
-#if DEBUG
-                msg +=
-                $"start: '{ctx.Request.Form["start"]}'\r\n" +
-                $"end: '{ctx.Request.Form["end"]}'\r\n" +
-                $"interval: '{ctx.Request.Form["interval"]}'\r\n" +
-                $"tags: '{ctx.Request.Form["tags"]}'\r\n";
-#endif
-                ctx.Response.ContentType = "text/plain";
-                await ctx.Response.WriteAsync(msg);
-                await ctx.Response.CompleteAsync();
-                return;
-            }
-
-            //Console.WriteLine($"Rohempfang:\r\n'{jsonString}'\r\n");
-
-            JsonTag[] tags = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray) ?? [];
-            Dictionary<string, string> tagsAndCommnets = tags.ToDictionary(t => t?.N ?? string.Empty, t => t.V?.ToString() ?? string.Empty);
-            string[] tagNames = [.. tagsAndCommnets.Keys];
-#if DEBUG
-            //Console.WriteLine($"Interval = {interval}");
-#endif
-            //JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
-            //MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagsAndCommnets, obj);
-
-            JsonTag[] obj = await Db.Db.GetDataSet(tagNames!, start, end);
-            MemoryStream fileStream = Gemini.DynContent.MiniExcel.DownloadExcel((Gemini.DynContent.MiniExcel.Interval)interval, tagsAndCommnets, obj);
-
-            string excelFileName = $"Kreu_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.TimeOfDay.TotalSeconds:0000}.xlsx";
-
-            ctx.Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            ctx.Response.Headers.ContentDisposition = $"attachment; filename={excelFileName}";
-            ctx.Response.ContentLength = fileStream.Length;
-
-            await fileStream.CopyToAsync(ctx.Response.Body);
-            await ctx.Response.CompleteAsync();
-        }
-
         private static async Task ServerShutdown(HttpContext ctx)
         {
             StringBuilder sb = new();
@@ -265,6 +182,27 @@ namespace Gemini.Middleware
             await ctx.Response.CompleteAsync();
 
             PleaseStop = true;
+
+            RestartServer();
+        }
+
+        private static void RestartServer()
+        {
+            PleaseStop = true;
+
+            if (Environment.OSVersion.Platform == PlatformID.Unix) //nur Linux
+            {
+                new Thread(() =>
+                {
+                    //Warte 2 Sekunden, damit die Antwort an den Client gesendet werden kann
+                    Thread.Sleep(2000);
+                    var psi = new ProcessStartInfo("sudo")
+                    {
+                        Arguments = "systemctl restart kreuwebapp.service" //Dienstname anpassen / automatisch auslesbar?
+                    };
+                    Process.Start(psi);
+                }).Start();
+            }
         }
 
         private static IResult MainMenu()

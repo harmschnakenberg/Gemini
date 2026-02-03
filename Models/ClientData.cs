@@ -1,10 +1,7 @@
-
 // Klassen für Datenaustausch und JSON Source Generation
 
 // Das Datenmodell für den Austausch
-using Gemini.DynContent;
 using Gemini.Models;
-using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Gemini.Models
@@ -26,23 +23,25 @@ namespace Gemini.Models
 
     }
 
+
     public class Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
     {
         public string TagName { get; set; } = tagName;
         public string TagComment { get; set; } = tagComment;
         public object? TagValue { get; set; } = tagValue;
         public bool ChartFlag { get; set; } = chartFlag;
-
     }
 
-    public record FormPost(
-    [Required] DateTime Start,
-    [Required] DateTime End,
-    [Required, Range(0, 5)] MiniExcel.Interval Interval,
-    [Required] Dictionary<string, string> TagsAndComments
-    );
+    public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
 
-   
+    //public record FormPost(
+    //[Required] DateTime Start,
+    //[Required] DateTime End,
+    //[Required, Range(0, 5)] MiniExcel.Interval Interval,
+    //[Required] Dictionary<string, string> TagsAndComments
+    //);
+
+
     public class MenuLink(int id, string name, string link)
     {
         public int Id { get; set; } = id;
@@ -104,7 +103,10 @@ namespace Gemini.Models
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(CsrfTokenResponse))]
-[JsonSerializable(typeof(FormPost))]
+//[JsonSerializable(typeof(FormPost))]
+[JsonSerializable(typeof(Tag[]))]
+[JsonSerializable(typeof(TagCollection))]
+[JsonSerializable(typeof(TagCollection[]))]
 [JsonSerializable(typeof(JsonTag[]))]
 [JsonSerializable(typeof(AlertMessage))]
 [JsonSerializable(typeof(DateTime))]

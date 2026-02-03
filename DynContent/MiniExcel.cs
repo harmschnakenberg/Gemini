@@ -33,6 +33,23 @@ namespace Gemini.DynContent
             };
         }
 
+        public static Interval GetTimeFormat(string interval)
+        {
+            return interval switch
+            {
+                nameof(Interval.Sekunde) => Interval.Sekunde,
+                nameof(Interval.Minute) => Interval.Minute,
+                nameof(Interval.Viertelstunde) => Interval.Viertelstunde,
+                nameof(Interval.Stunde) => Interval.Stunde,
+                nameof(Interval.Tag) => Interval.Tag,
+                nameof(Interval.Monat) => Interval.Monat,
+                nameof(Interval.Jahr) => Interval.Jahr,
+                _ => Interval.Sekunde,
+            };
+        }
+
+
+
         public static MemoryStream DownloadExcel(Interval interval, Dictionary<string, string> tagNamesAndComment, JsonTag[] jsonTags)
         {
             string timeFormat = GetTimeFormat(interval);

@@ -1,31 +1,15 @@
-﻿/*
-function addCol() {    
-    const i = document.forms['myForm'].getElementsByTagName('li').length;
+﻿
+function TagCollection(id, name, author, start, end, interval, tags) {
+    //   public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
+    this.Id = id;
+    this.Name = name;
+    this.Author = author;
+    this.Start = start;
+    this.End = end;
+    this.Interval = interval;
+    this.Tags = tags;
+}
 
-    var y = document.createElement('LI');
-    y.setAttribute('id', 'li' + i);
-
-    var u = document.createElement('SPAN');
-    u.classList.add('upArrow');
-    u.innerHTML = "&#8593;";
-    u.addEventListener('click', function () { this.parentNode.nextSibling.addChild(this.parentNod); });
-    y.appendChild(u)
-
-    var d = document.createElement('SPAN');
-    d.classList.add('upArrow');
-    d.innerHTML = "&#8595;";
-    d.addEventListener('click', function () { this.parentNode.nextSibling.insertBefore(this.parentNode, this.parentNode.nextSibling) });
-    y.appendChild(d)
-
-    var x = document.createElement('INPUT');      
-    x.setAttribute('list', 'comments');
-    x.setAttribute('name', 'col' + i);
-    x.setAttribute('id', 'col' + i);
-    x.classList.add('colForTable');
-    y.appendChild(x)
-    
-    document.getElementById('myForm').getElementsByTagName('ol')[0].appendChild(y);
-} //*/
 
 document.addEventListener('DOMContentLoaded', (event) => {
     // Initialisierung der Drag-and-Drop-Funktionalität für vorhandene Elemente
@@ -127,7 +111,9 @@ function createListItem(text) {
     inputField.setAttribute('list', 'comments');
     inputField.setAttribute('id', 'c'+ document.getElementsByTagName('li').length);
     inputField.value = text;
-    inputField.classList.add('item-content');
+    inputField.classList.add('myButton');
+    inputField.setAttribute('readonly', 'readonly');
+    inputField.style.width = '91%';
     inputField.addEventListener('blur', function () { isValid(this) } );
 
     const deleteBtn = document.createElement('button');
@@ -163,19 +149,16 @@ function isValid(input) {
 
 const allTagComments = new Map();
 
-async function loadComments() {
-    const link = `/tag/comments`;
+async function loadOptions(selectId, link) {
+    //document.body.style.cursor = "wait";
+    document.body.style.opacity = "0.5";
+
     const response = await fetchSecure(link, {
-        method: 'POST',
-        //headers: {
-        //    'Accept': 'application/json',
-        //    'Content-Type': 'application/json'
-        //},
-        body: "?"
+        method: 'POST'        
     });
 
     if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
+        throw new Error(`Antwort status: ${response.status}`);
         return;
     }
 
@@ -184,11 +167,12 @@ async function loadComments() {
     json.forEach((t) => {        
         allTagComments.set(t.V?.length > 3 ? t.V : t.N, t.N);
         const para = document.createElement("OPTION");
-        console.info(`# ${t.V}=${t.N}`);       
+        //console.info(`# ${t.V}=${t.N}`);       
         para.setAttribute("value", t.V?.length > 3 ? t.V : t.N);        
-        document.getElementById('comments').appendChild(para);
+        document.getElementById(selectId).appendChild(para);
     });
-
+    document.body.style.opacity = "1";
+   // document.body.style.cursor = "auto";
 }
 
 function setDatesToStartOfMonth(startId, endId) {
@@ -202,7 +186,45 @@ function setDatesToStartOfMonth(startId, endId) {
     document.getElementById(startId).value = begin.toISOString().slice(0, 16);
 }
 
+/* Download DB-Dateien */
+async function getDbFromForm(startId, endId) {
+
+    document.body.style.cursor = "wait";
+    document.body.style.opacity = "0.5";
+    const s = new Date(document.getElementById(startId).value);
+    const e = new Date(document.getElementById(endId).value);
+    let filename = 'db.zip';
+
+    await fetchSecure('/db/download', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/zip'
+        },
+        body: new URLSearchParams({ start: s.toISOString(), end: e.toISOString() })
+    })
+        .then((res) => {
+            console.info(res.headers);
+            filename = res.headers.get('Content-Disposition').split('filename=')[1];
+            return res.blob();
+        })
+        .then(blob => URL.createObjectURL(blob))
+        .then(url => {
+            var link = document.createElement('a');
+            link.download = filename;
+            link.href = url;
+            link.click();
+        });
+
+    document.body.style.opacity = "1";
+    document.body.style.cursor = "auto";
+}
+
 function getExcelFromForm() {
+
+    document.body.style.cursor = "wait";
+    document.body.style.opacity = "0.5";
+
     const inputs = document.querySelectorAll('.sortable-item > input');
     const interval = document.getElementById('interval').value;
     const tags = new Map();
@@ -224,19 +246,23 @@ function getExcelFromForm() {
         excelExport('start', 'end', interval, tags);
     else
         console.warn("Keine Tags für Excel-Export ausgewählt.");
+
+    document.body.style.opacity = "1";
+    document.body.style.cursor = "auto";
 }
 
 async function excelExport(startId, endId, ival, tags) {
+
     const s = new Date(document.getElementById(startId).value);
     const e = new Date(document.getElementById(endId).value);
     const arr = [];
 
-    console.info(`Übergebene Tags: ${tags.size}`);
+    //console.info(`Übergebene Tags: ${tags.size}`);
 
     tags.forEach(function (value, key) {
-        console.info('Exportvorbereitung: ' + key + ' = ' + value);
+        //console.info('Exportvorbereitung: ' + key + ' = ' + value);
         arr.push(new JsonTag(key, value, new Date()));
-    })
+    });
 
     let filename = 'excel.xlsx';
     if (arr.length > 0)
@@ -258,5 +284,8 @@ async function excelExport(startId, endId, ival, tags) {
                 link.download = filename;
                 link.href = url;
                 link.click();
-            });           
+            });        
+
+
+
 }

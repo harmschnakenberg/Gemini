@@ -1,12 +1,46 @@
-﻿/**
+﻿
+/**
+ * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
+ */
+self.onmessage = async function (e) {
+    const { chartId, url, aliases, colors } = e.data;
+
+    try {
+        // 1. Daten asynchron laden
+        //const response = await fetch(url);
+        const response = await fetchWithCookies(url);
+        if (!response.ok) {
+            throw new Error(`HTTP-Fehler! Status: ${response.status}`);
+        }
+        const jsonData = await response.json();
+
+        // 2. Daten verarbeiten (kann bei vielen Daten rechenintensiv sein)
+        const newDatasets = processData(chartId, jsonData, aliases, colors);
+
+        // 3. Verarbeitete Daten zurück an den Haupt-Thread senden
+        self.postMessage({
+            type: 'complete',
+            chartId: chartId,
+            datasets: newDatasets
+        });
+
+    } catch (error) {
+        console.error('Fehler im Web Worker:', error);
+        // Sende eine Fehlermeldung oder leere Daten zurück, um den Haupt-Thread zu informieren
+        self.postMessage({ error: error.message, chartId: chartId, datasets: [] });
+    }
+};
+
+
+/**
  * Verarbeitet die JSON-Daten vom Server und bereitet sie für Chart.js vor.
  * @param {Array<Object>} jsonData - Array der JsonTag-Objekte ({ N: 'Label', V: 12.3, T: 1672531200000 })
  * @param {Object} aliases - Map-Objekt zur Ersetzung der Label-Namen
  * @param {Array<string>} colors - Array von Farb-Strings
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
-function processData(jsonData, aliases, colors) {
-    const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
+function processData(chartId, jsonData, aliases, colors) {
+    const REPORT_INTERVAL = 100;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
     const totalItems = jsonData.length;
@@ -56,6 +90,7 @@ function processData(jsonData, aliases, colors) {
             // Sende eine Nachricht vom Typ 'progress'
             self.postMessage({
                 type: 'progress',
+                chartId: chartId,
                 percentage: percentage,
                 // Optional: Die Anzahl der bereits verarbeiteten Elemente
                 processedCount: i + 1,
@@ -68,37 +103,6 @@ function processData(jsonData, aliases, colors) {
     return Array.from(datasetsMap.values());
 }
 
-/**
- * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
- */
-self.onmessage = async function (e) {
-    const { chartId, url, aliases, colors } = e.data;
-
-    try {
-        // 1. Daten asynchron laden
-        //const response = await fetch(url);
-        const response = await fetchWithCookies(url);
-        if (!response.ok) {
-            throw new Error(`HTTP-Fehler! Status: ${response.status}`);
-        }
-        const jsonData = await response.json();
-
-        // 2. Daten verarbeiten (kann bei vielen Daten rechenintensiv sein)
-        const newDatasets = processData(jsonData, aliases, colors);
-
-        // 3. Verarbeitete Daten zurück an den Haupt-Thread senden
-        self.postMessage({
-            type: 'complete',
-            chartId: chartId,
-            datasets: newDatasets
-        });
-
-    } catch (error) {
-        console.error('Fehler im Web Worker:', error);
-        // Sende eine Fehlermeldung oder leere Daten zurück, um den Haupt-Thread zu informieren
-        self.postMessage({ error: error.message, chartId: chartId, datasets: [] });
-    }
-};
 
 async function fetchWithCookies(url, options = {}) {
     options.credentials = 'include';

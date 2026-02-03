@@ -9,6 +9,8 @@ using S7.Net;
 using System.Text.Json;
 using System.Transactions;
 using System.Xml.Linq;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+
 //using static OfficeOpenXml.ExcelErrorValue;
 using DateTime = System.DateTime;
 
@@ -20,7 +22,7 @@ namespace Gemini.Db
         {
             //Lade alle Tag-Namen mit Log-Flog aus der Datenbank
             List<JsonTag> dummyData = [];
-            List<Tag> tags = await GetDbTagNames(DateTime.UtcNow);
+            List<Tag> tags = GetDbTagNames(DateTime.UtcNow);
             tags.ForEach(tag => {
                 if (tag.ChartFlag == true)
                     dummyData.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.UtcNow));
@@ -79,7 +81,7 @@ namespace Gemini.Db
         /// <param name="date"></param>
         /// <param name="lookBackDays"></param>
         /// <returns>Dictionary <TagName, TagComment></returns>
-        public static async Task<List<Tag>> GetDbTagNames(DateTime date, int lookBackDays = 9)
+        public static List<Tag> GetDbTagNames(DateTime date, int lookBackDays = 9)
         {
             List<Tag> tags = [];
 
@@ -287,9 +289,41 @@ namespace Gemini.Db
             return dataBases;
         }
 
-        public static async Task<JsonTag[]> GetDataSet(string[] tagNames, System.DateTime start, System.DateTime end)
+        public static async Task<JsonTag[]> GetDataSet(string[] tagNames, System.DateTime start, System.DateTime end, Gemini.DynContent.MiniExcel.Interval interval = 0)
         {
             List<JsonTag> items = [];
+
+            int roundSeconds = 0; // Aggregatfunktion für die Zeiten in der Datenabfrage
+
+            tagNames = [.. tagNames.Distinct()]; //Doppelte TagNames entfernen
+
+            switch (interval)
+            {
+                //case DynContent.MiniExcel.Interval.Sekunde:
+                //    break;
+                case DynContent.MiniExcel.Interval.Minute:
+                    roundSeconds = 60;
+                    break;
+                case DynContent.MiniExcel.Interval.Viertelstunde:
+                    roundSeconds = 900;
+                    break;
+                case DynContent.MiniExcel.Interval.Stunde:
+                    roundSeconds = 3600;
+                    break;
+                case DynContent.MiniExcel.Interval.Tag:
+                    roundSeconds = 86400;
+                    break;
+                case DynContent.MiniExcel.Interval.Monat:
+                    //nicht implementiert
+                    break;
+                case DynContent.MiniExcel.Interval.Jahr:
+                    //nicht implementiert
+                    break;
+                //default:
+                //    break;
+            }
+
+            Console.WriteLine($"Zeit Aggregat {interval} mit {roundSeconds} Sekunden.");
 
             #region Datenbanken
             //_ = GetAttachedDatabases(true); //Alle angeschlossenen Datenbanken ausdocken (eig. nur nötig wenn vorhergehende Transaktion unvollständig war
@@ -307,6 +341,8 @@ namespace Gemini.Db
                 var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
                 var startParam = command.Parameters.Add("@Start", SqliteType.Text);
                 var endParam = command.Parameters.Add("@End", SqliteType.Text);
+                var roundParam = command.Parameters.Add("@Round", SqliteType.Integer);
+                roundParam.Value = roundSeconds;
                 #endregion
 
                 try
@@ -330,14 +366,22 @@ namespace Gemini.Db
                         {
                             //Console.WriteLine($"✔ Datenbank für Tag {day:yyyy-MM-dd} wird abgefragt.");
                             string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
-                            
+
 
                             if (day.Date == DateTime.UtcNow.Date)
-                                query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
+                            {
+                                //if (roundSeconds > 1)
+                                //    query.Add($" SELECT datetime(((strftime('%s', Time) + @Round - 1) / @Round) * @Round, 'unixepoch') AS Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
+                                //else
+                                    query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                            }
                             else
                             {
                                 attach.Add($"ATTACH DATABASE '{dbChunk[day]}' AS '{dbName}';");
-                                query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                                //if (roundSeconds > 1)
+                                //    query.Add($" SELECT datetime(((strftime('%s', Time) + @Round - 1) / @Round) * @Round, 'unixepoch') AS Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                                //else
+                                    query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                                 detach.Add($"DETACH DATABASE '{dbName}';");
                             }
                         }
@@ -352,8 +396,11 @@ namespace Gemini.Db
                         #endregion
 
                         #region Abfrage ausführen
-                        command.CommandText = string.Join(" UNION ", query);
-                        //Console.WriteLine(command.CommandText + "\r\n\r\n");
+                        command.CommandText = string.Join(" UNION ", query) + " ORDER BY Time; ";
+                        //if (roundSeconds > 1)
+                        //    command.CommandText += "GROUP BY Time HAVING Time = MAX(Time) ORDER BY Time ";
+
+                            Console.WriteLine(command.CommandText + "\r\n\r\n");
 
                         foreach (var tagName in tagNames)
                         {
@@ -469,7 +516,7 @@ namespace Gemini.Db
             }               
         }
 
-        internal static int WriteTag(string tagName, string tagVal, string username)
+        internal static int WriteTag(string tagName, string tagVal, string oldVal, string username)
         {
             try
             {
@@ -481,18 +528,21 @@ namespace Gemini.Db
 
                     command.Parameters.Add("@TagName", SqliteType.Text).Value = tagName;
                     command.Parameters.Add("@TagValue", SqliteType.Blob).Value = tagVal;
+                    command.Parameters.Add("@OldValue", SqliteType.Blob).Value = oldVal;
                     command.Parameters.Add("@User", SqliteType.Text).Value = username;
 
                     command.CommandText = @$"
                       INSERT OR IGNORE INTO Tag (Name) VALUES (@TagName); 
-                      INSERT INTO Setpoint (TagId, TagValue, User) VALUES (                        
+                      INSERT INTO Setpoint (TagId, TagValue, OldValue, User) VALUES (                        
                         (SELECT Id FROM Tag WHERE Name = @TagName)
                         ,@TagValue
+                        ,@OldValue
                         ,@User
                       );";
 
-                    Console.WriteLine($"WriteTag: Schreibe Tag {tagName} mit Wert {tagVal} von Benutzer {username} in die Datenbank.");
-
+#if DEBUG
+                    Console.WriteLine($"WriteTag: Schreibe Tag {tagName} mit Wert {tagVal} (alt {oldVal}) von Benutzer {username} in die Datenbank.");
+#endif
                     return command.ExecuteNonQuery();
                 }
             }
@@ -501,5 +551,21 @@ namespace Gemini.Db
                 throw ;
             }
         }
+
+
+        internal static List<string> GetDatabasePaths(DateTime startUtcDate, DateTime endUtcDate)
+        {
+            List<string> dbFilePaths = [];
+            for (DateTime day = startUtcDate.Date; day.Date <= endUtcDate.Date; day = day.AddDays(1))
+            {
+                string dbPath = GetDayDbPath(day);
+                Console.WriteLine("Finde Pfad " + dbPath);
+                dbFilePaths.Add(dbPath);                
+            }
+
+            return dbFilePaths;
+        }
+
+
     }
 }

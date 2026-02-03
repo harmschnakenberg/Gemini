@@ -3,6 +3,8 @@ const TOKEN_NAME = 'RequestVerificationToken';
 const TICKEDBOX = '☒';
 const UNTICKEDBOX = '☐';
 let currentCsrfToken = null; // Hier speichern wir das Token global
+let lastValOnFocus = null;
+
 
 function JsonTag(name, value, time) {
     this.N = name;
@@ -60,16 +62,15 @@ function initTags() {
 
         if (!inputs[i].disabled) {
             //Script zum Schreiben in die SPS anfügen
-            inputs[i].addEventListener("change", function () {                
-                updInputEvent(this);               
-            });
+            inputs[i].onchange = function () { updInputEvent(this, lastValOnFocus); };
+            inputs[i].onfocusin = function () { lastValOnFocus = this.value; };
         }
 
     }
     return tagNames.map(tagNameToObject);
 }
 
-async function updInputEvent(obj) {
+async function updInputEvent(obj, oldVal) {
     const t = obj.getAttribute('data-name');
     let v = obj.value;
     if (v == TICKEDBOX) v = 1;
@@ -81,7 +82,7 @@ async function updInputEvent(obj) {
     const res = await fetchSecure(link, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(tag)
+        body: new URLSearchParams(tag, oldVal)
     });
 
     if (res.ok) {
@@ -312,8 +313,8 @@ async function fetchSecure(url, options = {}) {
             response = await fetch(url, options);
         }
     }
-    else
-        console.log(`${url} => ${response.status}`)
+    /*else
+        console.log(`${url} => ${response.status}`) */
 
     return response;
 }

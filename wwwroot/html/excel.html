@@ -12,12 +12,12 @@
     <script src='/js/websocket.js'></script>
 </head>
 <body>
-    <h1>Export aufgezeichneter Anlagendaten nach Excel</h1>
+    <h1>Export aufgezeichneter Anlagendaten</h1>
 
     <fieldset>
         <legend>Zeitraum:</legend>
         <p class="info-container">
-            Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Wertintervall,
+            Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Werteintervall,
             d.h. mit welchem Zeitabstand die Werte in die Tabelle eingetragen werden sollen.
         </p>
         <div class="container">
@@ -29,7 +29,7 @@
             <select class='myButton' id='interval' name='interval'>
                 <option value='0'>Sekunde</option>
                 <option value='1' selected>Minute</option>
-                <option value='2' disabled>Viertelstunde</option>
+                <option value='2'>Viertelstunde</option>
                 <option value='3'>Stunde</option>
                 <option value='4'>Tag</option>
                 <option value='5'>Monat</option>
@@ -43,7 +43,7 @@
     <fieldset>
         <legend>Zuordnung Tabellenspalten:</legend>
         <p class="info-container">
-            Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.<br/>
+            Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.<br />
             Der genaue Wortlaut wird während der Eingabe vorgeschlagen. Ungültige Bezeichner werden rot hinterlegt.<br />
             Die Rehenfolge der Spalten kann anschließend mit der Maus per Drag and Drop geändert werden.<br />
             Die erste Spalte 'A' enthält immer den Zeitstempel und kann nicht geändert werden.
@@ -55,20 +55,128 @@
                 <button onclick="addItem()">Hinzufügen</button>
             </div>
 
-            <ol type="A" id="sortable-list">
-                <li class="nonsortable-item">Zeitstempel</li>
+            <ol id="sortable-list">
+                <li class="myButton">Zeitstempel</li>
                 <!-- Dynamische Listenelemente -->
             </ol>
         </div>
     </fieldset>
 
-    <button style="margin:0.3rem;padding:0.3rem;" onclick="getExcelFromForm();">Excel-Export</button><span>Der Excel-Export kann einige Sekunden in Anspruch nehmen. Die Excel-Datei wird in Ihren Download-Ordner heruntergeladen.</span>
-    <datalist id='comments'></datalist>
+    <hr />
+
+    <fieldset>
+        <legend>Download:</legend>
+        <div class="container">
+            <div class="controls">
+                <button class="myButton" style="width:10rem;" onclick="getExcelFromForm();">Excel-Export</button>
+                <div>
+                    Der Excel-Export kann einige Sekunden in Anspruch nehmen. Die Datenpunkte werden in der oben zugewiesenen Reihenfolge in Spalten ausgegeben. Die Excel-Datei wird in Ihren Download-Ordner heruntergeladen.
+                </div>
+                <hr />
+                <button class="myButton" style="width:10rem;" onclick="getDbFromForm('start', 'end');">SQLite-Export</button>
+                <div>
+                    Der Datenbank-Export kann einige Sekunden in Anspruch nehmen. Es werden alle aufgezeichneten Tags exportiert.
+                    Die SQLite-Dateien werden als ZIP in Ihren Download-Ordner heruntergeladen. <a href="https://sqlite.org/" target="_blank">SQLite.org</a>, <a href="https://sqlitebrowser.org/" target="_blank">SQLite Browser</a>
+                </div>
+            </div>
+        </div>
+    </fieldset>
+
+    <hr />
+
+    <fieldset>
+        <legend>Konfiguration laden / speichern:</legend>
+        <div class="container">
+            <div class="controls">
+                <input class="myButton" list="taglists" id="configName" placeholder="Konfigurationsname">
+                <datalist id="taglists"></datalist>
+
+                <button onclick="confImport();">Konfig-Import</button>
+                <button onclick="confExport();">Konfig-Export</button>
+
+                <datalist id='comments'></datalist>
+            </div>
+        </div>
+    </fieldset>
 
     <script>
+        let tagCollections = [];
+
         list = document.getElementById('sortable-list');
-        loadComments();
+        loadOptions('comments', `/tag/comments`);
         setDatesToStartOfMonth('start', 'end');
+
+        async function confImport() {
+            const url = '/excel/config/all';
+
+            const res = await fetchSecure(url, {
+                method: 'GET'
+            });
+
+            if (res.ok) {
+                
+                console.info(res);
+
+                const tc = res.json;
+                alertSuccess(tc.value );
+                /*const tc = JSON.parse(txt);*/
+
+                console.info(`ID:${tc.value}, Name:${tc.name}`);
+                //TagCollection
+                // public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
+               
+
+            } else {
+                alertError('Konfiguration - Nicht erlaubte Operation - Status ' + res.status);
+            }
+
+        }
+
+        async function confExport() {
+            const url = '/excel/config/create';
+            const chartName = document.getElementById('configName').value;
+            const start = new Date(document.getElementById('start').value);
+            const end = new Date(document.getElementById('end').value);
+            const interval = document.getElementById('interval').value;
+            const inputs = document.querySelectorAll('.sortable-item > input');
+            const tagNames = [];
+
+            for (let i = 0; i < inputs.length; i++) {
+                const comment = inputs[i].value;
+                const tagName = allTagComments.get(comment);
+                tagNames.push({ tagName: tagName, tagComment: comment, tagValue: null, chartFlag: false });
+                //Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
+            }
+
+            //(string Name, string Author, DateTime Start, DateTime End, MiniExcel.Interval Interval, Tag[] Tags)
+            const str = JSON.stringify({ id: 0, name: chartName, author: '', start: start.toISOString(), end: end.toISOString(), interval: parseInt(interval), tags: tagNames });
+            console.log(str);
+
+            const res = await fetchSecure(url, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: str
+            });
+
+            if (res.ok) {
+                alertSuccess('Konfiguration gespeichert');
+            } else {
+                alertError('Konfiguration - Nicht erlaubte Operation - Status ' + res.status);
+            }
+
+        }
+
+        /*
+        function replacer(key, value) {
+            if (value instanceof Map) {
+                return {
+                    dataType: 'Map',
+                    value: Array.from(value.entries()),
+                };
+            } else {
+                return value;
+            }
+        } */
     </script>
 
 </body>

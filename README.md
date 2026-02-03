@@ -27,6 +27,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder		
+	- ToDo: Liste der verbundenen Clients im Webinterface anzeigen
+	- ToDo: Liste der zuletzt geänderten Sollwerte im Webinterface anzeigen
 	
 	- NiceToHave: Logging mit Source Generated Logging für bessere Performance
 	

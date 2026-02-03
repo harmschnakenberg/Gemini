@@ -4,6 +4,7 @@ using S7.Net;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Text;
 using static Gemini.Db.Db;
@@ -156,7 +157,7 @@ namespace Gemini.DynContent
                 <body>");
 
 
-            List<Models.Tag> allTags = await Db.Db.GetDbTagNames(DateTime.UtcNow, 1);
+            List<Models.Tag> allTags = GetDbTagNames(DateTime.UtcNow, 1);
 
             sb.Append("<h1>Datenpunkte</h1>");
             sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
@@ -260,7 +261,7 @@ namespace Gemini.DynContent
                 sb.Append($"<td>{fail.Db}</td>");
                 sb.Append($"<td>{fail.StartByte}</td>");
                 sb.Append($"<td>{fail.Length}</td>");
-                sb.Append($"<td>{fail.Time.ToString("yyyy-MM-dd HH:mm:ss")}</td>");
+                sb.Append($"<td>{fail.Time.ToLocalTime()}</td>");
                 sb.Append($"</tr>");
             }
 
@@ -441,57 +442,77 @@ namespace Gemini.DynContent
                 "<th>Speicher frei</th>" +
                 "</tr>");
 
-            DriveInfo[] drives = DriveInfo.GetDrives();
-            foreach (DriveInfo drive in drives)
-            {              
-                bool isCurrentDrive = AppDomain.CurrentDomain.BaseDirectory.StartsWith(drive.Name);                              
-                long totalSize = 0;
-                long freeSpace = 0;
-                string volLabel = string.Empty;
-                string driveFormat = string.Empty;
-                string driveType = string.Empty;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
 
-                switch (drive.DriveType)
-                {   
-                    case DriveType.Unknown:
-                        driveType = "-unbekannt-";
-                        break;
-                    case DriveType.NoRootDirectory:
-                        driveType = "ohne Wurzelverzeichnis";
-                        break;
-                    case DriveType.Removable:
-                        driveType = "Wechseldatenträger";
-                        break;
-                    case DriveType.Fixed:
-                        driveType = "fest";
-                        break;
-                    case DriveType.Network:
-                        driveType = "Netzwerk";
-                        break;
-                    case DriveType.CDRom:
-                        driveType = "CD-ROM";
-                        break;
-                    case DriveType.Ram:
-                        driveType = "RAM";
-                        break;
-                    default:
-                        break;
+                var drives = DriveInfo.GetDrives();
+                    
+                foreach (DriveInfo drive in drives)
+                {
+                    bool isCurrentDrive = AppDomain.CurrentDomain.BaseDirectory.StartsWith(drive.Name);
+                    long totalSize = 0;
+                    long freeSpace = 0;
+                    string volLabel = string.Empty;
+                    string driveFormat = string.Empty;
+                    string driveType = string.Empty;
+
+                    switch (drive.DriveType)
+                    {
+                        case DriveType.Unknown:
+                            driveType = "-unbekannt-";
+                            break;
+                        case DriveType.NoRootDirectory:
+                            driveType = "ohne Wurzelverzeichnis";
+                            break;
+                        case DriveType.Removable:
+                            driveType = "Wechseldatenträger";
+                            break;
+                        case DriveType.Fixed:
+                            driveType = "fest";
+                            break;
+                        case DriveType.Network:
+                            driveType = "Netzwerk";
+                            break;
+                        case DriveType.CDRom:
+                            driveType = "CD-ROM";
+                            break;
+                        case DriveType.Ram:
+                            driveType = "RAM";
+                            break;
+                        default:
+                            break;
+                    }
+
+                    try { totalSize = drive.TotalSize / 1074000000; } catch { }
+                    try { freeSpace = drive.AvailableFreeSpace / 1074000000; } catch { }
+                    try { volLabel = drive.VolumeLabel; } catch { }
+                    try { driveFormat = drive.DriveFormat; } catch { }
+
+                    sb.Append($"<tr {(!drive.IsReady ? "style='opacity: 0.5;'" : string.Empty)}{(isCurrentDrive ? "style='font-weight: bold;" : string.Empty)}>");
+                    sb.Append($"<td>{drive.Name}</td>");
+                    sb.Append($"<td>{volLabel}</td>");
+                    sb.Append($"<td>{driveType}</td>");
+                    sb.Append($"<td>{driveFormat}</td>");
+                    sb.Append($"<td>{totalSize}&nbsp;GB</td>");
+                    sb.Append($"<td>{freeSpace}&nbsp;GB</td>");
+                    sb.Append("</tr>");
                 }
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
 
-                try { totalSize = drive.TotalSize / 1074000000; } catch { }
-                try { freeSpace = drive.AvailableFreeSpace / 1074000000;  } catch { }
-                try { volLabel = drive.VolumeLabel; } catch { }
-                try { driveFormat = drive.DriveFormat; } catch { }
+                var root = new DriveInfo("/");
 
-                sb.Append($"<tr {(!drive.IsReady ? "style='opacity: 0.5;'" : string.Empty)}{(isCurrentDrive ? "style='font-weight: bold;" : string.Empty)}>");               
-                sb.Append($"<td>{(isCurrentDrive ? "<b>" : string.Empty)}{drive.Name}{(isCurrentDrive ? "</b>" : string.Empty)}</td>");
-                sb.Append($"<td>{volLabel}</td>");
-                sb.Append($"<td>{driveType}</td>");
-                sb.Append($"<td>{driveFormat}</td>");
-                sb.Append($"<td>{totalSize}&nbsp;GB</td>");
-                sb.Append($"<td>{freeSpace}&nbsp;GB</td>");
+                sb.Append($"<tr>");
+                sb.Append($"<td>{root.Name}</td>");
+                sb.Append($"<td>{root.VolumeLabel}</td>");
+                sb.Append($"<td>{root.DriveType}</td>");
+                sb.Append($"<td>{root.DriveFormat}</td>");
+                sb.Append($"<td>{root.TotalSize / 1024 / 1024 / 1024}&nbsp;GB</td>");
+                sb.Append($"<td>{root.AvailableFreeSpace / 1024 / 1024 / 1024}&nbsp;GB</td>");
                 sb.Append("</tr>");
             }
+
             sb.AppendLine("</table>");
 
             #endregion

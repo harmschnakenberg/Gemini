@@ -18,6 +18,8 @@
 <body>
     <h1>Demo Kurvendarstellung</h1>
 
+    <span id="customspinner"></span>
+
     <div style="position:absolute; right:0.5rem; top:3.5rem;">
         <input type="hidden" id="hour" data-name='A01_DB10_DBW2' />
         <input type="hidden" id="min" data-name='A01_DB10_DBW4' />
@@ -56,7 +58,8 @@
         <span id="progressText">0%</span>
     </div>
 
-    <a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;">Rohdaten</a>
+    <div id="rawDataLinks" style="position:absolute; bottom:0.5rem; left:0.5rem;"></div>
+    
     <script>
 
         const tags1 = new Map([

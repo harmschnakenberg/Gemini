@@ -119,11 +119,11 @@ namespace Gemini.Middleware
                     }
                 }
             }
-            catch (Exception ex)
+            catch 
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
 #if DEBUG
-                Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
+               // Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
 #endif
                 PlcTagManager.Instance.RemoveClient(clientId);
             }
@@ -194,10 +194,10 @@ namespace Gemini.Middleware
             }
             // Der 'finally' des ursprünglichen Blocks wird in ReadTagsLoop beibehalten, 
             // um die Ressourcenfreigabe zu garantieren, auch wenn dieser Loop abstürzt.
-            catch (Exception ex)
+            catch 
             {
 #if DEBUG
-                Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
+                //Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
 #endif
                 // WICHTIG: Wenn der Loop abbricht, muss die Verbindung entfernt werden.
                 PlcTagManager.Instance.RemoveClient(clientId);

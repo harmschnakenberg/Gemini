@@ -27,10 +27,10 @@ namespace Gemini.Services
                 using var client = new TcpClient(hostUri, portNumber);
                 return true;
             }
-            catch (SocketException ex)
+            catch (SocketException)
             {
 #if DEBUG
-                Console.WriteLine("Error pinging host:'" + hostUri + ":" + portNumber.ToString() + "' " + ex);
+                //Console.WriteLine("Error pinging host:'" + hostUri + ":" + portNumber.ToString() + "' " + ex);
 #endif
                 return false;
             }

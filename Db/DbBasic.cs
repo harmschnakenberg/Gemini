@@ -1,6 +1,8 @@
 ﻿using Microsoft.Data.Sqlite;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic;
+using Gemini.DynContent;
 
 namespace Gemini.Db
 {
@@ -95,6 +97,15 @@ namespace Gemini.Db
                           StartByte INTEGER,
                           Length INTEGER                      
                           );
+                    CREATE TABLE IF NOT EXISTS ChartConfig ( 
+                          Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                          Name TEXT NOT NULL,                               
+                          Author TEXT NOT NULL,  
+                          Start TEXT,
+                          End TEXT,
+                          Interval TEXT,
+                          Tags TEXT
+                          );
 
                     PRAGMA journal_mode=WAL;
                     PRGAMA foreign_keys = ON;
@@ -116,7 +127,10 @@ namespace Gemini.Db
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Admin},'{Role.Admin}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.User},'{Role.User}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Guest},'{Role.Guest}'); 
+                    INSERT INTO ChartConfig (Name, Author, Start, End, Interval, Tags) VALUES ('Test', 'Admin', '{DateTime.Now.AddDays(-1):yyyy-MM-dd HH:mm:ss}','{DateTime.Now.AddDays(1):yyyy-MM-dd HH:mm:ss}', '{MiniExcel.Interval.Minute}', '{{""dataType"":""Map"",""value"":[[""A01_DB10_DBW2"",""Stunden""],[""A01_DB10_DBW4"",""Minuten""],[""A01_DB10_DBW6"",""Sekunden""]]}}');
             ";
+
+            
             _ = command.ExecuteNonQuery();
 
             _ = Db.CreateUser("Admin", "Admin", Role.Admin);
@@ -132,31 +146,35 @@ namespace Gemini.Db
             using var command = connection.CreateCommand();
             //Tabellen erstellen
             command.CommandText =
-            @"
-                    CREATE TABLE IF NOT EXISTS Tag (       
-                          Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                          Name TEXT NOT NULL UNIQUE,                          
-                          Comment TEXT,
-                          ChartFlag INTEGER DEFAULT 0,
-                          LogFlag INTEGER DEFAULT 0
-                          ); 
-                          CREATE TABLE IF NOT EXISTS Data (                         
-                          Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 
-                          TagId INT NOT NULL,
-                          TagValue NUMERIC,
+            @"  CREATE TABLE IF NOT EXISTS Tag (       
+                Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL UNIQUE,                          
+                Comment TEXT,
+                ChartFlag INTEGER DEFAULT 0,
+                LogFlag INTEGER DEFAULT 0
+                ); 
+                
+                CREATE TABLE IF NOT EXISTS Data (                         
+                Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+                TagId INT NOT NULL,
+                TagValue NUMERIC,
+                          
+                CONSTRAINT uk_Entry UNIQUE (TagId, Time) ON CONFLICT IGNORE,
+                CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
+                ); 
+                
+                CREATE TABLE IF NOT EXISTS Setpoint (                         
+                Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+                TagId INT NOT NULL,
+                TagValue NUMERIC,
+                OldValue NUMERIC,
+                User TEXT,
 
-                          CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
-                          ); 
-                          CREATE TABLE IF NOT EXISTS Setpoint (                         
-                          Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 
-                          TagId INT NOT NULL,
-                          TagValue NUMERIC,
-                          User TEXT,
+                CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
+                );
 
-                          CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
-                          );
-                          PRAGMA journal_mode=WAL;
-                    ";
+                PRAGMA journal_mode=WAL;
+            ";
             int result = command.ExecuteNonQuery();
 
             Db.DbLogInfo("Tagestabelle erstellt. Ergebnis: " + result);
@@ -190,7 +208,8 @@ namespace Gemini.Db
 
                 command.CommandText =
                         $"ATTACH DATABASE '{dbPath}' AS old_db; " +
-                        "INSERT INTO Tag SELECT Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die If sonst immer weiter gezählt werden.
+                        "VACUUM old_db; " +
+                        "INSERT INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die If sonst immer weiter gezählt werden.
                         "WHERE old_db.Tag.ChartFlag > 0 OR length( old_db.Tag.Comment ) > 0; " + //nur TagNames, die aufgezeichnet werden oder Kommentare erhalten haben. (Alle anderen werden beim ersten Lesen erneut in die Tabelle geschrieben).
                         "DETACH DATABASE old_db; "; 
 
