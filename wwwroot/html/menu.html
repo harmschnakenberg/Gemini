@@ -14,14 +14,16 @@
     <div id="logincard">
         <div id="loginheader" onclick="checkLoginStatus();">Login</div>   
         <input type="text" id="username" placeholder="Benutzername" value="Admin"><br />
-        <input type="password" id="password" placeholder="Passwort" value="Admin"><br />
+        <input type="password" id="password" placeholder="Passwort" value="Admin" onchange="login()"><br />
         <button onclick="login()">Login</button><button onclick="logout()">Logout</button>
     </div>
 
     <h3>Systemmenü</h3>      
     <ul>
-        <li><a class="menuitem" href="/tag/all">Datenpunkte</a></li>                
+        <li><a class="menuitem" href="/tag/all">Datenpunkte</a></li>
         <li><a class="menuitem" href="/user">Benutzerverwaltung</a></li>
+        <li><a class="menuitem" href="/log">Server Log</a></li>
+        <li><a class="menuitem" href="/excel">Datenexport</a></li>
     </ul>
 
     <h3>Demo</h3>
@@ -30,8 +32,7 @@
         <li><a class="menuitem" href="/tag/failures">Letzte Lesefehler</a></li>
         <li><a class="menuitem" href="/soll/1">Demo Sollwertfenster</a></li>
         <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
-        <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
-        <li><a class="menuitem" href="/excel">Demo Datenexport via Excel</a></li>
+        <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>       
     </ul>
 
     <script>
@@ -85,7 +86,12 @@
             el.textContent = 'Logge aus...';
             body.style.cursor = 'wait';
 
-            const response = await fetchSecure(`${API_URL}/logout`, { method: "POST" });
+            const response = await fetchSecure(`${API_URL}/logout`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username })
+            });
+
             sessionStorage.removeItem(TOKEN_NAME);
             if (response.ok) {
                 const loggedUser = sessionStorage.getItem(LOGGED_USER);

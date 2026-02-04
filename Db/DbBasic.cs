@@ -177,8 +177,9 @@ namespace Gemini.Db
             ";
             int result = command.ExecuteNonQuery();
 
+#if DEBUG
             Db.DbLogInfo("Tagestabelle erstellt. Ergebnis: " + result);
-
+#endif
             if (result != 0) //Keine Änderungen geschrieben. Warum 0?
                 return;
 
@@ -209,7 +210,7 @@ namespace Gemini.Db
                 command.CommandText =
                         $"ATTACH DATABASE '{dbPath}' AS old_db; " +
                         "VACUUM old_db; " +
-                        "INSERT INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die If sonst immer weiter gezählt werden.
+                        "INSERT OR IGNORE INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die If sonst immer weiter gezählt werden. IGNORE darf eigentlich nicht notwendig sein, ist es aber scheinbar?.
                         "WHERE old_db.Tag.ChartFlag > 0 OR length( old_db.Tag.Comment ) > 0; " + //nur TagNames, die aufgezeichnet werden oder Kommentare erhalten haben. (Alle anderen werden beim ersten Lesen erneut in die Tabelle geschrieben).
                         "DETACH DATABASE old_db; "; 
 
@@ -217,7 +218,7 @@ namespace Gemini.Db
 
                 if (result > 0) //Es wurden Tags übernommen
                 {
-                    Db.DbLogInfo($"Tagestabelle erstellt; Übernehme {result} Tags aus {dbPath}");
+                    Db.DbLogInfo($"Tagestabelle erstellt; Übernehme {result} Tags aus {Path.GetFileName(dbPath)}");
                     return;
                 }
             }

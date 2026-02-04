@@ -187,17 +187,14 @@ namespace Gemini.Middleware
                         if (File.Exists(dbPath))
                             archive.CreateEntryFromFile(dbPath, Path.GetFileName(dbPath), CompressionLevel.Fastest);
                     }
-                    catch (Exception ex)
-                    { /* Nichts unternehmen? */
-                        Console.WriteLine(ex);
-                    }
+                    catch { /* Nichts unternehmen? */ }
             }
-
+            
             memoryStream.Seek(0, SeekOrigin.Begin);
             return Results.File(memoryStream.ToArray(), "application/zip", $"Datenbank_{startUtc.Date:yyyy-MM-dd}_{endUtc.Date:yyyy-MM-dd}.zip");
         }
 
-        #endregion
+#endregion
 
     }
 }

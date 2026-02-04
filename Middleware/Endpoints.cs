@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using S7.Net;
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -52,18 +53,65 @@ namespace Gemini.Middleware
             app.MapPost("/excel", ExcelDownload); // Excel-Datei generieren und ausliefern
             app.MapPost("/excel/config/create", ExcelConfCreate); // Excel-Konfiguration erstellen
             app.MapPost("/excel/config/delete", ExcelConfDelete); // Excel-Konfiguration löschen //nicht implementiert  
-
             app.MapGet("/excel/config/all", GetExcelConf);
+   
+            app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
+            app.MapPost("/db/download", DbDownload); // Datenbank-Dateien ausliefern   
 
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
             app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
-            app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
-            app.MapPost("/db/download", DbDownload); // Datenbank-Dateien ausliefern   
-            
+
+            app.MapGet("/log", ShowLog); // Server herunterfahren
+
             app.MapGet("/exit", ServerShutdown); // Server herunterfahren
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
 
 
+        }
+
+        private static IResult ShowLog(HttpContext context)
+        {
+
+            List<Tuple<DateTime, string,string>> logEntries = Db.Db.GetLogEntries(1000);
+
+            StringBuilder sb = new();
+
+            sb.Append(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Server Beendet</title>
+                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                </head>
+                <body>");
+
+            sb.AppendLine("<h1>Server Log</h1>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<tr><th>Zeit</th><th>Level</th><th>Nachricht</th></tr>");
+            sb.AppendLine("<tbody>");
+            sb.AppendLine("<style> td, th { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; } </style>");
+            sb.AppendLine("<style> tr:hover {background-color: #f5f5f5;} </style>");
+            sb.AppendLine("<style> th {background-color: grey; color: white;} </style>");
+            sb.AppendLine("<style> table { border-collapse: collapse; width: 90%; } </style>");
+            sb.AppendLine("<style> tbody tr:nth-child(even) { background-color: #343434; } </style>");
+
+            foreach (var entry in logEntries)
+            {
+                sb.AppendLine($"<tr><td>{entry.Item1.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")}</td><td>{entry.Item2}</td><td>{entry.Item3}</td></tr>");
+            }
+
+            sb.AppendLine("</tbody>");
+            sb.AppendLine("</table>");
+
+
+            sb.Append(@"
+                </body>
+                </html>");
+
+            return Results.Content(sb.ToString(), "text/html", Encoding.UTF8);
         }
 
         private static IResult Favicon()

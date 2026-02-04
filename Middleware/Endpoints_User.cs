@@ -115,15 +115,18 @@ namespace Gemini.Middleware
                 // Das ist entscheidend: Der Client bekommt das Token für den NÄCHSTEN Request.
                 var tokens = antiforgery.GetAndStoreTokens(context);
 
+                Db.Db.DbLogInfo($"Login: {request.Username} [{userRole}]");
+
                 return Results.Ok(new LoginResponse(tokens.RequestToken!));
             }
 
             return Results.Unauthorized();
         }
 
-        private static IResult Logout(HttpContext context)
+        private static IResult Logout(LoginResponse request, HttpContext context)
         {
             context.SignOutAsync();
+            Db.Db.DbLogInfo($"Logout: {request.RequestToken}");
             return Results.Ok(new { Message = "Ausgeloggt" });
         }
 

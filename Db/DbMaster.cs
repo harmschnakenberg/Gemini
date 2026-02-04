@@ -309,6 +309,30 @@ namespace Gemini.Db
             }
         }
 
+        internal static List<Tuple<DateTime, string, string>> GetLogEntries(int limit = 1000)
+        {
+            List<Tuple<DateTime, string, string>> logEntries = [];
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(MasterDbSource);
+                connection.Open();
+                var command = connection.CreateCommand();
+                var query = @"SELECT Time, Category, Message FROM Log ORDER BY Id DESC LIMIT @Limit;";
+                command.CommandText = query;
+                command.Parameters.AddWithValue("@Limit", limit);
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    DateTime time = DateTime.Parse(reader.GetString(0));
+                    string category = reader.GetString(1);
+                    string message = reader.GetString(2);
+                    logEntries.Add(new Tuple<DateTime, string, string>(time, category, message));
+                }
+                connection.Dispose();
+            }
+            return logEntries;
+        }
+
         internal static List<ReadFailure> DbLogGetReadFailures()
         {
             List<ReadFailure> failures = [];

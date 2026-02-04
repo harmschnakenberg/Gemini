@@ -274,8 +274,8 @@ async function excelExport(startId, endId, ival, tags) {
             },
             body: new URLSearchParams({ start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) })
         }) //https://stackoverflow.com/questions/44168090/fetch-api-to-force-download-file
-            .then((res) => {
-                filename = res.headers.get('Content-Disposition').split('filename=')[1];
+            .then((res) => {                
+                filename = res.headers.get('Content-Disposition').split("filename*=UTF-8''")[1]; //UTF8-Filename
                 return res.blob();
             })
             .then(blob => URL.createObjectURL(blob))
