@@ -14,7 +14,7 @@ const CHART_COLORS = [
 
 
  //Initialisiert das Chart.js Liniendiagramm.
-function initChart(chartId) {
+function initChart(chartId, isStatusChart = false) {
     const elm = document.getElementById(chartId);
 
     if (!elm) {
@@ -45,6 +45,12 @@ function initChart(chartId) {
             },
             scaleMode: 'x'
         }
+    };
+
+    const yTicks = {
+         
+        //stepSize: isStatusChart ? 2 : null, 
+        color: '#ffffff'
     };
 
     const ctx = elm.getContext('2d');
@@ -116,15 +122,26 @@ function initChart(chartId) {
                         color: '#ffffff',
                         text: 'Wert'
                     },
-                    ticks: {
-                        color: '#ffffff',
-                    },
+                    ticks: yTicks,
+                    //{
+                    //    color: '#ffffff',     
+                    //    //stepSize: 2, // isStatusChart ? 2 : 'auto', // Zeigt nur die Basis-Werte (0, 2, 4)
+                    //    //callback: function (value) {
+                    //    //    if (isStatusChart) 
+                    //    //        return value % 2 > 0 ? 'An' : 'Aus';                                                           
+                    //    //    else
+                    //    //        return value;                           
+                    //    //}
+                    //},
                     grid: {
                         display: true,
                         drawTicks: true,
                         color: '#555555'
                     }
                 }
+                //plugins: {
+                //    filler: { propagate: false } // Verhindert das Durchscheinen nach unten
+                //}
             },
             plugins: {
                 zoom: zoomOptions,
@@ -148,6 +165,21 @@ function initChart(chartId) {
     worker.onmessage = workermessage;
     workers.set(chartId, worker);
 }
+
+
+// Initialisiere Status-Chart
+//function initStatusChart(chartId) {
+
+//    const elm = document.getElementById(chartId);
+//    if (!elm) {
+//        console.warn(`HTML-Element mit Id ${chartId} existiert nicht.`);
+//        return;
+//    }
+
+//    const ctx = elm.getContext('2d');
+//    let myChart = new Chart(ctx, {
+//        type: 'doughnut',
+        
 
 
 /**

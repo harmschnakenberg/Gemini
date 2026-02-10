@@ -58,10 +58,12 @@ namespace Gemini.Middleware
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
             app.MapPost("/db/download", DbDownload); // Datenbank-Dateien ausliefern   
 
+            app.MapGet("/soll", SollMenu);
+            app.MapGet("/soll/history", GetAlterations);
             app.MapGet("/soll/{id:int}", SollMenu).RequireAuthorization(); // Soll-Menü HTML aus JSON-Datei erstellen und ausliefern
             app.MapGet("/chart", Chart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
 
-            app.MapGet("/log", ShowLog); // Server herunterfahren
+            app.MapGet("/log", ShowLog); // Server Log
 
             app.MapGet("/exit", ServerShutdown); // Server herunterfahren
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
@@ -69,9 +71,9 @@ namespace Gemini.Middleware
 
         }
 
+
         private static IResult ShowLog(HttpContext context)
         {
-
             List<Tuple<DateTime, string,string>> logEntries = Db.Db.GetLogEntries(1000);
 
             StringBuilder sb = new();
@@ -84,28 +86,21 @@ namespace Gemini.Middleware
                     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
                     <link rel='shortcut icon' href='/favicon.ico'>
                     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                    <link rel='stylesheet' href='/css/style.css'>                    
+                    <link rel='stylesheet' href='/css/style.css'>    
+                    <script src='/js/websocket.js'></script>   
                 </head>
                 <body>");
 
             sb.AppendLine("<h1>Server Log</h1>");
-            sb.AppendLine("<table>");
+            sb.AppendLine("<table class='datatable'>");
             sb.AppendLine("<tr><th>Zeit</th><th>Level</th><th>Nachricht</th></tr>");
             sb.AppendLine("<tbody>");
-            sb.AppendLine("<style> td, th { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; } </style>");
-            sb.AppendLine("<style> tr:hover {background-color: #f5f5f5;} </style>");
-            sb.AppendLine("<style> th {background-color: grey; color: white;} </style>");
-            sb.AppendLine("<style> table { border-collapse: collapse; width: 90%; } </style>");
-            sb.AppendLine("<style> tbody tr:nth-child(even) { background-color: #343434; } </style>");
-
-            foreach (var entry in logEntries)
-            {
+          
+            foreach (var entry in logEntries)            
                 sb.AppendLine($"<tr><td>{entry.Item1.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")}</td><td>{entry.Item2}</td><td>{entry.Item3}</td></tr>");
-            }
-
+            
             sb.AppendLine("</tbody>");
             sb.AppendLine("</table>");
-
 
             sb.Append(@"
                 </body>
@@ -265,6 +260,7 @@ namespace Gemini.Middleware
             return Results.Content(file, "text/html");
         }
 
+        //nicht implementiert
         private class SollPageBuilder
         {
             /// <summary>

@@ -230,6 +230,95 @@ namespace Gemini.DynContent
             return sb.ToString();
         }
 
+
+        /// <summary>
+        /// Generates an HTML representation of altered user tags for display purposes.
+        /// </summary>
+        /// <remarks>The returned HTML is intended for use in a German-language user management interface.
+        /// The structure includes a table summarizing tag changes by user and time.</remarks>
+        /// <param name="aTags">A list of tuples containing tag alteration details. Each tuple includes the timestamp, user name, and
+        /// associated tag information.</param>
+        /// <returns>A string containing the generated HTML markup representing the altered tags, or null if no tags are
+        /// provided.</returns>
+        internal static string? ListAlteredTags(List<Tuple<DateTime, string, string, string, object, object>> aTags, DateTime startUtc, DateTime endUtc)
+        {
+            
+            StringBuilder sb = new();
+
+            sb.Append(@"<!DOCTYPE html>
+                            <html lang='de'>
+                            <head>
+                                <meta charset='UTF-8'>
+                                <title>Sollwertänderungen</title>                    
+                                <link rel='shortcut icon' href='/favicon.ico'>
+                                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                                <link rel='stylesheet' href='/css/style.css'>                    
+                                <script src='/js/websocket.js'></script>
+                                <script src='/js/excel.js'></script>
+                            </head>
+                            <body>");
+
+            sb.Append("<h1>Sollwertänderungen</h1>");
+
+           
+            sb.Append(@" <div class='container'>
+                <label for='start'>Beginn</label>
+                <input class='myButton' type='datetime-local' id='start' name='start'>
+                <label for='end'>Ende</label>
+                <input class='myButton' type='datetime-local' id='end' name='end'>                
+                <button class='myButton' onclick='getAlteredTags()'>Filter anwenden</button>
+                </div>");
+
+            sb.AppendLine(@"<script>
+
+            setDatesToStartOfMonth('start', 'end');
+
+            async function getAlteredTags()
+            {
+                const start = document.getElementById('start').value;
+                const end = document.getElementById('end').value;
+
+                const response = await fetchSecure(`/soll/history`, {
+                  method: 'GET',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ start: start, end: end})
+                });
+
+            }
+            </script>");
+
+            sb.AppendLine($"<p>Änderungen von <strong>{startUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}</strong> bis <strong>{endUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}</strong></p>");
+
+            sb.Append("<table class='datatable'>");
+            sb.Append("<tr>" +
+                "<th>Zeit</th>" +
+                "<th>Benutzer</th>" +
+                "<th>Bezeichnung</th>" +
+                "<th>Wert neu</th>" +
+                "<th>Wert alt</th>" +                
+                "</tr>");
+
+            foreach (var tag in aTags)
+            {
+                //Zeit | User | TagName | TagComment | NewValue | OldValue
+                sb.Append("<tr>" +
+                    $"<td>{tag.Item1.ToLocalTime():yyyy-MM-dd HH:mm:ss}</td>" +
+                    $"<td>{tag.Item2}</td>" +
+                    $"<td style='display:none;'>{tag.Item3}</td>" +
+                    $"<td>{tag.Item4}</td>" +
+                    $"<td>{tag.Item5}</td>" +
+                    $"<td>{tag.Item6 ?? "?"}</td>" +
+                    "</tr>");
+
+            }
+            sb.Append("</table>");
+
+            sb.Append("</body></html>");
+            return sb.ToString();            
+        }
+
+
+
         internal static string TagReadFailures()
         {
             List<ReadFailure> readFailures = Db.Db.DbLogGetReadFailures();
@@ -261,7 +350,7 @@ namespace Gemini.DynContent
                 sb.Append($"<td>{fail.Db}</td>");
                 sb.Append($"<td>{fail.StartByte}</td>");
                 sb.Append($"<td>{fail.Length}</td>");
-                sb.Append($"<td>{fail.Time.ToLocalTime()}</td>");
+                sb.Append($"<td>{fail.Time.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")}</td>");
                 sb.Append($"</tr>");
             }
 
@@ -546,5 +635,6 @@ namespace Gemini.DynContent
             return $"{hostname}, {string.Join(", ", ipAddresses)}"; //, {IPAddress.Loopback}
         }
 
+     
     }
 }

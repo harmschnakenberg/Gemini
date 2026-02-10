@@ -1,4 +1,6 @@
-﻿
+﻿const booleanTags = [];
+
+
 /**
  * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
  */
@@ -48,38 +50,50 @@ function processData(chartId, jsonData, aliases, colors) {
     let i = 0;
 
     for (const item of jsonData) {
-        const label = item.N;
-        const value = item.V;
+        const tagName = item.N;
+        const tagValue = item.V;
         const timestamp = item.T; // Zeitstempel (z.B. Unix-Zeit in Millisekunden)
 
         // Ignoriere Einträge ohne gültiges Label oder Wert
-        if (!label || value === undefined || value === null) {
+        if (!tagName || tagValue === undefined || tagValue === null) {
             continue;
         }
 
+        const isBool = tagName.includes('X') ? true : false;
+
         // Suche den Datensatz oder erstelle ihn neu
-        if (!datasetsMap.has(label)) {
-            const alias = aliases.get(label) || label;
-            //console.info(`Alias: ${label}=${aliases.get(label)}`);
+        if (!datasetsMap.has(tagName)) {
+            const alias = aliases.get(tagName) || tagName;
+            //console.info(`Alias: ${tagName}=${aliases.get(tagName)}`);
 
             const color = colors[colorIndex % colors.length];
+            
+            if (isBool && !booleanTags.includes(tagName)) 
+                booleanTags.push(tagName);
 
-            datasetsMap.set(label, {
+            const offset = booleanTags.indexOf(tagName);
+            
+            datasetsMap.set(tagName, {
                 label: alias,
+                //type: 'line',
+                //type: isBool ? 'bar' : 'line', // TagName enthält 'X'? Standardmäßig als Liniendiagramm
                 data: [],
                 borderColor: color,
                 backgroundColor: color,
-                fill: false, // Für Liniendiagramme
+                stepped: isBool ? true : false, // Macht aus der Linie eine Treppenfunktion
+                fill: isBool ? { target: { value: offset }, above: color } : false, // binär Liniendiagramme: Zwischen 'Aus' und 'Ein' füllen
+                //fill: false,
                 // Setze pointRadius auf 0 für viele Datenpunkte
                 pointRadius: 0
             });
             colorIndex++;
         }
 
-        // Füge den Datenpunkt hinzu. Chart.js Time Scale erwartet {x: timestamp, y: value}
-        datasetsMap.get(label).data.push({
+        // Füge den Datenpunkt hinzu. Chart.js Time Scale erwartet {x: timestamp, y: tagValue}
+        // Boolsche Werte werden "übereinandergestapelt" (TEST)
+        datasetsMap.get(tagName).data.push({
             x: timestamp,
-            y: value
+            y: isBool ? tagValue + booleanTags.indexOf(tagName) : tagValue
         });
 
         // ******* Fortschritt melden *******

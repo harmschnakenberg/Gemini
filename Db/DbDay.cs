@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 using MiniExcelLibs;
 using S7.Net;
+using System.Collections.Generic;
+
 
 //using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
 using System.Text.Json;
@@ -23,11 +25,12 @@ namespace Gemini.Db
             //Lade alle Tag-Namen mit Log-Flog aus der Datenbank
             List<JsonTag> dummyData = [];
             List<Tag> tags = GetDbTagNames(DateTime.UtcNow);
-            tags.ForEach(tag => {
+            tags.ForEach(tag =>
+            {
                 if (tag.ChartFlag == true)
                     dummyData.Add(new JsonTag(tag.TagName, tag.TagValue, DateTime.UtcNow));
-                }); 
-           
+            });
+
             var dbClientId = Guid.NewGuid(); //Datenbank wie jeden anderen Client im PlcTagManager anmelden.
 #if DEBUG
             //Console.WriteLine($"Die Datenbank loggt sich ein als Client {dbClientId}");
@@ -61,16 +64,16 @@ namespace Gemini.Db
 
             if (TagsWriteBuffer.Count < TagsWriteBufferMax) //Wie viele geänderte Tags sollen gepuffert werden (Schreibrate vs. Datenverlustrisiko)
                 return;
-            
+
             try
-            {               
+            {
                 Db.InsertTagsBulk([.. TagsWriteBuffer]); // Schreibe die Tags aus dem Buffer in die Datenbank
                 TagsWriteBuffer.Clear();
             }
             catch (Exception ex)
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
-                DbLogInfo($"Fehler beim Senden an die Datenbank {clientId}. Client wird nicht entfernt.\r\n{ex}");                
+                DbLogInfo($"Fehler beim Senden an die Datenbank {clientId}. Client wird nicht entfernt.\r\n{ex}");
             }
         }
 
@@ -99,7 +102,7 @@ namespace Gemini.Db
                     if (!File.Exists(dbPath))
                     {
 #if DEBUG                        
-                        Db.DbLogInfo($"Tagestabelle: Datei {dbPath} nicht gefunden.");
+                        Db.DbLogInfo($"Tagestabelle: Datei {Path.GetFileName(dbPath)} nicht gefunden.");
 #endif
                         continue;
                     }
@@ -202,17 +205,17 @@ namespace Gemini.Db
             {
                 using var connection = new SqliteConnection(DayDbSource);
                 connection.Open();
-              
+
                 try
                 {
                     var command = connection.CreateCommand();
                     command.CommandText = "INSERT OR IGNORE INTO Tag (Name) VALUES (@TagName);";
 
                     var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
-                    
+
                     foreach (var tag in jsonTags)
                     {
-                        nameParam.Value = tag.N;              
+                        nameParam.Value = tag.N;
                         command.ExecuteNonQuery();
                     }
                 }
@@ -220,7 +223,7 @@ namespace Gemini.Db
                 {
                     Db.DbLogInfo($"Fehler beim TagName-Batch-Insert. {ex}");
                 }
-        
+
             }
         }
 
@@ -319,8 +322,8 @@ namespace Gemini.Db
                 case DynContent.MiniExcel.Interval.Jahr:
                     //nicht implementiert
                     break;
-                //default:
-                //    break;
+                    //default:
+                    //    break;
             }
 
             Console.WriteLine($"Zeit Aggregat {interval} mit {roundSeconds} Sekunden.");
@@ -373,7 +376,7 @@ namespace Gemini.Db
                                 //if (roundSeconds > 1)
                                 //    query.Add($" SELECT datetime(((strftime('%s', Time) + @Round - 1) / @Round) * @Round, 'unixepoch') AS Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End; ");
                                 //else
-                                    query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                                query.Add($" SELECT Time, TagValue FROM main.Data WHERE TagId = (SELECT Id FROM main.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                             }
                             else
                             {
@@ -381,7 +384,7 @@ namespace Gemini.Db
                                 //if (roundSeconds > 1)
                                 //    query.Add($" SELECT datetime(((strftime('%s', Time) + @Round - 1) / @Round) * @Round, 'unixepoch') AS Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                                 //else
-                                    query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
+                                query.Add($" SELECT Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                                 detach.Add($"DETACH DATABASE '{dbName}';");
                             }
                         }
@@ -400,7 +403,7 @@ namespace Gemini.Db
                         //if (roundSeconds > 1)
                         //    command.CommandText += "GROUP BY Time HAVING Time = MAX(Time) ORDER BY Time ";
 
-                            Console.WriteLine(command.CommandText + "\r\n\r\n");
+                        Console.WriteLine(command.CommandText + "\r\n\r\n");
 
                         foreach (var tagName in tagNames)
                         {
@@ -484,7 +487,7 @@ namespace Gemini.Db
                         detach += $"DETACH DATABASE '{dbName}';";
                 }
                 connection.Close();
-                
+
                 command.CommandText = detach;
                 connection.Open();
                 command.ExecuteNonQuery();
@@ -497,7 +500,7 @@ namespace Gemini.Db
             lock (_dbLock)
             {
                 using var connection = new SqliteConnection(DayDbSource);
-                connection.Open();                
+                connection.Open();
                 var command = connection.CreateCommand();
 
                 var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
@@ -513,7 +516,7 @@ namespace Gemini.Db
 #if DEBUG
                 DbLogInfo($"Beim Ändern von {tagName} wurden {result} Zeilen in der Datenbank geändert.");
 #endif
-            }               
+            }
         }
 
         internal static int WriteTag(string tagName, string tagVal, string oldVal, string username)
@@ -546,9 +549,9 @@ namespace Gemini.Db
                     return command.ExecuteNonQuery();
                 }
             }
-            catch 
+            catch
             {
-                throw ;
+                throw;
             }
         }
 
@@ -560,12 +563,73 @@ namespace Gemini.Db
             {
                 string dbPath = GetDayDbPath(day);
                 Console.WriteLine("Finde Pfad " + dbPath);
-                dbFilePaths.Add(dbPath);                
+                dbFilePaths.Add(dbPath);
             }
 
             return dbFilePaths;
         }
 
+        //Auflistung der Tag-Änderungen (Setpoints) zwischen zwei Zeitpunkten mit User, altem und neuem Wert, TagName und Kommentar. Nützlich für die Anzeige von Änderungen in einem Änderungsprotokoll.
+        internal static List<Tuple<DateTime, string, string, string, object, object>> SelectTagAlterations(DateTime startUtc, DateTime endUtc)
+        {
+
+            //Ausgabe: Zeit|User|TagName|TagComment|NewValue|OldValue
+            /*
+             *  CREATE TABLE IF NOT EXISTS Setpoint (                         
+                    Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+                    TagId INT NOT NULL,
+                    TagValue NUMERIC,
+                    OldValue NUMERIC,
+                    User TEXT,
+
+                */
+
+            List<Tuple<DateTime, string, string, string, object, object>> alteredTags = [];
+
+            lock (_dbLock)
+            {
+                using var connection = new SqliteConnection(DayDbSource); //ToDo: mehrere Datenbanken ATTACH
+                connection.Open();
+                var command = connection.CreateCommand();
+
+                command.CommandText = @"
+                SELECT s.Time, s.User AS User, t.Name AS TagName, t.Comment AS TagComment, s.TagValue, s.OldValue 
+                FROM Setpoint AS s
+                JOIN Tag AS t
+                ON t.Id = TagId 
+                WHERE Time BETWEEN @Start AND @End
+                ORDER BY Time DESC;
+                ";
+
+                var startParam = command.Parameters.Add("@Start", SqliteType.Text);
+                var endParam = command.Parameters.Add("@End", SqliteType.Text);
+                startParam.Value = startUtc.ToString("yyyy-MM-dd HH:mm:ss");
+                endParam.Value = endUtc.ToString("yyyy-MM-dd HH:mm:ss");
+
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    //Zeit | User | TagName | TagComment | NewValue | OldValue
+                    string timeStr = reader.GetString(0);
+                    _ = DateTime.TryParse(timeStr, out DateTime time) ? time : DateTime.MinValue;
+
+                    string user = reader.GetString(1);
+                    string tagName = reader.GetString(2);
+                    string tagComment = reader.IsDBNull(3) ? tagName : reader.GetString(3);
+                    object newValue = reader.GetValue(4);
+                    object oldValue = reader.GetValue(5);
+                    var t = new Tuple<DateTime, string, string, string, object, object>(time, user, tagName, tagComment, newValue, oldValue);
+
+                    alteredTags.Add(t);
+                }
+
+                connection.Dispose();
+            }
+
+            return alteredTags;
+        }
 
     }
 }
+

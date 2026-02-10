@@ -56,34 +56,39 @@ function initTags() {
             });
             inputs[i].addEventListener("blur", function () {   
                 //Script zum Schreiben in die SPS anfügen
-                updInputEvent(this);
+                updInputEvent(this, lastValOnFocus);
             });
         }
 
         if (!inputs[i].disabled) {
             //Script zum Schreiben in die SPS anfügen
-            inputs[i].onchange = function () { updInputEvent(this, lastValOnFocus); };
-            inputs[i].onfocusin = function () { lastValOnFocus = this.value; };
+            inputs[i].onfocus = function () {
+                lastValOnFocus = this.value;
+                alertSuccess(lastValOnFocus);
+            };
+            inputs[i].onchange = function () { updInputEvent(this); };            
         }
 
     }
     return tagNames.map(tagNameToObject);
 }
 
-async function updInputEvent(obj, oldVal) {
+async function updInputEvent(obj) {
     const t = obj.getAttribute('data-name');
     let v = obj.value;
     if (v == TICKEDBOX) v = 1;
     if (v == UNTICKEDBOX) v = 0;
 
-    //console.info(`Trigger Änderung von ${t} auf ${v}`);
+    console.info(`Trigger Änderung ${t} von ${lastValOnFocus} auf ${v}`);
+  
     const tag = new JsonTag(t, v, new Date());
     const link = `/tag/write`;
     const res = await fetchSecure(link, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams(tag, oldVal)
+        body: new URLSearchParams({tagName: t, tagVal: v, oldVal: lastValOnFocus })
     });
+    console.info(new URLSearchParams(tag, { oldVal: lastValOnFocus }));
 
     if (res.ok) {
         const result = await res.json();
@@ -207,13 +212,14 @@ function message(adjClass, txt) {
         document.body.insertBefore(alert, document.body.children[0]);
     }
 
-    msg = document.createElement('div');
+    let msg = document.createElement('div');
     msg.classList.add(adjClass);
     msg.innerHTML = `<b>${txt}</b>`
 
+    setTimeout(function () { msg.remove(); }, 5000);
+
     alert.appendChild(msg);
 }
-
 
 function createLink(href, display) {
     const a = document.createElement("a");
@@ -255,10 +261,9 @@ function checkLoginStatus() {
         span.textContent = 'Kein Benutzer';
         span.style.color = 'grey';
 
-        fetchSecure("/logout");
+        //fetchSecure("/logout");
     }
 }
-
 
 /* Holt ein frisches Token vom Server */
 async function refreshCsrfToken() {

@@ -348,23 +348,26 @@ input.checkbox {
     alert .style.width = '30rem';*/
 }
 
-        #alert > .success {
-            padding: 0.3rem;
-            background-color: rgba(0, 204, 0, 0.5);
-            border: 2px solid rgb(0, 204, 0);
-        }
+	#alert > .success {
+		margin: 1px;
+		padding: 0.3rem;
+		background-color: rgba(0, 204, 0, 0.5);
+		border: 2px solid rgb(0, 204, 0);
+	}
 
-        #alert > .warn {
-            padding: 0.3rem;
-            background-color: rgba(255, 215, 0, 0.5);
-            border: 2px solid rgb(255, 215, 0);
-        }
+    #alert > .warn {
+        margin: 1px;
+        padding: 0.3rem;
+        background-color: rgba(255, 215, 0, 0.5);
+        border: 2px solid rgb(255, 215, 0);
+    }
 
-        #alert > .error {
-            padding: 0.3rem;
-            background-color: rgba(255, 99, 71, 0.5);
-            border: 2px solid rgb(255, 99, 71);
-        }
+    #alert > .error {
+        margin: 1px;
+        padding: 0.3rem;
+        background-color: rgba(255, 99, 71, 0.5);
+        border: 2px solid rgb(255, 99, 71);
+    }
 
 #customspinner {
     /* visibility:hidden; */
@@ -392,5 +395,33 @@ input.checkbox {
         background-color: grey;
         left: 200px;
         top: 0px;
+    }
+}
+
+table.datatable {
+    table {
+        margin: auto;
+        width: 50%;
+        border-collapse: collapse;
+        min-width: 50rem;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #343434;
+    }
+
+    tr:hover {
+        background-color: #565656;
+    }
+
+
+    th {
+        background-color: #454545;
+    }
+
+    td, th {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #777;
     }
 }

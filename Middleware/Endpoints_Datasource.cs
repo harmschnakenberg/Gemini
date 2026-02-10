@@ -111,8 +111,8 @@ namespace Gemini.Middleware
         private static IResult WriteTagValue(HttpContext ctx, ClaimsPrincipal user)
         {
             string username = user.Identity?.Name ?? "-unbekannt-";
-            string tagName = ctx.Request.Form["N"].ToString() ?? string.Empty;
-            string tagVal = ctx.Request.Form["V"].ToString() ?? string.Empty;
+            string tagName = ctx.Request.Form["tagName"].ToString() ?? string.Empty;
+            string tagVal = ctx.Request.Form["tagVal"].ToString() ?? string.Empty;
             string oldVal = ctx.Request.Form["oldVal"].ToString() ?? string.Empty;
 
             if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
@@ -126,10 +126,25 @@ namespace Gemini.Middleware
             int result = Db.Db.WriteTag(tagName, tagVal, oldVal, username);
 
             if (result > 0)
-                return Results.Json(new AlertMessage(Type: "success", Text: $"Tag [{tagName}] auf Wert [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
+                return Results.Json(new AlertMessage(Type: "success", Text: $"Tag [{tagName}] von [{oldVal}] auf [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
             else
                 return Results.Json(new AlertMessage(Type: "error", Text: $"Tag [{tagName}] konnte nicht auf Wert [{tagVal}] gesetzt werden [{result}]"), AppJsonSerializerContext.Default.AlertMessage);
 
+        }
+
+        private static IResult GetAlterations(HttpContext ctx)
+        {
+            DateTime startUtc = DateTime.UtcNow.AddDays(-1);
+            DateTime endUtc = DateTime.UtcNow;
+
+            if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))            
+                startUtc = s.ToUniversalTime(); 
+            
+            if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
+                endUtc = e.ToUniversalTime();
+                
+            var aTags =  Db.Db.SelectTagAlterations( startUtc, endUtc);
+            return Results.Content(HtmlHelper.ListAlteredTags(aTags, startUtc, endUtc), "text/html");
         }
 
         #endregion

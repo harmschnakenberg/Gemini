@@ -19,16 +19,16 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- JWT vs. Cookie Authentifizierung => Cookie Authentifizierung 
 	- dynamisch erzeugtes, eingeblendetes Sollwerte-Menü 	
 	- HTTPS Support über Rechnernamen
-	- Neu-einladen von SPS-Configuration im laufenden Betrieb
-	
+	- Neu-einladen von SPS-Configuration im laufenden Betrieb	
 	- Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
+	- Liste der zuletzt geänderten Sollwerte im Webinterface anzeigen
 	- ToDo: Warte-Cursor bei Excel Download
 	- Todo: Status-Kurven
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder		
-	- ToDo: Liste der verbundenen Clients im Webinterface anzeigen
-	- ToDo: Liste der zuletzt geänderten Sollwerte im Webinterface anzeigen
+	- ToDo: Liste der verbundenen Clients im Webinterface anzeigen	
+	- ToDo: Altwert und Neuwert bei Sollwertänderung im Webinterface (Liste) anzeigen
 	
 	- NiceToHave: Logging mit Source Generated Logging für bessere Performance
 	
