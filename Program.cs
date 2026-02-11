@@ -115,12 +115,14 @@ app.MapGet("/restart", () => { app.Lifetime.StopApplication(); });
 
 while (!Endpoints.PleaseStop)
 {
+    Gemini.Db.Db.DbLogInfo("Webserver läuft...");
     logger.LogTrace("Webserver neu gestartet.");
     
     //app.Lifetime.ApplicationStopping.Register(() =>
     //{
     //    Endpoints.cancelTokenSource.Cancel();
     //});
+    
     app.Run();    
 }
 

@@ -173,6 +173,11 @@ namespace Gemini.Db
                 CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
                 );
 
+                CREATE VIEW DataMinute AS
+                SELECT * FROM Data
+                GROUP BY TagId, strftime ('%Y%m%d %H:%M', Time)
+                ORDER BY Time
+
                 PRAGMA journal_mode=WAL;
             ";
             int result = command.ExecuteNonQuery();
@@ -200,7 +205,7 @@ namespace Gemini.Db
                 if (!File.Exists(dbPath))
                 {
 #if DEBUG
-                    Db.DbLogInfo($"Tagestabelle: Datei {dbPath} nicht gefunden.");
+                    Db.DbLogInfo($"Tagestabelle: Datei {Path.GetFileName(dbPath)} nicht gefunden.");
 #endif
                     continue;
                 }
@@ -210,7 +215,7 @@ namespace Gemini.Db
                 command.CommandText =
                         $"ATTACH DATABASE '{dbPath}' AS old_db; " +
                         "VACUUM old_db; " +
-                        "INSERT OR IGNORE INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die If sonst immer weiter gezählt werden. IGNORE darf eigentlich nicht notwendig sein, ist es aber scheinbar?.
+                        "INSERT OR IGNORE INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die Id sonst immer weiter gezählt werden. IGNORE darf eigentlich nicht notwendig sein, ist es aber scheinbar?.
                         "WHERE old_db.Tag.ChartFlag > 0 OR length( old_db.Tag.Comment ) > 0; " + //nur TagNames, die aufgezeichnet werden oder Kommentare erhalten haben. (Alle anderen werden beim ersten Lesen erneut in die Tabelle geschrieben).
                         "DETACH DATABASE old_db; "; 
 

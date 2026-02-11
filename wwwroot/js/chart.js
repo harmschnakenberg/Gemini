@@ -47,11 +47,33 @@ function initChart(chartId, isStatusChart = false) {
         }
     };
 
-    const yTicks = {
+    let yTicks = {
          
         //stepSize: isStatusChart ? 2 : null, 
         color: '#ffffff'
     };
+
+    if (isStatusChart) {
+        yTicks = {
+            color: '#ffffff',
+            stepSize: 1,
+            callback: function (value, index, values) {
+                if (isStatusChart) {
+                    const maxTick = Math.max(...values.map(t => t.value));
+                    switch (value) {
+                        case 0:                            
+                            return 'Aus';
+                        case maxTick:
+                            return 'Ein';
+                        default:
+                            return ["Aus", "Ein"];
+                    }
+                }
+                else
+                    return value;
+            }
+        };
+    }
 
     const ctx = elm.getContext('2d');
 

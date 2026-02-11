@@ -117,6 +117,8 @@ namespace Gemini.Services
                 var subs = _subscribers.GetOrAdd(t.N, _ => new ConcurrentDictionary<Guid, byte>());
                 subs[clientId] = 0;
             }
+
+            Db.Db.DbLogInfo($"Client {clientId} mit {tags.Length} Tags hinzugefügt/aktualisiert.");
         }
 
         public void RemoveClient(Guid clientId)
@@ -131,6 +133,8 @@ namespace Gemini.Services
                     _parseCache.TryRemove(kv.Key, out _);
                 }
             }
+
+            Db.Db.DbLogInfo($"Client {clientId} entfernt.");
         }
 
         private async Task PollLoop()

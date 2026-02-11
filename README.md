@@ -22,8 +22,10 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Neu-einladen von SPS-Configuration im laufenden Betrieb	
 	- Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
 	- Liste der zuletzt geänderten Sollwerte im Webinterface anzeigen
+	- Status-Kurven
+	- ToDo: SplashScreen während Charts geladen werden "Browser berechnet Darstellung"
 	- ToDo: Warte-Cursor bei Excel Download
-	- Todo: Status-Kurven
+	- Todo: Status-Kurven Achsbeschriftung "Ein" / "Aus" statt "1"/"0"
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder		

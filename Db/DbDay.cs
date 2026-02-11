@@ -32,6 +32,8 @@ namespace Gemini.Db
             });
 
             var dbClientId = Guid.NewGuid(); //Datenbank wie jeden anderen Client im PlcTagManager anmelden.
+
+            DbLogInfo($"Datenbank-Client {dbClientId} wird mit {dummyData.Count} Tags angemeldet.");
 #if DEBUG
             //Console.WriteLine($"Die Datenbank loggt sich ein als Client {dbClientId}");
 #endif
