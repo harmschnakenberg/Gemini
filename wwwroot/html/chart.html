@@ -75,23 +75,44 @@
             ['A01_DB10_DBX7_5', 'Sekunde Bit2'],
             ['A01_DB10_DBX7_4', 'Sekunde Bit3'],
             ['A01_DB10_DBX7_3', 'Sekunde Bit4'],
-            ['A01_DB10_DBX7_2', 'Sekunde Bit5']
-            //['A01_DB10_DBX7_1', 'Sekunde Bit6'],
-            //['A01_DB10_DBX7_0', 'Sekunde Bit7']
+            ['A01_DB10_DBX7_2', 'Sekunde Bit5'],
+            ['A01_DB10_DBX7_1', 'Sekunde Bit6'],
+            ['A01_DB10_DBX7_0', 'Sekunde Bit7']
         ]);
 
         initChart('myChart1', false);
         initChart('myChart2', true);
-        setDatesHours('start', 'end', 8);
+        if (!getTimeParams())
+            setDatesHours('start', 'end', 8);
         loadAllCharts();
+        
+        function setTimeParams() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('start', document.getElementById('start').value);
+            url.searchParams.set('end', document.getElementById('end').value);
+            window.history.pushState(null, '', url.toString())
+        }
+
+        function getTimeParams() {
+            const url = new URL(window.location.href);
+            const s = url.searchParams.get('start');
+            const e = url.searchParams.get('end');
+            console.log(`start ${s}; end ${e}`);
+            if (!s || !e || isNaN(new Date(s)) || isNaN(new Date(e))) {
+                console.warn(`Parameter fehlerhaft: start ${s}, end ${e}`);
+                return false;
+            }
+            document.getElementById('start').value = s;
+            document.getElementById('end').value = e;
+            return true;
+        }
 
         function loadAllCharts() {
-            if (checkDuration('start', 'end', 'chartTimespan')) {
+            if (checkDuration('start', 'end', 'chartTimespan')) {                
                 loadChart('myChart1', 'start', 'end', tags1);
-                loadChart('myChart2', 'start', 'end', tags2);
+                loadChart('myChart2', 'start', 'end', tags2);   
+                setTimeParams();
             }   
-
-            //updateChart('myChart1', tags1)
         }
 
         function checkDuration(startId, endId, outputId) {

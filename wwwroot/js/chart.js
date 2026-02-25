@@ -260,22 +260,22 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
     const startDate = new Date(document.getElementById(startId).value);
     const endDate = new Date(document.getElementById(endId).value);
 
-    if (!startDate || !endDate) {
+    const params = new URLSearchParams();
+
+    if (!startDate || !endDate || isNaN(startDate) || isNaN(endDate) ) {
         alert(`Bitte Start- und Enddatum für ${chartId} auswählen.`);
+        params.delete('start');
+        params.delete('end');
         return;
     }
-
-    //console.log(`Lade Daten für Zeitraum ${startDate.toISOString()} bis ${endDate.toISOString() }...`);
-
-    //for (const x of LABEL_ALIASES.entries()) {
-    //    console.info('Label ' + x);
-    //}
-
-    const params = new URLSearchParams();
+  
     const tagnames = Array.from(LABEL_ALIASES.keys());
-    params.append("tagnames", tagnames);
-    params.append("start", startDate.toISOString());
-    params.append("end", endDate.toISOString());
+    params.set("tagnames", tagnames);
+
+    if (!params.has('start'))
+        params.append("start", startDate.toISOString());
+    if (!params.has('end'))
+        params.append("end", endDate.toISOString());
     const link = `/db?${params}`;
 
     if (!document.getElementById(chartId + 'link')) {
@@ -322,7 +322,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
 /**
  * Empfängt die verarbeiteten Daten vom Web Worker und aktualisiert das Chart.
  */
-    function workermessage(e) {
+function workermessage(e) {
 
         const message = e.data;
 

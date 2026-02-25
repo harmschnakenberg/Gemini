@@ -72,7 +72,7 @@ namespace Gemini.Middleware
 
             app.MapGet("/exit", ServerShutdown); // Server herunterfahren
             
-            //app.MapGet("/{filePath:file}", ServeStaticFile).AllowAnonymous(); // Statische JS-Dateien dynamisch ausliefern | Offenbar statisch über wwwroot?
+            app.MapGet("/{filePath:file}", ServeStaticFile).AllowAnonymous(); // Statische JS-Dateien dynamisch ausliefern | Offenbar statisch über wwwroot?
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
 
 
@@ -86,12 +86,17 @@ namespace Gemini.Middleware
         /// chart configuration is used.</remarks>
         /// <param name="context">The HTTP context containing the request information, including route values used to retrieve the chart ID.</param>
         /// <returns>An IResult containing the generated HTML for the chart page, with a content type of 'text/html'.</returns>
-        private static IResult DynChart(int chartId, HttpContext context)
+        private static IResult DynChart(int chartId,  [FromQuery(Name = "start")] string? startStr, [FromQuery(Name = "end")] string? endStr)
         {
 
             //Console.WriteLine("\r\n"+JsonSerializer.Serialize(chartConfig2, AppJsonSerializerContext.Default.ChartConfig));
             //{"Id":0,"Caption":"Chart 0","SubCaption":"Dynamisch generiertes Chart mit ID 0","Chart1Tags":{"A01_DB10_DBW4":"Minute","A01_DB10_DBW2":"Stunde"},"Chart2Tags":{"A01_DB10_DBX7_3":"Sekunde Bit4"}}
 
+            _ = DateTime.TryParse(startStr, out DateTime start);
+            _ = DateTime.TryParse(endStr, out DateTime end);
+#if DEBUG
+            Console.WriteLine($"DynChart {chartId} von {start} bis {end}");
+#endif
             string json;
 
             using (TextReader reader = new StreamReader($"wwwroot/html/chart/chart{chartId}.json"))
@@ -104,7 +109,7 @@ namespace Gemini.Middleware
             if (chartConfig is null)
                 return Results.Content($"<h1>Ungültige Chart-Konfiguration für ID: {chartId}</h1>", "text/html", Encoding.UTF8);
 
-           return Results.Content(HtmlHelper.DynChart(chartConfig), "text/html", Encoding.UTF8);
+           return Results.Content(HtmlHelper.DynChart(chartConfig, start, end), "text/html", Encoding.UTF8);
         }
 
         private static IResult ShowLog(HttpContext context)
@@ -147,7 +152,7 @@ namespace Gemini.Middleware
         private static IResult SollMenu(int id, HttpContext ctx)
         {
             string json;
-            using (TextReader reader = new StreamReader("wwwroot/soll/sollmenu.json"))
+            using (TextReader reader = new StreamReader("wwwroot/html/soll/sollmenu.json"))
             {
                 json = reader.ReadToEndAsync().Result;
             };

@@ -59,9 +59,7 @@ namespace Gemini.Models
 
     public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
 
-    //Todo: ChartConfig könnte man auch in der Datenbank speichern, um die Zuordnung von Tags zu Charts dynamisch zu gestalten.
-    //Aktuell ist es hartkodiert in der AppSettings.json, was für einfache Anwendungsfälle ausreichend sein könnte, aber weniger flexibel ist,
-    //wenn sich die Anforderungen ändern oder wenn Benutzer eigene Chart-Konfigurationen erstellen möchten.
+    //Todo: ChartConfig könnte man auch in der Datenbank speichern, um die Zuordnung von Tags zu Charts dynamisch zu gestalten.    
     //Die ChartConfig-Klasse definiert die Struktur für die Konfiguration von Diagrammen, einschließlich der Zuordnung von Tags zu zwei verschiedenen Diagrammen (Chart1 und Chart2).
     //ToDo: Prüfen, ob JsonTag, Tag, TagCollection und ChartConfig zusammengefasst werden können, um die Anzahl der Klassen zu reduzieren und
     //die Datenstruktur zu vereinfachen. Es könnte sinnvoll sein, eine einheitliche Klasse zu verwenden,
@@ -69,10 +67,10 @@ namespace Gemini.Models
     internal class ChartConfig
     {
         public int Id { get; set; }
-        public string Caption { get; set; } 
+        public required string Caption { get; set; } 
         public string? SubCaption { get; set; }
-        public Dictionary<string, string> Chart1Tags { get; set; }
-        public Dictionary<string, string> Chart2Tags { get; set; }
+        public required Dictionary<string, string> Chart1Tags { get; set; }
+        public Dictionary<string, string>? Chart2Tags { get; set; }
     }
 
 

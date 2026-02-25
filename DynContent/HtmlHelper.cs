@@ -85,7 +85,7 @@ namespace Gemini.DynContent
             sb.Append("<div class='container controls' style='width:600px;'>");
             sb.Append("<table><tr><th>Benutzer</th><th>Rolle</th></tr>");
 
-            if(isAdmin || isUser)
+            if (isAdmin || isUser)
                 foreach (var u in users)
                 {
                     if (isUser && u.Name != username) //Benutzer können nur sich selbst sehen.
@@ -110,16 +110,16 @@ namespace Gemini.DynContent
             sb.Append("<tr>");
             sb.Append($"<td><input id='username' placeholder='neuer Benutzername' required {(isUser ? $"value='{username}' readonly" : string.Empty)}></td>");
             sb.Append("<td><select id='role'>");
-            
+
             if (isAdmin || isGuest)
                 sb.Append(RoleOption(0, Role.Guest, "Gast"));
 
             if (isAdmin || isUser)
                 sb.Append(RoleOption(0, Role.User, "Benutzer"));
-            
+
             if (isAdmin) //nur Admins können Admins auswählen
                 sb.Append(RoleOption(0, Role.Admin, "Administrator"));
-            
+
             sb.Append("</select></td>");
             sb.Append($"<td><input id='pwd' type='password' placeholder='********'>");
             sb.Append("</tr>");
@@ -127,11 +127,11 @@ namespace Gemini.DynContent
             sb.Append("</table>");
             sb.Append("</div><div class='container controls' style='width:600px;'>");
 
-            if (isAdmin) 
+            if (isAdmin)
                 sb.Append("<button class='myButton' onclick='updateUser(\"create\")'>neu anlegen</button>");
-            if (isAdmin || isUser) 
+            if (isAdmin || isUser)
                 sb.Append("<button class='myButton' onclick='updateUser(\"update\")'>ändern</button>");
-            if (isAdmin) 
+            if (isAdmin)
                 sb.Append("<button class='delete-btn' onclick='updateUser(\"delete\")'>löschen</button>");
 
             sb.Append(@"</div>
@@ -174,8 +174,9 @@ namespace Gemini.DynContent
         }
 
 
-        internal static string ListAllTags(bool isAdmin) {             
-            
+        internal static string ListAllTags(bool isAdmin)
+        {
+
             StringBuilder sb = new();
 
             sb.Append(@"<!DOCTYPE html>
@@ -208,7 +209,7 @@ namespace Gemini.DynContent
             {
                 sb.Append("<tr>");
                 sb.Append($"<td><input value='{tag.TagName}' disabled></td>");
-                sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}' {(isAdmin ? "": "disabled")}></td>");
+                sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}' {(isAdmin ? "" : "disabled")}></td>");
                 sb.Append($"<td><input data-name='{tag.TagName}' disabled></td>");
                 sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")}  {(isAdmin ? "" : "disabled")}></td>");
                 sb.Append("</tr>");
@@ -285,7 +286,7 @@ namespace Gemini.DynContent
                 "<th>Benutzer</th>" +
                 "<th>Bezeichnung</th>" +
                 "<th>Wert neu</th>" +
-                "<th>Wert alt</th>" +                
+                "<th>Wert alt</th>" +
                 "</tr>");
 
             foreach (var tag in aTags)
@@ -378,7 +379,7 @@ function setDatesToStartOfMonth(startId, endId) {
 
 
             sb.Append("</body></html>");
-            return sb.ToString();            
+            return sb.ToString();
         }
 
 
@@ -419,9 +420,9 @@ function setDatesToStartOfMonth(startId, endId) {
                 </body>
                 </html>");
 
-            return sb.ToString(); 
+            return sb.ToString();
         }
-       
+
         internal static string TagReadFailures()
         {
             List<ReadFailure> readFailures = Db.Db.DbLogGetReadFailures();
@@ -447,7 +448,7 @@ function setDatesToStartOfMonth(startId, endId) {
             sb.Append("<p>Zuletzt aufgetretene Fehler beim Lesen aus SPS</p>");
             sb.Append("<table id='tagfailtable'>");
             sb.Append("<tr><th>IP</th><th>DB</th><th>Startbyte</th><th>Länge</th><th>Zeitpunkt</th></tr>");
-         
+
             foreach (var fail in readFailures)
             {
                 sb.Append($"<tr>");
@@ -473,7 +474,7 @@ function setDatesToStartOfMonth(startId, endId) {
 
         internal static async Task<string> ListAllPlcConfigs(bool isReadonly)
         {
-           List<PlcConf> allPlcs = Db.Db.SelectAllPlcs();
+            List<PlcConf> allPlcs = Db.Db.SelectAllPlcs();
 
             StringBuilder sb = new();
 
@@ -507,20 +508,20 @@ function setDatesToStartOfMonth(startId, endId) {
             foreach (PlcConf plc in allPlcs)
             {
                 sb.Append("<tr>");
-                sb.Append($"<td><input onchange='updPlc(\"update\", this);' value='{plc.Name}' {(isReadonly ? "disabled": string.Empty)}></td>");                
-                sb.Append($"<td><select onchange='updPlc(\"update\", this);' {(isReadonly ? "disabled": string.Empty)}>");
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' value='{plc.Name}' {(isReadonly ? "disabled" : string.Empty)}></td>");
+                sb.Append($"<td><select onchange='updPlc(\"update\", this);' {(isReadonly ? "disabled" : string.Empty)}>");
 
-                foreach (string type in Enum.GetNames<CpuType>())                                    
+                foreach (string type in Enum.GetNames<CpuType>())
                     sb.Append($"<option value='{type}' {(type == plc.CpuType.ToString() ? "selected" : string.Empty)}>{type}</option>");
-                
+
                 sb.Append("</select></td>");
                 sb.Append($"<td><input onchange='updPlc(\"update\", this);' pattern='[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' value='{plc.Ip}' {(isReadonly ? "disabled" : string.Empty)}></td>");
                 sb.Append($"<td><input onchange='updPlc(\"update\", this);' type='number' min='0' size='2' value='{plc.Rack}'  {(isReadonly ? "disabled" : string.Empty)} ></td>");
-                sb.Append($"<td><input onchange='updPlc(\"update\", this);' type='number' min='0' size='2' value='{plc.Slot}'  {(isReadonly ? "disabled" : string.Empty)} ></td>");         
+                sb.Append($"<td><input onchange='updPlc(\"update\", this);' type='number' min='0' size='2' value='{plc.Slot}'  {(isReadonly ? "disabled" : string.Empty)} ></td>");
                 sb.Append($"<td><input onchange='updPlc(\"update\", this); 'type='checkbox' value='{plc.IsActive}'{(plc.IsActive == true ? "checked" : "")} {(isReadonly ? "disabled" : string.Empty)}></td>");
                 sb.Append($"<td><input onchange='updPlc(\"update\", this);' value='{plc.Comment}' {(isReadonly ? "disabled" : string.Empty)}></td>");
                 sb.Append($"<td><input type='hidden' value='{plc.Id}'></td>");
-                
+
                 if (!isReadonly)
                 {
                     sb.Append("<td><input onclick='updPlc(\"ping\", this);' type='button' value='Ping'></td>");
@@ -590,7 +591,7 @@ function setDatesToStartOfMonth(startId, endId) {
             #endregion
 
             #region zur Zeit konfigurierte Steuerungen
-            sb.Append("<h2>Aktive Steuerungen</h2>");           
+            sb.Append("<h2>Aktive Steuerungen</h2>");
             sb.Append("<table>");
 
             var plcs = PlcTagManager.Instance.GetAllPlcs();
@@ -620,7 +621,7 @@ function setDatesToStartOfMonth(startId, endId) {
             #region Informationen zum Host
 
             sb.Append("<h2>Dieses Gerät</h2>");
-            sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");            
+            sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");
             sb.AppendLine("<p>Serverzeit (lokal): " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
             long dbSizeOnDiscMB = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
             float dbSizeOnDiscGB = (float)dbSizeOnDiscMB / 1024;
@@ -628,7 +629,7 @@ function setDatesToStartOfMonth(startId, endId) {
             sb.AppendLine($"<p>Datenbank: {dbFileCount} Dateien mit insgesamt {dbSizeOnDiscMB} MB ({dbSizeOnDiscGB.ToString("F2")} GB, ca. {avgDbSizeMB.ToString("F2")} MB pro Tag)<p>");
 
             sb.AppendLine("<h3>Laufwerke</h3>");
-            sb.AppendLine("<table><tr>" +                
+            sb.AppendLine("<table><tr>" +
                 "<th>Laufwerk</th>" +
                 "<th>Bezeichnung</th>" +
                 "<th>Art</th>" +
@@ -641,7 +642,7 @@ function setDatesToStartOfMonth(startId, endId) {
             {
 
                 var drives = DriveInfo.GetDrives();
-                    
+
                 foreach (DriveInfo drive in drives)
                 {
                     bool isCurrentDrive = AppDomain.CurrentDomain.BaseDirectory.StartsWith(drive.Name);
@@ -736,8 +737,9 @@ function setDatesToStartOfMonth(startId, endId) {
         /// represents a data series or metric to be visualized.</param>
         /// <returns>A string containing the full HTML markup for a web page that renders two dynamic charts and associated
         /// controls.</returns>
-        internal static string DynChart(ChartConfig chartConfig)
+        internal static string DynChart(ChartConfig chartConfig, System.DateTime start, System.DateTime end)
         {
+
             StringBuilder sb = new();
 
             sb.AppendLine(@"<!DOCTYPE html>
@@ -768,10 +770,11 @@ function setDatesToStartOfMonth(startId, endId) {
                     <canvas id='myChart1' class='chart' style='background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; '></canvas>
                     
                     <div class='container controls' style='max-width: fit-content; margin-left: auto; margin-right: auto;'>
-                        <div class='myButton' id='chartTimespan'></div>
-                        <input type='datetime-local' id='start' name='start' onfocusout='loadAllCharts();'>
-                        <input type='datetime-local' id='end' name='end' onfocusout='loadAllCharts();'>
-                        <button class='myButton' onclick='setDatesHours('start', 'end', 8);loadAllCharts();'><i class='material-icons'>schedule</i>8</button>
+                        <div class='myButton' id='chartTimespan'></div>");
+            sb.AppendLine($" <input type='datetime-local' id='start' name='start' onfocusout='loadAllCharts();' {(start == System.DateTime.MinValue ? string.Empty : $"value='{start:yyyy-MM-ddTHH:mm:ss}'")}>");
+            sb.AppendLine($"<input type='datetime-local' id='end' name='end' onfocusout='loadAllCharts();' {(end == System.DateTime.MinValue ? string.Empty : $"value='{end:yyyy-MM-ddTHH:mm:ss}'")}>");
+
+            sb.AppendLine(@"<button class='myButton' onclick='setDatesHours('start', 'end', 8);loadAllCharts();'><i class='material-icons'>schedule</i>8</button>
                         <button class='myButton' onclick='setDatesHours('start', 'end',24);loadAllCharts();'><i class='material-icons'>schedule</i>24</button>
                         <button class='myButton' onclick='excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));'><i class='material-icons'>save</i></button>
                         <button class='myButton' onclick='zoom(['myChart1', 'myChart2'], 1.2);'><i class='material-icons'>zoom_in</i></button>
@@ -797,23 +800,48 @@ function setDatesToStartOfMonth(startId, endId) {
                     const tags1 = new Map([");
 
             if (chartConfig.Chart1Tags is not null)
-                foreach (var t in chartConfig.Chart1Tags)            
-                    sb.Append($" ['{t.Key}', '{t.Value}'],");
-            
+                foreach (var t in chartConfig.Chart1Tags)
+                    sb.AppendLine($" ['{t.Key}', '{t.Value}'],");
+
             sb.AppendLine("]);");
 
             sb.AppendLine(@"const tags2 = new Map([");
 
             if (chartConfig.Chart2Tags is not null)
                 foreach (var t in chartConfig.Chart2Tags)
-                    sb.Append($" ['{t.Key}', '{t.Value}'],");
+                    sb.AppendLine($" ['{t.Key}', '{t.Value}'],");
 
             sb.AppendLine("]);");
 
             sb.AppendLine(@"initChart('myChart1', false);
                             initChart('myChart2', true);
-                            setDatesHours('start', 'end', 8);
+                            if (!getTimeParams())
+                                setDatesHours('start', 'end', 8);
                             loadAllCharts();
+            ");
+
+            sb.AppendLine(@"
+                function getTimeParams() {
+                    const url = new URL(window.location.href);
+                    const s = url.searchParams.get('start');
+                    const e = url.searchParams.get('end');
+                    if (isNaN(new Date(s)) || isNaN(new Date(e))) {
+                        console.warn(`Parameter fehlerhaft: start ${s}, end ${e}`);
+                        return false;
+                    }
+                    document.getElementById('start').value = s;
+                    document.getElementById('end').value = e;
+                    return true;
+                }
+            ");
+
+            sb.AppendLine(@"
+                 function setTimeParams() {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('start', document.getElementById('start').value);
+                    url.searchParams.set('end', document.getElementById('end').value);
+                    window.history.pushState(null, '', url.toString())
+                }            
             ");
 
             sb.AppendLine(@"
@@ -821,6 +849,7 @@ function setDatesToStartOfMonth(startId, endId) {
                     if (checkDuration('start', 'end', 'chartTimespan')) {
                         loadChart('myChart1', 'start', 'end', tags1);
                         loadChart('myChart2', 'start', 'end', tags2);
+                        setTimeParams();
                     }   
                 }
 
@@ -844,7 +873,7 @@ function setDatesToStartOfMonth(startId, endId) {
             sb.AppendLine(@"</script> 
               </body>
             </html>");
-          
+
             return sb.ToString();
         }
 
