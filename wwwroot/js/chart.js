@@ -1,14 +1,31 @@
-﻿const myCharts = new Map();
+﻿//import { CHART_COLORS } from './chartTheme1.js';
+
+const myCharts = new Map();
 const workers = new Map();
 
 // Standardfarben für Datensätze (Chart.js vergibt auch automatisch Farben)
-const CHART_COLORS = [
+/*const CHART_COLORS = [
     'rgba(75, 192, 192, 1)',
     'rgba(255, 99, 132, 1)',
     'rgba(54, 162, 235, 1)',
     'rgba(255, 206, 86, 1)',
     'rgba(153, 102, 255, 1)',
-    'rgba(255, 159, 64, 1)'
+    'rgba(255, 159, 64, 1)',
+    'rgba(75, 99, 235, 1)',
+    'rgba(54, 159, 64, 1)'
+]; //*/
+
+
+const CHART_COLORS = [
+    'rgba(0, 255, 255, 0.8)',
+    'rgba(255, 255, 0, 0.8)',
+    'rgba(0, 128, 255, 0.8)',
+    'rgba(0, 255, 0, 0.8)',
+    'rgba(255, 0, 0, 0.8)',
+    'rgba(0, 255, 128, 0.8)',   
+    'rgba(255, 128, 0, 0.8',
+    'rgba(128, 0, 255, 0.8)',
+    'rgba(255, 0, 255, 0.8)'    
 ];
 
 
@@ -48,8 +65,6 @@ function initChart(chartId, isStatusChart = false) {
     };
 
     let yTicks = {
-         
-        //stepSize: isStatusChart ? 2 : null, 
         color: '#ffffff'
     };
 
@@ -92,6 +107,7 @@ function initChart(chartId, isStatusChart = false) {
             scales: {
                 x: {
                     type: 'time',
+                    //bounds: 'ticks', // Stellt sicher, dass min/max Ticks sichtbar sind
                     time: {
                         unit: 'hour',
                         displayFormats: {
@@ -103,18 +119,27 @@ function initChart(chartId, isStatusChart = false) {
                     },
                     //min: startDate,
                     ticks: {
-                        source: 'data', //'data', //'auto'
-                        display: true,
-                        maxTicksLimit: 10, // Zeigt maximal 10 Ticks an
+                        source: 'auto', //'data', //'auto'
+                        autoSkip: true,
+                        //display: true,
+                        //maxTicksLimit: 10, // Zeigt maximal 10 Ticks an
                         //count: 20,
                         //minRotation: 90,   
                         major: { enabled: true },
-                        stepSize: 0.25,
+                        //stepSize: 0.25,
                         color: '#ffffff',
                         z: 1,
-                        beforeBuildTicks: function(ax){
-                           console.log(ax._unit);
-                        },
+                        //beforeBuildTicks: function(ax){
+                        //   console.log(ax._unit);
+                        //},
+
+                        //callback: function (value, index, ticks) {
+                        //    if (index === 0 || index === ticks.length - 1) {
+                        //        return this.getLabelForValue(value); 
+                        //    }
+
+                        //    return this.getLabelForValue(value);
+                        //}
 
                         //callback: function (val, index, ticks) {
                         //    if (ticks.length < 10)
@@ -144,17 +169,12 @@ function initChart(chartId, isStatusChart = false) {
                         color: '#ffffff',
                         text: 'Wert'
                     },
-                    ticks: yTicks,
-                    //{
-                    //    color: '#ffffff',     
-                    //    //stepSize: 2, // isStatusChart ? 2 : 'auto', // Zeigt nur die Basis-Werte (0, 2, 4)
-                    //    //callback: function (value) {
-                    //    //    if (isStatusChart) 
-                    //    //        return value % 2 > 0 ? 'An' : 'Aus';                                                           
-                    //    //    else
-                    //    //        return value;                           
-                    //    //}
+                    //suggestedMax: function (context) {                        
+                    //    //const maxDataSet = context.chart.data.datasets.length;
+                    //    const maxVal = Math.max(...values.map(t => t.value));
+                    //    return maxVal + 1;
                     //},
+                    ticks: yTicks,            
                     grid: {
                         display: true,
                         drawTicks: true,
@@ -188,20 +208,39 @@ function initChart(chartId, isStatusChart = false) {
     workers.set(chartId, worker);
 }
 
+//TODO: Darstellung Status-Chart als Linie oder Balken.
+/* function toggleStatusChart(chartId, tagNames) {
 
-// Initialisiere Status-Chart
-//function initStatusChart(chartId) {
+    const elm = document.getElementById(chartId);
+    if (!elm) {
+        console.warn(`HTML-Element mit Id ${chartId} existiert nicht.`);
+        return;
+    }
 
-//    const elm = document.getElementById(chartId);
-//    if (!elm) {
-//        console.warn(`HTML-Element mit Id ${chartId} existiert nicht.`);
-//        return;
-//    }
+    const booleanTags = [];
 
-//    const ctx = elm.getContext('2d');
-//    let myChart = new Chart(ctx, {
-//        type: 'doughnut',
-        
+    tagNames.forEach(function (t) {
+        let isBool = tagName.includes('X');       
+        booleanTags.push(isBool ? t : false);          
+    });
+
+    const chart = myCharts.get(chartId);
+    
+
+    chart.data.datasets.forEach((dataset) => {    
+        //tagNames[]
+        const offset = dataset.fill.target.value;
+        //dataset.fill = !dataset.fill;
+        if (dataset.fill != false) {
+            dataset.fill.target.value += (toggle == 1 ? 1 : -1);
+            //fill: isBool ? { target: { value: offset }, above: color } : false, // binär Liniendiagramme: Zwischen 'Aus' und 'Ein' füllen
+
+        }
+    });
+
+    chart.update();
+}  //*/
+
 
 
 /**
@@ -307,7 +346,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
             myChart.data.datasets = newDatasets;
 
             // Aktualisiere das Diagramm
-            myChart.update();
+            myChart.update('none');
             //console.log('Chart aktualisiert.');
             progressContainer.style.display = 'none';
             document.body.style.opacity = "1";

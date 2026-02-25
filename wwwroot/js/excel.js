@@ -205,7 +205,7 @@ async function getDbFromForm(startId, endId) {
     })
         .then((res) => {
             console.info(res.headers);
-            filename = res.headers.get('Content-Disposition').split('filename=')[1];
+            filename = res.headers.get('Content-Disposition').split('filename=')[1].split(";")[0];
             return res.blob();
         })
         .then(blob => URL.createObjectURL(blob))
@@ -274,8 +274,13 @@ async function excelExport(startId, endId, ival, tags) {
             },
             body: new URLSearchParams({ start: s.toISOString(), end: e.toISOString(), interval: ival, tags: JSON.stringify(arr) })
         }) //https://stackoverflow.com/questions/44168090/fetch-api-to-force-download-file
-            .then((res) => {                
-                filename = res.headers.get('Content-Disposition').split("filename*=UTF-8''")[1]; //UTF8-Filename
+            .then((res) => {                     
+                try {
+                    filename = res.headers.get('Content-Disposition').split("filename=")[1];
+                    //filename = res.headers.get('Content-Disposition').split("filename*=UTF-8''")[1]; //UTF8-Filename
+                } catch (e) {
+                    console.warn("Fehler beim Auslesen des Dateinamens aus den Response-Headern: " + e.message);
+                }
                 return res.blob();
             })
             .then(blob => URL.createObjectURL(blob))

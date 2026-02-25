@@ -3,6 +3,7 @@ using Gemini.Models;
 using S7.Net;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace Gemini.Services
@@ -29,10 +30,13 @@ namespace Gemini.Services
         [GeneratedRegex(@"^DB(\d+)\.(DBB|DBW|DBD|DBX)(\d+)(?:\.(\d+))?$", RegexOptions.IgnoreCase)]
         private static partial Regex GenericRegex();
 
+        internal Guid DataBaseClientIdentifier { get; set; }
+
         private readonly ConcurrentDictionary<string, ParsedAddress?> _parseCache = new(StringComparer.Ordinal);
         // tagName -> subscribers (clientId -> byte placeholder)
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<Guid, byte>> _subscribers = new(StringComparer.Ordinal);
         private readonly ConcurrentDictionary<Guid, ClientEntry> _clients = new();
+        internal readonly ConcurrentDictionary<Guid, IPAddress> ClientInfo = new();
         private readonly ConcurrentDictionary<string, Plc> _plcConfigs = new(StringComparer.OrdinalIgnoreCase);
 
         private readonly PlcConnectionManager _connectionManager = new();
@@ -99,11 +103,12 @@ namespace Gemini.Services
             }
         }
 
-        public void AddOrUpdateClient(Guid clientId, JsonTag[] tags, Func<JsonTag[], Task> sendCallback)
+        public void AddOrUpdateClient(Guid clientId, IPAddress ip, JsonTag[] tags, Func<JsonTag[], Task> sendCallback)
         {
             tags ??= []; // Wenn Tags = null, leeres Array verwenden
             var entry = new ClientEntry(sendCallback, tags);
             _clients.AddOrUpdate(clientId, entry, (_, __) => entry);
+            ClientInfo.TryAdd(clientId, ip);
 
             // persist names async
             _ = Task.Run(() => Db.Db.InsertTagNamesBulk(tags));
@@ -118,11 +123,17 @@ namespace Gemini.Services
                 subs[clientId] = 0;
             }
 
-            Db.Db.DbLogInfo($"Client {clientId} mit {tags.Length} Tags hinzugefügt/aktualisiert.");
+            if (ip.MapToIPv4() == IPAddress.Loopback)
+                Db.Db.DbLogInfo($"Lokalen Client mit {tags.Length} Tags hinzugefügt/aktualisiert.");
+            else
+                Db.Db.DbLogInfo($"Client an {ip.MapToIPv4()} mit {tags.Length} Tags hinzugefügt/aktualisiert.");
         }
 
         public void RemoveClient(Guid clientId)
-        {
+        {            
+            Db.Db.DbLogInfo($"Client an {ClientInfo.GetValueOrDefault(clientId)?.MapToIPv4()} entfernt.");
+            ClientInfo.TryRemove(clientId, out _);
+
             _clients.TryRemove(clientId, out _);
             foreach (var kv in _subscribers)
             {
@@ -134,7 +145,10 @@ namespace Gemini.Services
                 }
             }
 
-            Db.Db.DbLogInfo($"Client {clientId} entfernt.");
+           
+            //Datenbank schreiben neu initiieren, wenn der entsprechende CVlient entfernt wurde.
+            if (clientId == DataBaseClientIdentifier) 
+                Db.Db.InitiateDbWriting();
         }
 
         private async Task PollLoop()
@@ -178,6 +192,8 @@ namespace Gemini.Services
                 catch (OperationCanceledException) { break; }
                 catch
                 {
+                    //TEST Wieder löschen
+                    Db.Db.DbLogInfo("halte PollLoop() am Leben...");
                     // keep loop alive
                 }
 
@@ -271,7 +287,10 @@ namespace Gemini.Services
                                 _ = Task.Run(async () =>
                                 {
                                     try { await clientEntry.SendCallback([updated]); }
-                                    catch { RemoveClient(clientId); }
+                                    catch (Exception ex) {
+                                        Db.Db.DbLogWarn($"Fehler beim Senden an Client {clientId}, entferne Client. clientEntry. |{clientEntry}|{updated}| " + ex);
+                                        RemoveClient(clientId); 
+                                    }
                                 });
                             }
                         }
@@ -399,7 +418,8 @@ namespace Gemini.Services
 
         private class ClientEntry(Func<JsonTag[], Task> sendCallback, JsonTag[] tags)
         {
-            public Func<JsonTag[], Task> SendCallback { get; } = sendCallback; public JsonTag[] Tags { get; set; } = tags;
+            public Func<JsonTag[], Task> SendCallback { get; } = sendCallback; 
+            public JsonTag[] Tags { get; set; } = tags;
         }
 
         private readonly struct ParsedAddress(string ip, int db, int offset, TagDataType dataType, int size, int? bit = null)

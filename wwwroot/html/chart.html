@@ -49,6 +49,7 @@
         <button class="myButton" onclick="resetZoom(['myChart1', 'myChart2'])"><i class="material-icons">center_focus_weak</i></button>
         <button class="myButton" onclick="panX(['myChart1', 'myChart2'], 100);"><i class="material-icons">arrow_left</i></button>
         <button class="myButton" onclick="panX(['myChart1', 'myChart2'], -100);"><i class="material-icons">arrow_right</i></button>
+        <!-- <button class="myButton" onclick="toggleStatusChart('myChart2', tags2)"><i style="color:red;" class="material-icons">legend_toggle</i></button> -->
     </div>
     <canvas id="myChart2" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
 
@@ -69,11 +70,17 @@
         ]);
 
         const tags2 = new Map([
+            ['A01_DB10_DBX7_7', 'Sekunde Bit0'],
+            ['A01_DB10_DBX7_6', 'Sekunde Bit1'],
             ['A01_DB10_DBX7_5', 'Sekunde Bit2'],
-            ['A01_DB10_DBX7_4', 'Sekunde Bit3']
+            ['A01_DB10_DBX7_4', 'Sekunde Bit3'],
+            ['A01_DB10_DBX7_3', 'Sekunde Bit4'],
+            ['A01_DB10_DBX7_2', 'Sekunde Bit5']
+            //['A01_DB10_DBX7_1', 'Sekunde Bit6'],
+            //['A01_DB10_DBX7_0', 'Sekunde Bit7']
         ]);
 
-        initChart('myChart1');
+        initChart('myChart1', false);
         initChart('myChart2', true);
         setDatesHours('start', 'end', 8);
         loadAllCharts();

@@ -13,13 +13,13 @@ namespace Gemini.Db
         Guest
     }
 
-    internal class User 
+    internal sealed class User 
     {
         public required string Name { get; set; }
         public required Role Role { get; set; }
     }
 
-    internal class PlcConf
+    internal sealed class PlcConf
     {
         internal PlcConf(int id, string name, CpuType cpuType, string ip, short rack, short slot, bool isActive, string comment)
         {
@@ -50,7 +50,7 @@ namespace Gemini.Db
     }
 
 
-    internal partial class Db
+    internal sealed partial class Db
     {
         #region Benutzerverwaltung
         internal static bool AuthenticateUser(string username, string userpassword, out Role userRole)
@@ -564,46 +564,76 @@ namespace Gemini.Db
         {
             List<TagCollection> tcs = [];
 
-            lock (_dbLock)
+            using var connection = new SqliteConnection(MasterDbSource);
+            connection.Open();
+            var command = connection.CreateCommand();
+            var query = @"SELECT Id, Name, Author, Start, End, Interval, Tags FROM ChartConfig;";
+            command.CommandText = query;
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
             {
-               
-                using var connection = new SqliteConnection(MasterDbSource);
-                connection.Open();
-                var command = connection.CreateCommand();
-                var query = @"SELECT Id, Name, Author, Start, End, Interval, Tags FROM ChartConfig;";
-                command.CommandText = query;
-                using var reader = command.ExecuteReader();
-                while (reader.Read())
-                {
-                    int id = reader.GetInt32(0);
-                    string name = reader.GetString(1);
-                    string author = reader.GetString(2);
-                    DateTime start = DateTime.Parse(reader.GetString(3));
-                    DateTime end = DateTime.Parse(reader.GetString(4));
-                    string intervalStr = reader.GetString(5);
-                    string tags = reader.GetString(6);
-                   // tags = tags.Split("\"value\":")[1].TrimEnd('}');
-                    
-                        Console.WriteLine( $"Übergebene Tags: {tags}");
+                int id = reader.GetInt32(0);
+                string name = reader.GetString(1);
+                string author = reader.GetString(2);
+                DateTime start = DateTime.Parse(reader.GetString(3));
+                DateTime end = DateTime.Parse(reader.GetString(4));
+                string intervalStr = reader.GetString(5);
+                string tags = reader.GetString(6);
+                // tags = tags.Split("\"value\":")[1].TrimEnd('}');
 
-                    Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
-                    MiniExcel.Interval interval = MiniExcel.GetTimeFormat(intervalStr);
-                    TagCollection tc = new(id, name, author, start, end, (int)interval, tagArray);
+                Console.WriteLine($"Übergebene Tags: {tags}");
 
-              
-                        Console.WriteLine($"Lade Tag-Zusammenstellung '{name}'");
+                Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
+                MiniExcel.Interval interval = MiniExcel.GetTimeFormat(intervalStr);
+                TagCollection tc = new(id, name, author, start, end, (int)interval, tagArray);
 
-                    tcs.Add(tc);
-                }
-                connection.Dispose();
-                
+
+                Console.WriteLine($"Lade Tag-Zusammenstellung '{name}'");
+
+                tcs.Add(tc);
             }
-
+            connection.Dispose();
 
             //JSON.stringify({ id: 0, name: chartName, author: '', start: start.toISOString(), end: end.toISOString(), interval: parseInt(interval), tags: tagNames });
             return tcs;
             //throw new NotImplementedException();
             //return new TagCollection("","",DateTime.MinValue, DateTime.MaxValue, DynContent.MiniExcel.Interval.Jahr, new Tag[] {new Tag("","",0,false)});
+        }
+
+        internal static TagCollection? GetTagCollection(int id)
+        {
+            TagCollection? tc = null;
+            using var connection = new SqliteConnection(MasterDbSource);
+            connection.Open();
+            var command = connection.CreateCommand();
+            var query = @"SELECT Id, Name, Author, Start, End, Interval, Tags FROM ChartConfig WHERE Id = @Id;";
+            command.Parameters.AddWithValue("@Id", id);
+            command.CommandText = query;
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {                
+                string name = reader.GetString(1);
+                string author = reader.GetString(2);
+                DateTime start = DateTime.Parse(reader.GetString(3));
+                DateTime end = DateTime.Parse(reader.GetString(4));
+                string intervalStr = reader.GetString(5);
+                string tags = reader.GetString(6);
+                // tags = tags.Split("\"value\":")[1].TrimEnd('}');
+
+                Console.WriteLine($"Übergebene Tags: {tags}");
+
+                Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
+                MiniExcel.Interval interval = MiniExcel.GetTimeFormat(intervalStr);
+                tc = new(id, name, author, start, end, (int)interval, tagArray);
+
+                Console.WriteLine($"Lade Tag-Zusammenstellung '{name}'");
+
+                if (tc is not null)
+                    break;
+            }
+            connection.Dispose();
+
+            return tc;
         }
 
         internal static int CreateChartconfig(string chartName, string author, DateTime start, DateTime end, DynContent.MiniExcel.Interval interval, Tag[] tags)

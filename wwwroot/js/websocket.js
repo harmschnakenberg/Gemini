@@ -329,7 +329,7 @@ window.onload = () => {
     initUnits();
     checkLoginStatus();
     initWebsocket(initTags());
-    loadMenu('soll', '/js/sollmenu.json');
+    loadMenu('soll', '/soll/sollmenu.json');
 }
 
               

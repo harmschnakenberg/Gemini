@@ -14,8 +14,13 @@
 	<GenerateDocumentationFile>False</GenerateDocumentationFile>
 	<Configurations>Debug;Release</Configurations>
 	<Platforms>AnyCPU;x64;ARM64</Platforms>
-	<PublishTrimmed>False</PublishTrimmed>
-	<UserSecretsId>fbbb64fa-449c-4d7b-a9fc-6e36d844d9a0</UserSecretsId>
+	<PublishTrimmed>True</PublishTrimmed>
+	<!-- <UserSecretsId>fbbb64fa-449c-4d7b-a9fc-6e36d844d9a0</UserSecretsId> -->
+	<HotReloadAutoRestart>true</HotReloadAutoRestart>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -56,8 +61,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -75,6 +80,9 @@
     <Content Update="wwwroot\html\chart.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Update="wwwroot\html\chart\chart0.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Update="wwwroot\html\excel.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -84,19 +92,19 @@
     <Content Update="wwwroot\html\soll\schaltwarte.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\html\soll\test - Kopieren.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <Content Update="wwwroot\html\soll\test.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\js\chart.js">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Update="wwwroot\js\chartTheme1.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Update="wwwroot\js\excel.js">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\js\sollmenu.json">
+    <Content Update="wwwroot\html\soll\sollmenu.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\js\websocket.js">
@@ -109,6 +117,7 @@
 
   <ItemGroup>
     <Folder Include="Properties\PublishProfiles\" />
+    <Folder Include="wwwroot\cert\" />
   </ItemGroup>
 
 </Project>

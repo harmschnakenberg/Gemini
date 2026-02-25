@@ -126,7 +126,7 @@ namespace Gemini.Middleware
         private static IResult Logout(LoginResponse request, HttpContext context)
         {
             context.SignOutAsync();
-            Db.Db.DbLogInfo($"Logout: {request.RequestToken}");
+            Db.Db.DbLogInfo($"Logout: {request.RequestToken} ");
             return Results.Ok(new { Message = "Ausgeloggt" });
         }
 

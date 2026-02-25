@@ -1,6 +1,5 @@
 ﻿const booleanTags = [];
 
-
 /**
  * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
  */
@@ -42,6 +41,9 @@ self.onmessage = async function (e) {
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
 function processData(chartId, jsonData, aliases, colors) {
+
+    //TEST      
+    //colors = await import(`https://${window.location.host}/js/chartTheme1.js`).CHART_COLORS; //TEST
     const REPORT_INTERVAL = 100;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
@@ -75,22 +77,18 @@ function processData(chartId, jsonData, aliases, colors) {
             
             datasetsMap.set(tagName, {
                 label: alias,
-                //type: 'line',
-                //type: isBool ? 'bar' : 'line', // TagName enthält 'X'? Standardmäßig als Liniendiagramm
                 data: [],
                 borderColor: color,
                 backgroundColor: color,
                 stepped: isBool ? true : false, // Macht aus der Linie eine Treppenfunktion
-                fill: isBool ? { target: { value: offset }, above: color } : false, // binär Liniendiagramme: Zwischen 'Aus' und 'Ein' füllen
-                //fill: false,
-                // Setze pointRadius auf 0 für viele Datenpunkte
-                pointRadius: 0
+                fill: isBool ? { target: { value: offset }, above: color } : false, // binär Liniendiagramme: Zwischen 'Aus' und 'Ein' füllen               
+                pointRadius: 0  // Setze pointRadius auf 0 für viele Datenpunkte
             });
             colorIndex++;
         }
 
         // Füge den Datenpunkt hinzu. Chart.js Time Scale erwartet {x: timestamp, y: tagValue}
-        // Boolsche Werte werden "übereinandergestapelt" (TEST)
+        // Boolsche Werte werden "übereinandergestapelt".
         datasetsMap.get(tagName).data.push({
             x: timestamp,
             y: isBool ? tagValue + booleanTags.indexOf(tagName) : tagValue
@@ -105,9 +103,8 @@ function processData(chartId, jsonData, aliases, colors) {
             self.postMessage({
                 type: 'progress',
                 chartId: chartId,
-                percentage: percentage,
-                // Optional: Die Anzahl der bereits verarbeiteten Elemente
-                processedCount: i + 1,
+                percentage: percentage,               
+                processedCount: i + 1, // Die Anzahl der bereits verarbeiteten Elemente
                 totalCount: totalItems
             });
         }

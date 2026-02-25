@@ -23,15 +23,17 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
 	- Liste der zuletzt geänderten Sollwerte im Webinterface anzeigen
 	- Status-Kurven
-	- ToDo: SplashScreen während Charts geladen werden "Browser berechnet Darstellung"
-	- ToDo: Warte-Cursor bei Excel Download
-	- Todo: Status-Kurven Achsbeschriftung "Ein" / "Aus" statt "1"/"0"
+	- SplashScreen während Charts geladen werden "Browser berechnet Darstellung"
+	- Log vom Server auf Weboberfläche
+	- Liste der vorhandenen Datenbanken
+	- Status-Kurven Achsbeschriftung "Ein" / "Aus" statt "1"/"0"
+	- ToDo: Warte-Cursor (Excel Download) bei /excel beim Laden der TagComments 	
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	- ToDo: SVG Support für Bilder		
 	- ToDo: Liste der verbundenen Clients im Webinterface anzeigen	
 	- ToDo: Altwert und Neuwert bei Sollwertänderung im Webinterface (Liste) anzeigen
-	
+	- ToDo: Hist-Kurven Zusammenstellung in Anlehnung an Excel-Auswahl
 	- NiceToHave: Logging mit Source Generated Logging für bessere Performance
 	
 - S700/1200/1500/300/400 PLC Communication Library

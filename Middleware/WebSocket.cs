@@ -2,6 +2,7 @@
 using Gemini.Services;
 using Microsoft.AspNetCore.Antiforgery;
 using System.Buffers;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -24,7 +25,8 @@ namespace Gemini.Middleware
 #if DEBUG
                     //Console.WriteLine("WebSocket wird geöffnet.");
 #endif
-                    await ReadTagsLoop(webSocket);
+                    IPAddress? ip = context.Connection.RemoteIpAddress;
+                    await ReadTagsLoop(webSocket, context.Connection.RemoteIpAddress ?? new IPAddress([127,0,0,1]));
                 }
                 else
                 {
@@ -119,12 +121,14 @@ namespace Gemini.Middleware
                     }
                 }
             }
-            catch 
+            catch (Exception ex)
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
 #if DEBUG
-               // Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
+                Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
 #endif
+                Db.Db.DbLogWarn($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
+
                 PlcTagManager.Instance.RemoveClient(clientId);
             }
         }
@@ -137,6 +141,7 @@ namespace Gemini.Middleware
         /// </summary>
         private static async Task ProcessClientMessagesLoop(
             WebSocket webSocket,
+            IPAddress ip,
             Guid clientId,
             Func<JsonTag[], Task> sendCallback,
             byte[] buffer)
@@ -170,16 +175,16 @@ namespace Gemini.Middleware
                             if (newTags != null)
                             {
 #if DEBUG
-                                Console.WriteLine($"Updating tags for client {clientId}.");
+                                Console.WriteLine($"Updating tags for client {clientId} on {ip}.");
 #endif
                                 // Registrierung mit dem GLEICHEN Callback und der NEUEN Tag-Liste
-                                PlcTagManager.Instance.AddOrUpdateClient(clientId, newTags, sendCallback);
+                                PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, newTags, sendCallback);
                             }
                         }
                         catch
                         {
 #if DEBUG
-                            Console.WriteLine($"Invalid tag payload from client {clientId}.");
+                            Console.WriteLine($"Invalid tag payload from client {clientId} on {ip}.");
                             // Ignoriere ungültige Payload
 #endif
                         }
@@ -194,18 +199,19 @@ namespace Gemini.Middleware
             }
             // Der 'finally' des ursprünglichen Blocks wird in ReadTagsLoop beibehalten, 
             // um die Ressourcenfreigabe zu garantieren, auch wenn dieser Loop abstürzt.
-            catch 
+            catch (Exception ex)
             {
 #if DEBUG
-                //Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
+                Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
 #endif
+                Db.Db.DbLogWarn($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
                 // WICHTIG: Wenn der Loop abbricht, muss die Verbindung entfernt werden.
                 PlcTagManager.Instance.RemoveClient(clientId);
                 throw; // Wir werfen die Ausnahme weiter, damit sie im outer finally (ReadTagsLoop) behandelt wird.
             }
         }
 
-        private static async Task ReadTagsLoop(WebSocket webSocket)
+        private static async Task ReadTagsLoop(WebSocket webSocket, IPAddress ip)
         {
             // Empfang der initialen Tags (Code bleibt unverändert)
             var buffer = new byte[1024 * 8];
@@ -214,7 +220,7 @@ namespace Gemini.Middleware
 
             if (receiveResult.MessageType != WebSocketMessageType.Text || receiveResult.Count <= 0)
             {
-#if DEBUG
+#if DEBUG                
                 Console.WriteLine("Received invalid initial message from WebSocket client. Closing connection.");
 #endif
                 await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid initial message", CancellationToken.None);
@@ -252,13 +258,13 @@ namespace Gemini.Middleware
 
             if (clientData is not null)
             // Registriere Client und seine Tags beim globalen Manager
-            PlcTagManager.Instance.AddOrUpdateClient(clientId, clientData, SendWebsocketCallback);
+            PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, clientData, SendWebsocketCallback);
 
             // 2. Starte den Haupt-Loop zum Warten auf eingehende Nachrichten
             try
             {
                 // Rufe die ausgelagerte Methode auf, die den Socket aktiv hält.
-                await ProcessClientMessagesLoop(webSocket, clientId, SendWebsocketCallback, buffer);
+                await ProcessClientMessagesLoop(webSocket, ip, clientId, SendWebsocketCallback, buffer);
             }
             // Der 'finally' Block fängt sowohl den normalen Loop-Exit (durch break) 
             // als auch eine Ausnahme (durch throw im Loop) ab.
@@ -266,7 +272,8 @@ namespace Gemini.Middleware
             {
                 // Verbindung beendet -> entferne die Tags dieses Clients global
 #if DEBUG
-                //Console.WriteLine($"WebSocket client {clientId} disconnected.");
+                Console.WriteLine($"WebSocket client {clientId} disconnected.");
+                 Db.Db.DbLogInfo($"WebSocket von Client {PlcTagManager.Instance.ClientInfo.GetValueOrDefault(clientId)} beendet.");
 #endif
                 PlcTagManager.Instance.RemoveClient(clientId);
 

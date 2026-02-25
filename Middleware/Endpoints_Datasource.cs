@@ -19,12 +19,16 @@ namespace Gemini.Middleware
     {
 
         #region Tags
-        private static async Task GetAllTagsConfig(HttpContext ctx)
+        private static IResult GetAllTagsConfig(HttpContext ctx, ClaimsPrincipal claimsPrincipal)
         {
-            ctx.Response.StatusCode = 200;
-            ctx.Response.ContentType = "text/html";
-            await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags());
-            await ctx.Response.CompleteAsync();
+            bool isAdmin = claimsPrincipal.IsInRole(Role.Admin.ToString());
+
+            //ctx.Response.StatusCode = 200;
+            //ctx.Response.ContentType = "text/html";
+            //await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags(isAdmin));
+            //await ctx.Response.CompleteAsync();
+
+            return Results.Content(HtmlHelper.ListAllTags(isAdmin), "text/html", Encoding.UTF8, 200);
         }
 
         private static IResult TagReadFailes()
@@ -57,7 +61,7 @@ namespace Gemini.Middleware
                 return Results.Unauthorized();
         }
 
-        private static async Task DbQuery(HttpContext ctx)
+        private static IResult DbQuery(HttpContext ctx)
         {
             string[]? tagNames = [];
             DateTime startUtc = DateTime.UtcNow.AddHours(-8);
@@ -65,32 +69,26 @@ namespace Gemini.Middleware
 
             //Console.WriteLine($"DB Request received with query: {ctx.Request.QueryString}");
 
-
             if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
                 tagNames = tagNamesStr.ToString().Split(',');
 
-            if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))
-            {
+            if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))            
                 startUtc = s.ToUniversalTime(); //lokale Zeit in UTC
-                                                //Console.WriteLine($"Parsed start time {startStr} to {start}");
-            }
-
-            if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))
-            {
+            
+            if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
                 endUtc = e.ToUniversalTime();
-                //Console.WriteLine($"Parsed end time {endStr} to {end}");
-            }
-
-            //Console.WriteLine($"DB Request for tags: {string.Join(", ", tagNames!)} from {start} to {end}");
-            JsonTag[] obj = await Db.Db.GetDataSet(tagNames!, startUtc, endUtc);
+            
+            JsonTag[] obj = Db.Db.GetDataSet(tagNames!, startUtc, endUtc).Result;
 #if DEBUG
             //Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
 #endif
             // Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
-            ctx.Response.StatusCode = 200;
-            ctx.Response.ContentType = "application/json";
-            await ctx.Response.WriteAsJsonAsync(obj, AppJsonSerializerContext.Default.JsonTagArray);
-            await ctx.Response.CompleteAsync();
+            //ctx.Response.StatusCode = 200;
+            //ctx.Response.ContentType = "application/json";
+            //await ctx.Response.WriteAsJsonAsync(obj, AppJsonSerializerContext.Default.JsonTagArray);
+            //await ctx.Response.CompleteAsync();
+
+            return Results.Json(obj, AppJsonSerializerContext.Default.JsonTagArray);
         }
 
         private static IResult GetTagComments()
@@ -142,9 +140,16 @@ namespace Gemini.Middleware
             
             if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
                 endUtc = e.ToUniversalTime();
-                
-            var aTags =  Db.Db.SelectTagAlterations( startUtc, endUtc);
-            return Results.Content(HtmlHelper.ListAlteredTags(aTags, startUtc, endUtc), "text/html");
+
+            var aTags =  Db.Db.SelectTagAlterations(startUtc, endUtc);
+#if DEBUG
+            Console.WriteLine($"Zeige Sollwertänderungen {startUtc.ToLocalTime()} bis {endUtc.ToLocalTime()}. {aTags.Count} Änderungen gefunden.");
+#endif
+            string html = HtmlHelper.ListAlteredTags(aTags, startUtc, endUtc) ?? "<html><h1>leer</h1></html>";
+
+            //Console.WriteLine(html);
+            
+            return Results.Content(html, "text/html");
         }
 
         #endregion
@@ -268,6 +273,15 @@ namespace Gemini.Middleware
             else
                 return Results.Json(new AlertMessage("warn", $"SPS [{ip}] nicht erreichbar"), AppJsonSerializerContext.Default.AlertMessage);
             throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Datenbank
+
+        private static IResult DbList(HttpContext context)
+        {
+            return Results.Content(HtmlHelper.ListAllDatabases(), "text/html");
         }
 
         #endregion

@@ -1,0 +1,15 @@
+{
+  "Id": 0,
+  "Caption": "Überschrift",
+  "SubCaption": "Unterüberschrift",
+  "Chart1Tags": {
+    "A01_DB10_DBW2": "Stunde aus JSON",
+    "A01_DB10_DBW4": "Minute aus JSON",
+    "A01_DB10_DBW6": "Sekunde aus JSON"
+  },
+  "Chart2Tags": {
+    "A01_DB10_DBX7_5": "Sekunde Bit 2",
+    "A01_DB10_DBX7_4": "Sekunde Bit 3",
+    "A01_DB10_DBX7_3": "Sekunde Bit 4"
+  }
+}

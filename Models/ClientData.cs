@@ -13,33 +13,67 @@ namespace Gemini.Models
     public record CsrfTokenResponse(string Token);
 
     public record AlertMessage(string Type, string Text);
-    
 
-    public class JsonTag(string n, object? v, DateTime t)
-    {        
-        public string N { get; set; } = n;
-        public object? V { get; set; } = v;
-        public DateTime T { get; set; } = t;
+    public record JsonTag(string N, object? V, DateTime T);
 
-    }
+    //public class JsonTag(string n, object? v, DateTime t)
+    //{        
+    //    public string N { get; set; } = n;
+    //    public object? V { get; set; } = v;
+    //    public DateTime T { get; set; } = t;
+
+    //}
 
 
     public class Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
     {
         public string TagName { get; set; } = tagName;
         public string TagComment { get; set; } = tagComment;
-        public object? TagValue { get; set; } = tagValue;
+        public object? TagValue { get; set; } = tagValue;    
         public bool ChartFlag { get; set; } = chartFlag;
+    }
+
+    /// <summary>
+    /// Represents a record of a tag modification, including the time of change, the tag's details, the previous value,
+    /// and the user responsible for the alteration.
+    /// </summary>
+    /// <remarks>This class is useful for auditing tag changes, tracking historical values, and associating
+    /// modifications with specific users. The Tag property is initialized with the provided tag details and reflects
+    /// the state after the alteration.</remarks>
+    /// <param name="timestamp">The date and time when the tag was modified.</param>
+    /// <param name="tagName">The name of the tag that was altered.</param>
+    /// <param name="tagComment">The comment or description associated with the tag at the time of modification.</param>
+    /// <param name="tagValue">The new value assigned to the tag. Can be null if the tag value is cleared or not set.</param>
+    /// <param name="oldValue">The previous value of the tag before the modification. Can be null if the tag was newly created or had no prior
+    /// value.</param>
+    /// <param name="user">The identifier of the user who performed the tag modification.</param>
+    public class TagAltered(DateTime timestamp, string tagName, string tagComment, object? tagValue, object? oldValue, string user) : Tag(tagName, tagComment, tagValue, false)
+    {
+        public DateTime Timestamp { get; set; } = timestamp;
+        //public string TagName { get; set; } = tagName;
+        //public string TagComment { get; set; } = tagComment;
+        public object? NewValue { get; set; } = tagValue;        
+        public object? OldValue { get; set; } = oldValue;
+        public string User { get; set; } = user;
     }
 
     public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
 
-    //public record FormPost(
-    //[Required] DateTime Start,
-    //[Required] DateTime End,
-    //[Required, Range(0, 5)] MiniExcel.Interval Interval,
-    //[Required] Dictionary<string, string> TagsAndComments
-    //);
+    //Todo: ChartConfig könnte man auch in der Datenbank speichern, um die Zuordnung von Tags zu Charts dynamisch zu gestalten.
+    //Aktuell ist es hartkodiert in der AppSettings.json, was für einfache Anwendungsfälle ausreichend sein könnte, aber weniger flexibel ist,
+    //wenn sich die Anforderungen ändern oder wenn Benutzer eigene Chart-Konfigurationen erstellen möchten.
+    //Die ChartConfig-Klasse definiert die Struktur für die Konfiguration von Diagrammen, einschließlich der Zuordnung von Tags zu zwei verschiedenen Diagrammen (Chart1 und Chart2).
+    //ToDo: Prüfen, ob JsonTag, Tag, TagCollection und ChartConfig zusammengefasst werden können, um die Anzahl der Klassen zu reduzieren und
+    //die Datenstruktur zu vereinfachen. Es könnte sinnvoll sein, eine einheitliche Klasse zu verwenden,
+    //die sowohl die Tag-Informationen als auch die Chart-Konfiguration enthält, um die Handhabung der Daten zu erleichtern und Redundanzen zu vermeiden.
+    internal class ChartConfig
+    {
+        public int Id { get; set; }
+        public string Caption { get; set; } 
+        public string? SubCaption { get; set; }
+        public Dictionary<string, string> Chart1Tags { get; set; }
+        public Dictionary<string, string> Chart2Tags { get; set; }
+    }
 
 
     public class MenuLink(int id, string name, string link)
@@ -103,7 +137,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(LoginRequest))]
 [JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(CsrfTokenResponse))]
-//[JsonSerializable(typeof(FormPost))]
+[JsonSerializable(typeof(ChartConfig))]
 [JsonSerializable(typeof(Tag[]))]
 [JsonSerializable(typeof(TagCollection))]
 [JsonSerializable(typeof(TagCollection[]))]

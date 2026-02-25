@@ -14,7 +14,11 @@
 <body>
     <h1>Export aufgezeichneter Anlagendaten</h1>
 
-    <fieldset>
+    <p>
+        Hier können Sie die aufgezeichneten Daten als Excel-Tabelle oder SQLite-Datenbank (Rohwerte) herunterladen. 
+    </p>
+
+    <fieldset style="width:fit-content;">
         <legend>Zeitraum:</legend>
         <p class="info-container">
             Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Werteintervall,
@@ -40,7 +44,7 @@
 
     <hr />
 
-    <fieldset>
+    <fieldset style="width:fit-content;">
         <legend>Zuordnung Tabellenspalten:</legend>
         <p class="info-container">
             Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.<br />
@@ -64,18 +68,18 @@
 
     <hr />
 
-    <fieldset>
+    <fieldset style="width:fit-content;">
         <legend>Download:</legend>
         <div class="container">
             <div class="controls">
                 <button class="myButton" style="width:10rem;" onclick="getExcelFromForm();">Excel-Export</button>
                 <div>
-                    Der Excel-Export kann einige Sekunden in Anspruch nehmen. Die Datenpunkte werden in der oben zugewiesenen Reihenfolge in Spalten ausgegeben. Die Excel-Datei wird in Ihren Download-Ordner heruntergeladen.
+                    Der Excel-Export kann einen Moment in Anspruch nehmen. Die Datenpunkte werden in der oben zugewiesenen Reihenfolge in Spalten ausgegeben. Die Excel-Datei wird in Ihren Download-Ordner heruntergeladen.
                 </div>
                 <hr />
                 <button class="myButton" style="width:10rem;" onclick="getDbFromForm('start', 'end');">SQLite-Export</button>
                 <div>
-                    Der Datenbank-Export kann einige Sekunden in Anspruch nehmen. Es werden alle aufgezeichneten Tags exportiert.
+                    Der Datenbank-Export kann einen Moment in Anspruch nehmen. Es werden alle aufgezeichneten Tags exportiert.
                     Die SQLite-Dateien werden als ZIP in Ihren Download-Ordner heruntergeladen. <a href="https://sqlite.org/" target="_blank">SQLite.org</a>, <a href="https://sqlitebrowser.org/" target="_blank">SQLite Browser</a>
                 </div>
             </div>
@@ -84,8 +88,11 @@
 
     <hr />
 
-    <fieldset>
+    <fieldset style="width:fit-content;">
         <legend>Konfiguration laden / speichern:</legend>
+        <p class="info-container">
+            Vergeben Sie einen Konfigurationsnamen und speichern Sie die aktuelle Konfiguration. Laden Sie eine gespeicherte Konfiguration anhand des Konfigurationsnamens.
+        </p>
         <div class="container">
             <div class="controls">
                 <input class="myButton" list="taglists" id="configName" placeholder="Konfigurationsname">

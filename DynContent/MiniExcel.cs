@@ -5,7 +5,7 @@ using MiniExcelLibs.OpenXml;
 
 namespace Gemini.DynContent
 {
-    public class MiniExcel
+    public sealed class MiniExcel
     {
         public enum Interval
         {

@@ -5,8 +5,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 
+
+
+#region Datenbank aufräumen und vorbereiten
+
+VaccumAllDatabases(); //Datenbanken aufräumen
+
 InitiateDbWriting(); //Daten mit Log-Flag in DB schreiben
+
 DbLogPurge(); //DbLog begrenzen
+
+#endregion
 
 var builder = WebApplication.CreateSlimBuilder(args); // Native AOT: CreateSlimBuilder verwenden
 
@@ -68,9 +77,8 @@ builder.Services.AddCors(options =>
         //.AllowAnyOrigin() //mit https nicht möglich
         .WithOrigins(
         "https://harm.local",
-        
-        "http://127.0.0.1",
-        
+        "https://kreuwebapp.local",
+        "http://127.0.0.1",        
         "https://localhost"
         ) // Deine Client-URL explizit nennen!
         .AllowAnyMethod()
@@ -113,18 +121,24 @@ app.UseMiddleware<WebSocketMiddleware>();
 app.MapEndpoints();
 app.MapGet("/restart", () => { app.Lifetime.StopApplication(); });
 
+app.Map("/db/clean", () => { VaccumAllDatabases(); });
+
 while (!Endpoints.PleaseStop)
 {
-    Gemini.Db.Db.DbLogInfo("Webserver läuft...");
-    logger.LogTrace("Webserver neu gestartet.");
-    
+    Gemini.Db.Db.DbLogInfo("Webserver gestartet.");
+    logger.LogInformation("Webserver neu gestartet.");
+
     //app.Lifetime.ApplicationStopping.Register(() =>
     //{
     //    Endpoints.cancelTokenSource.Cancel();
     //});
-    
-    app.Run();    
+
+    app.Run();
+
+    Gemini.Db.Db.DbLogInfo("Webserver beendet.");
+    logger.LogInformation("Webserver beendet.");
 }
+
 
 
 //class ShutdownService(IHostApplicationLifetime applicationLifetime) : IHostedService

@@ -403,9 +403,11 @@ input.checkbox {
 
 }
 
-table.datatable {
+.datatable {
+    margin-left: auto;
+    margin-right: auto;
+
     table {
-        margin: auto;
         width: 50%;
         border-collapse: collapse;
         min-width: 50rem;

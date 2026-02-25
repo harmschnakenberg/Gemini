@@ -1,18 +1,58 @@
 ﻿using Gemini.Db;
+using Gemini.Models;
 using Gemini.Services;
 using S7.Net;
+using S7.Net.Types;
+using System.Collections;
+using System.Data;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection.Metadata;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Text;
+using System.Xml.Linq;
 using static Gemini.Db.Db;
+using static System.Net.WebRequestMethods;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.DynContent
 {
-    public class HtmlHelper
+    public sealed class HtmlHelper
     {
+        #region Hilfs-Methoden
+        public static string GetIPV4()
+        {
+            // Ermittelt den Hostnamen des lokalen Computers
+            string hostname = Dns.GetHostName();
+            List<string> ipAddresses = [];
+
+            // Holt die IP-Adresse(n) für den Hostnamen
+            IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
+
+            // Durchläuft alle gefundenen IP-Adressen (IPv4 und IPv6)
+            foreach (IPAddress ipAddress in hostEntry.AddressList)
+            {
+                // Prüft, ob es eine IPv4-Adresse ist
+                if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipAddresses.Add(ipAddress.ToString());
+                }
+            }
+
+            return $"{hostname}, {string.Join(", ", ipAddresses)}"; //, {IPAddress.Loopback}
+        }
+
+
+        private static string RoleOption(Role role, Role roleOption, string roleName)
+        {
+            return $"<option value='{roleOption}' {(role == roleOption ? "selected" : string.Empty)}>{roleName}</option>";
+        }
+
+        #endregion
+
 
         internal static string ListAllUsers(List<User> users, ClaimsPrincipal currentUser)
         {
@@ -134,12 +174,7 @@ namespace Gemini.DynContent
         }
 
 
-        private static string RoleOption(Role role, Role roleOption, string roleName)
-        {
-            return $"<option value='{roleOption}' {(role == roleOption ? "selected" : string.Empty)}>{roleName}</option>";
-        }
-
-        internal static async Task<string> ListAllTags() {             
+        internal static string ListAllTags(bool isAdmin) {             
             
             StringBuilder sb = new();
 
@@ -157,11 +192,13 @@ namespace Gemini.DynContent
                 <body>");
 
 
-            List<Models.Tag> allTags = GetDbTagNames(DateTime.UtcNow, 1);
+            List<Models.Tag> allTags = GetDbTagNames(System.DateTime.UtcNow, 1);
 
             sb.Append("<h1>Datenpunkte</h1>");
             sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
             sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
+            sb.AppendLine("<a href='/db/list' class='menuitem'>Datenbanken</a>");
+
             sb.Append("<h2>Gelesene Datenpunkte</h2>");
             sb.Append("<hr/><table>");
             sb.Append("<tr><th>Item-Name</th><th>Beschreibung</th><th>mom. Wert</th><th>Log</th></tr>");
@@ -171,9 +208,9 @@ namespace Gemini.DynContent
             {
                 sb.Append("<tr>");
                 sb.Append($"<td><input value='{tag.TagName}' disabled></td>");
-                sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}'></td>");
+                sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}' {(isAdmin ? "": "disabled")}></td>");
                 sb.Append($"<td><input data-name='{tag.TagName}' disabled></td>");
-                sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")} ></td>");
+                sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")}  {(isAdmin ? "" : "disabled")}></td>");
                 sb.Append("</tr>");
             }
 
@@ -197,32 +234,6 @@ namespace Gemini.DynContent
             </script>
             ");
 
-
-          
-            //sb.Append("<h2>Steuerungen</h2>");
-            //sb.Append("<p>Konfigurierte SPS-Steuerungen</p>");
-            //sb.Append("<table>");
-
-            //var plcs = PlcTagManager.Instance.GetAllPlcs();
-
-            //foreach (var plcName in plcs.Keys)
-            //    if (plcName.StartsWith('A')) {
-            //        sb.AppendLine("<tr>");
-            //        sb.AppendLine($"<td>{plcName}</td>");
-            //        sb.AppendLine($"<td>{plcs[plcName].CPU.ToString()}<td/>");
-            //        sb.AppendLine($"<td>{plcs[plcName].IP}<td/>");
-            //        sb.AppendLine($"<td>Rack {plcs[plcName].Rack}<td/>");
-            //        sb.AppendLine($"<td>Slot {plcs[plcName].Slot}</td>");
-            //        sb.AppendLine($"<td>" +
-            //            $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW2'/>:" +
-            //            $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW4'/>:" +
-            //            $"<input type='number' style='width:2rem;' data-name='{plcName}_DB10_DBW6'/>" +
-            //            $"</td>");                   
-            //        sb.AppendLine("</tr>");
-            //    }
-
-            //sb.Append("</table>");
-
             sb.Append(@"
                 </body>
                 </html>");
@@ -240,9 +251,9 @@ namespace Gemini.DynContent
         /// associated tag information.</param>
         /// <returns>A string containing the generated HTML markup representing the altered tags, or null if no tags are
         /// provided.</returns>
-        internal static string? ListAlteredTags(List<Tuple<DateTime, string, string, string, object, object>> aTags, DateTime startUtc, DateTime endUtc)
+        internal static string? ListAlteredTags(List<TagAltered> aTags, System.DateTime startUtc, System.DateTime endUtc)
         {
-            
+            //Console.WriteLine($"Gefundene Änderung: {time} | {user} | {tagName} | {tagComment} | {newValue} | {oldValue}");
             StringBuilder sb = new();
 
             sb.Append(@"<!DOCTYPE html>
@@ -258,9 +269,8 @@ namespace Gemini.DynContent
                             </head>
                             <body>");
 
-            sb.Append("<h1>Sollwertänderungen</h1>");
+            sb.Append($"<h1>{aTags.Count} Sollwertänderungen</h1>");
 
-           
             sb.Append(@" <div class='container'>
                 <label for='start'>Beginn</label>
                 <input class='myButton' type='datetime-local' id='start' name='start'>
@@ -269,28 +279,8 @@ namespace Gemini.DynContent
                 <button class='myButton' onclick='getAlteredTags()'>Filter anwenden</button>
                 </div>");
 
-            sb.AppendLine(@"<script>
-
-            setDatesToStartOfMonth('start', 'end');
-
-            async function getAlteredTags()
-            {
-                const start = document.getElementById('start').value;
-                const end = document.getElementById('end').value;
-
-                const response = await fetchSecure(`/soll/history`, {
-                  method: 'GET',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ start: start, end: end})
-                });
-
-            }
-            </script>");
-
-            sb.AppendLine($"<p>Änderungen von <strong>{startUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}</strong> bis <strong>{endUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}</strong></p>");
-
-            sb.Append("<table class='datatable'>");
-            sb.Append("<tr>" +
+            sb.AppendLine("<table class='datatable'>");
+            sb.AppendLine("<tr>" +
                 "<th>Zeit</th>" +
                 "<th>Benutzer</th>" +
                 "<th>Bezeichnung</th>" +
@@ -301,24 +291,137 @@ namespace Gemini.DynContent
             foreach (var tag in aTags)
             {
                 //Zeit | User | TagName | TagComment | NewValue | OldValue
-                sb.Append("<tr>" +
-                    $"<td>{tag.Item1.ToLocalTime():yyyy-MM-dd HH:mm:ss}</td>" +
-                    $"<td>{tag.Item2}</td>" +
-                    $"<td style='display:none;'>{tag.Item3}</td>" +
-                    $"<td>{tag.Item4}</td>" +
-                    $"<td>{tag.Item5}</td>" +
-                    $"<td>{tag.Item6 ?? "?"}</td>" +
+                sb.AppendLine("<tr>" +
+                    $"<td>{tag.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss}</td>" +
+                    $"<td>{tag.User}</td>" +
+                    $"<td style='display:none;'>{tag.TagName}</td>" +
+                    $"<td>{tag.TagComment}</td>" +
+                    $"<td>{tag.NewValue}</td>" +
+                    $"<td>{tag.OldValue ?? "?"}</td>" +
                     "</tr>");
-
             }
             sb.Append("</table>");
+
+            sb.AppendLine($"<p class='container'>" +
+                        $"Änderungen von <strong>{startUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}</strong> " +
+                        $"bis <strong>{endUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}</strong>" +
+                        $"</p>");
+            sb.Append($"<span style='position:sticky; left:0; bottom:0;'>Stand {System.DateTime.Now.ToShortTimeString()}</span>");
+
+            sb.AppendLine(@"<script>
+
+            //setDatesToStartOfMonth('start', 'end');
+
+            async function getAlteredTags()
+            {
+                const start = document.getElementById('start').value;
+                const end = document.getElementById('end').value;
+               
+                if ('URLSearchParams' in window) {
+                    var searchParams = new URLSearchParams(window.location.search);
+                    searchParams.set('start', start);
+                    searchParams.set('end', end);
+                    window.location.search = searchParams.toString();
+                }
+
+               //const link = `/soll/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+
+               /* try {
+                    const response = await fetchSecure(link);
+
+                    if (!response.ok) {
+                          throw new Error(`Response status: ${response.status}`);
+                    }
+
+                    const html = await response.text();
+                    document.body.innerHTML = html;
+
+                   // setDates('start', start);
+                   // setDates('end', end);
+                } catch (error) {
+                console.error('Fehler beim Laden:', error);
+                }
+                //*/
+            }
+
+      
+function setDatesToStartOfMonth(startId, endId) {
+    var now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById(endId).value = now.toISOString().slice(0, 16);
+
+    var begin = new Date();
+    begin.setUTCMonth(begin.getUTCMonth() - 1, 1);
+    begin.setUTCHours(0, 0, 0);
+    document.getElementById(startId).value = begin.toISOString().slice(0, 16);
+}
+
+            function setDates() {
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const s = urlParams.get('start');
+                const e = urlParams.get('end');
+
+                if(!s)
+                  s = new Date().setUTCHours(0, 0, 0).toISOString().slice(0, 16);
+
+                if(!e)
+                  e = new Date().toISOString().slice(0, 16);
+
+
+                console.log(s);console.log(e);
+
+            }
+
+            setDates();
+            </script>");
+
 
             sb.Append("</body></html>");
             return sb.ToString();            
         }
 
 
+        internal static string ListAllDatabases()
+        {
+            var dbFiles = Directory.GetFiles(Path.Combine(AppFolder, "db"), "*.db").Select(f => new FileInfo(f)).ToList().OrderByDescending(f => f.Name);
 
+            StringBuilder sb = new();
+
+            sb.Append(@"<!DOCTYPE html>
+                <html lang='de'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>Datenbanken</title>                    
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                    <script src='/js/websocket.js'></script>
+                </head>
+                <body>");
+
+            sb.Append("<h1>Datenbanken</h1>");
+            sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
+            sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
+            sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
+            sb.Append($"<p class='controls'>{dbFiles.Count()} lokal gespeicherte Datenbanken.</p>");
+
+            sb.Append("<table class='datatable'>");
+            sb.Append("<tr><th>Dateiname</th><th>Größe</th><th>Letzte Änderung</th><th>Letzter Zugriff</th></tr>");
+            foreach (var dbFile in dbFiles)
+                sb.AppendLine($"<tr><td>{dbFile.Name}</td><td>{(dbFile.Length / 1024.0 / 1024.0).ToString("0.00")} MB</td><td>{(dbFile.LastWriteTime).ToString("yyyy-MM-dd HH:mm:ss")}</td><td>{(dbFile.LastAccessTime).ToString("yyyy-MM-dd HH:mm:ss")}</td>");
+
+            sb.Append("</table>");
+
+            sb.Append("<style>.datatable td {text-align: right;}</style>");
+
+            sb.Append(@"
+                </body>
+                </html>");
+
+            return sb.ToString(); 
+        }
+       
         internal static string TagReadFailures()
         {
             List<ReadFailure> readFailures = Db.Db.DbLogGetReadFailures();
@@ -339,6 +442,8 @@ namespace Gemini.DynContent
             sb.Append("<h1>Lesefehler</h1>");
             sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
             sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
+            sb.AppendLine("<a href='/db/list' class='menuitem'>Datenbanken</a>");
+
             sb.Append("<p>Zuletzt aufgetretene Fehler beim Lesen aus SPS</p>");
             sb.Append("<table id='tagfailtable'>");
             sb.Append("<tr><th>IP</th><th>DB</th><th>Startbyte</th><th>Länge</th><th>Zeitpunkt</th></tr>");
@@ -387,6 +492,7 @@ namespace Gemini.DynContent
             sb.Append("<h1>Datenquellen</h1>");
             sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
             sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
+            sb.AppendLine("<a href='/db/list' class='menuitem'>Datenbanken</a>");
 
             #region SPS konfigurieren
 
@@ -515,7 +621,7 @@ namespace Gemini.DynContent
 
             sb.Append("<h2>Dieses Gerät</h2>");
             sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");            
-            sb.AppendLine("<p>Serverzeit (lokal): " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
+            sb.AppendLine("<p>Serverzeit (lokal): " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
             long dbSizeOnDiscMB = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
             float dbSizeOnDiscGB = (float)dbSizeOnDiscMB / 1024;
             float avgDbSizeMB = (float)dbSizeOnDiscMB / (float)dbFileCount;
@@ -613,28 +719,135 @@ namespace Gemini.DynContent
             return sb.ToString();
         }
 
-        public static string GetIPV4()
+
+        /// <summary>
+        /// Generates a complete HTML document that displays two interactive charts with user controls, based on the
+        /// provided caption and chart tag data.
+        /// </summary>
+        /// <remarks>The generated HTML includes embedded JavaScript for rendering charts using Chart.js
+        /// and related libraries. The page provides controls for adjusting the displayed time range, exporting data,
+        /// and interacting with the charts (such as zooming and panning). The tag dictionaries determine which data
+        /// series are shown in each chart. This method is intended for internal use to dynamically create chart pages
+        /// based on runtime data.</remarks>
+        /// <param name="caption">The title to display at the top of the generated chart page.</param>
+        /// <param name="chart1Tags">A dictionary containing key-value pairs that define the data tags for the first chart. Each entry represents
+        /// a data series or metric to be visualized.</param>
+        /// <param name="chart2Tags">A dictionary containing key-value pairs that define the data tags for the second chart. Each entry
+        /// represents a data series or metric to be visualized.</param>
+        /// <returns>A string containing the full HTML markup for a web page that renders two dynamic charts and associated
+        /// controls.</returns>
+        internal static string DynChart(ChartConfig chartConfig)
         {
-            // Ermittelt den Hostnamen des lokalen Computers
-            string hostname = Dns.GetHostName();
-            List<string> ipAddresses = [];
+            StringBuilder sb = new();
 
-            // Holt die IP-Adresse(n) für den Hostnamen
-            IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
+            sb.AppendLine(@"<!DOCTYPE html>
+                            <html lang='de'>
+                            <head>
+                                <meta charset='UTF-8'>
+                                <title>Demo Kurve</title>
+                                <link rel='shortcut icon' href='/favicon.ico'>
+                                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                                <link rel='stylesheet' href='/css/style.css'>                    
+                                <link rel='stylesheet' href='https://fonts.googleapis.com/icon?family=Material+Icons'>
+                                <script src='https://cdn.jsdelivr.net/npm/chart.js@4.5.1'></script>
+                                <script src='https://cdn.jsdelivr.net/npm/luxon@^2'></script>
+                                <script src='https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1'></script>
+                                <script src='https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js'></script>
+                                <script src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js' integrity='sha512-FRGbE3pigbYamZnw4+uT4t63+QJOfg4MXSgzPn2t8AWg9ofmFvZ/0Z37ZpCawjfXLBSVX2p2CncsmUH2hzsgJg==' crossorigin='anonymous' referrerpolicy='no-referrer'></script>
+                                <script src='/js/chart.js'></script>
+                                <script src='/js/excel.js'></script>
+                                <script src='/js/websocket.js'></script>
+                            </head>
+                            <body> ");
 
-            // Durchläuft alle gefundenen IP-Adressen (IPv4 und IPv6)
-            foreach (IPAddress ipAddress in hostEntry.AddressList)
-            {
-                // Prüft, ob es eine IPv4-Adresse ist
-                if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    ipAddresses.Add(ipAddress.ToString());
+            sb.AppendLine($"<h1>{chartConfig.Caption}</h1>");
+            sb.AppendLine($"<p>{chartConfig.SubCaption}</p>");
+            sb.AppendLine("<span id='customspinner'>Der Browser berechnet die Kurven</span>");
+
+            sb.AppendLine(@"
+                    <canvas id='myChart1' class='chart' style='background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; '></canvas>
+                    
+                    <div class='container controls' style='max-width: fit-content; margin-left: auto; margin-right: auto;'>
+                        <div class='myButton' id='chartTimespan'></div>
+                        <input type='datetime-local' id='start' name='start' onfocusout='loadAllCharts();'>
+                        <input type='datetime-local' id='end' name='end' onfocusout='loadAllCharts();'>
+                        <button class='myButton' onclick='setDatesHours('start', 'end', 8);loadAllCharts();'><i class='material-icons'>schedule</i>8</button>
+                        <button class='myButton' onclick='setDatesHours('start', 'end',24);loadAllCharts();'><i class='material-icons'>schedule</i>24</button>
+                        <button class='myButton' onclick='excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));'><i class='material-icons'>save</i></button>
+                        <button class='myButton' onclick='zoom(['myChart1', 'myChart2'], 1.2);'><i class='material-icons'>zoom_in</i></button>
+                        <button class='myButton' onclick='zoom(['myChart1', 'myChart2'], 0.8);'><i class='material-icons'>zoom_out</i></button>
+                        <button class='myButton' onclick='resetZoom(['myChart1', 'myChart2'])'><i class='material-icons'>center_focus_weak</i></button>
+                        <button class='myButton' onclick='panX(['myChart1', 'myChart2'], 100);'><i class='material-icons'>arrow_left</i></button>
+                        <button class='myButton' onclick='panX(['myChart1', 'myChart2'], -100);'><i class='material-icons'>arrow_right</i></button>
+                        <!-- <button class='myButton' onclick='toggleStatusChart('myChart2', tags2)'><i style='color:red;' class='material-icons'>legend_toggle</i></button> -->
+                    </div>
+
+                    <canvas id='myChart2' class='chart' style='background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; '></canvas>
+
+                    <div id='progressContainer' style='position: absolute; top:10px; left: 40%; margin: auto; display: none; '>
+                        <label for='progressBar'>Verarbeitung:</label>
+                        <progress id='progressBar' value='0' max='100' style='width: 300px;'></progress>
+                        <span id='progressText'>0%</span>
+                    </div>
+
+                    <div id='rawDataLinks' style='position:sticky; bottom:0.5rem; left:0.5rem;'></div>
+            ");
+
+            sb.AppendLine(@"<script>
+                    const tags1 = new Map([");
+
+            if (chartConfig.Chart1Tags is not null)
+                foreach (var t in chartConfig.Chart1Tags)            
+                    sb.Append($" ['{t.Key}', '{t.Value}'],");
+            
+            sb.AppendLine("]);");
+
+            sb.AppendLine(@"const tags2 = new Map([");
+
+            if (chartConfig.Chart2Tags is not null)
+                foreach (var t in chartConfig.Chart2Tags)
+                    sb.Append($" ['{t.Key}', '{t.Value}'],");
+
+            sb.AppendLine("]);");
+
+            sb.AppendLine(@"initChart('myChart1', false);
+                            initChart('myChart2', true);
+                            setDatesHours('start', 'end', 8);
+                            loadAllCharts();
+            ");
+
+            sb.AppendLine(@"
+                function loadAllCharts() {
+                    if (checkDuration('start', 'end', 'chartTimespan')) {
+                        loadChart('myChart1', 'start', 'end', tags1);
+                        loadChart('myChart2', 'start', 'end', tags2);
+                    }   
                 }
-            }
 
-            return $"{hostname}, {string.Join(", ", ipAddresses)}"; //, {IPAddress.Loopback}
+                function checkDuration(startId, endId, outputId) {
+                    const start = new Date(document.getElementById(startId).value);
+                    const end = new Date(document.getElementById(endId).value);
+                    const duration = (end - start) / 86400000;
+                    const obj = document.getElementById(outputId)
+                    obj.innerHTML = duration.toFixed(0) + ' Tage';
+
+                    if (duration > 91 || duration < 0) {
+                        obj.style.color = 'red';
+                        return false;
+                    } else {
+                        obj.style.color = 'inherit';
+                        return true;              
+                    }
+                }
+            ");
+
+            sb.AppendLine(@"</script> 
+              </body>
+            </html>");
+          
+            return sb.ToString();
         }
 
-     
+
     }
 }

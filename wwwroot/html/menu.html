@@ -30,10 +30,12 @@
     <h3>Demo</h3>
     <ul>
         <li><a class="menuitem" href="/source">Datenquellen</a></li>
+        <li><a class="menuitem" href="/db/list">Datenbanken</a></li>
         <li><a class="menuitem" href="/tag/failures">Letzte Lesefehler</a></li>
         <li><a class="menuitem" href="/soll/1">Demo Sollwertfenster</a></li>
+
+        <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
         <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
-        <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>       
     </ul>
 
     <script>
@@ -44,12 +46,13 @@
         const end = new Date();
         end.toISOString().replace(" ", "%3A");
 
+        //Für DEMO
         document.getElementById('rawjsonlink').setAttribute('href', `/db?tagnames=A01_DB10_DBW2%2CA01_DB10_DBW4%2CA01_DB10_DBW6&start=${start}&end=${end}`)
 
         const API_URL = 'https://' + window.location.host;
 
         async function login() {
-            const body = document.getElementsByTagName('BODY')[0];            
+            const body = document.getElementsByTagName('BODY')[0];
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge ein...';
 
@@ -82,10 +85,11 @@
         }
 
         async function logout() {
-            const body = document.getElementsByTagName('BODY')[0]; 
+            const body = document.getElementsByTagName('BODY')[0];
             const el = document.getElementById('loginMessage');
             el.textContent = 'Logge aus...';
             body.style.cursor = 'wait';
+            const username = sessionStorage.getItem(LOGGED_USER);
 
             const response = await fetchSecure(`${API_URL}/logout`, {
                 method: "POST",

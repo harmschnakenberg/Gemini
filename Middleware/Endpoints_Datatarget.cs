@@ -48,7 +48,7 @@ namespace Gemini.Middleware
         /// date/time strings), 'interval' (as an integer), and 'tags' (as a JSON array of tag objects).</param>
         /// <returns>A task that represents the asynchronous operation. The response is written directly to the HTTP context as
         /// an Excel file attachment if the parameters are valid; otherwise, a plain text error message is returned.</returns>
-        private static async Task ExcelDownload(HttpContext ctx)
+        private static IResult ExcelDownload(HttpContext ctx)
         {
             string jsonString = ctx.Request.Form["tags"].ToString() ?? string.Empty;
             //Console.WriteLine("/excel : " + jsonString);
@@ -69,10 +69,10 @@ namespace Gemini.Middleware
                 $"interval: '{ctx.Request.Form["interval"]}'\r\n" +
                 $"tags: '{ctx.Request.Form["tags"]}'\r\n";
 #endif
-                ctx.Response.ContentType = "text/plain";
-                await ctx.Response.WriteAsync(msg);
-                await ctx.Response.CompleteAsync();
-                return;
+                //ctx.Response.ContentType = "text/plain";
+                //await ctx.Response.WriteAsync(msg);
+                //await ctx.Response.CompleteAsync();
+               return Results.BadRequest(msg);
             }
 
             //Console.WriteLine($"Rohempfang:\r\n'{jsonString}'\r\n");
@@ -82,23 +82,20 @@ namespace Gemini.Middleware
             string[] tagNames = [.. tagsAndCommnets.Keys];
             Gemini.DynContent.MiniExcel.Interval interval = (Gemini.DynContent.MiniExcel.Interval)intInterval;
 
-#if DEBUG
-            //Console.WriteLine($"Interval = {interval}");
-#endif
-            //JsonTag[] obj = await Db.GetDataSet2(tagNames!, start, end);
-            //MemoryStream fileStream = await Excel.CreateExcelWb((Excel.Interval)interval, tagsAndCommnets, obj);
-
-            JsonTag[] jsonTags = await Db.Db.GetDataSet(tagNames!, start, end, interval);
+            JsonTag[] jsonTags = Db.Db.GetDataSet(tagNames!, start.ToUniversalTime(), end.ToUniversalTime(), interval).Result;
             MemoryStream fileStream = Gemini.DynContent.MiniExcel.DownloadExcel(interval, tagsAndCommnets, jsonTags);
 
             string excelFileName = $"Kreu_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.TimeOfDay.TotalSeconds:0000}.xlsx";
 
-            ctx.Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            ctx.Response.Headers.ContentDisposition = $"attachment; filename={excelFileName}";
-            ctx.Response.ContentLength = fileStream.Length;
+            //ctx.Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            //ctx.Response.Headers.ContentDisposition = $"attachment; filename={excelFileName}";
+            //ctx.Response.ContentLength = fileStream.Length;
 
-            await fileStream.CopyToAsync(ctx.Response.Body);
-            await ctx.Response.CompleteAsync();
+            //await fileStream.CopyToAsync(ctx.Response.Body);
+            //await ctx.Response.CompleteAsync();
+
+            return Results.File(fileStream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelFileName);
+
         }
 
         private static IResult GetExcelConf(HttpContext context)
