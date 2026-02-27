@@ -77,11 +77,11 @@ function initChart(chartId, isStatusChart = false) {
                     const maxTick = Math.max(...values.map(t => t.value));
                     switch (value) {
                         case 0:                            
-                            return 'Aus';
+                            return ['Aus', value];
                         case maxTick:
-                            return 'Ein';
+                            return ['Ein', value];
                         default:
-                            return ["Aus", "Ein"];
+                            return ['Aus', value, 'Ein'];
                     }
                 }
                 else
@@ -246,7 +246,7 @@ function initChart(chartId, isStatusChart = false) {
 /**
  * Sendet die Anfrage an den Web Worker, um Daten zu laden und zu verarbeiten.
  */
-function loadChart(chartId, startId, endId, LABEL_ALIASES) { 
+function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) { 
 
     document.body.style.cursor = "wait";
     document.body.style.opacity = "0.5";
@@ -259,6 +259,7 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
 
     const startDate = new Date(document.getElementById(startId).value);
     const endDate = new Date(document.getElementById(endId).value);
+    const interval = parseInt(document.getElementById(intervalId).value);
 
     const params = new URLSearchParams();
 
@@ -276,6 +277,12 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
         params.append("start", startDate.toISOString());
     if (!params.has('end'))
         params.append("end", endDate.toISOString());
+
+    //if (TimeSpanInDays(startDate, endDate) > 7)
+    //    if (confirm(`Der ausgewählte Zeitraum von ${TimeSpanInDays(startDate, endDate)} Tagen kann zu einer großen Datenmenge führen.\r\nDer Browser könnte längere Zeit zum Berechnen der Darstellung benötigen. Die Daten können auf dem Server komprimiert werden, um die Anzahl der Datenpunkte zu verringern. Daten auf dem Server komprimieren? Abbrechen lädt alle Datenpunkte unkomprimiert.`))
+    if(!isNaN(interval))
+        params.append('interval', interval);
+
     const link = `/db?${params}`;
 
     if (!document.getElementById(chartId + 'link')) {
@@ -298,6 +305,11 @@ function loadChart(chartId, startId, endId, LABEL_ALIASES) {
         colors: CHART_COLORS
     });
 }
+
+//function TimeSpanInDays(startDate, endDate) {
+//    let diffInMs = endDate.getTime() - startDate.getTime();
+//    return diffInMs / 86400000;
+//}
 
 /*
   Lade laufend aktuelle Werte nach

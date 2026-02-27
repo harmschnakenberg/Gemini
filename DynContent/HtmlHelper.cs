@@ -2,21 +2,13 @@
 using Gemini.Models;
 using Gemini.Services;
 using S7.Net;
-using S7.Net.Types;
-using System.Collections;
 using System.Data;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection.Metadata;
-using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Security.Claims;
 using System.Text;
-using System.Xml.Linq;
 using static Gemini.Db.Db;
-using static System.Net.WebRequestMethods;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.DynContent
 {
@@ -742,39 +734,56 @@ function setDatesToStartOfMonth(startId, endId) {
 
             StringBuilder sb = new();
 
-            sb.AppendLine(@"<!DOCTYPE html>
-                            <html lang='de'>
-                            <head>
-                                <meta charset='UTF-8'>
-                                <title>Demo Kurve</title>
-                                <link rel='shortcut icon' href='/favicon.ico'>
-                                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                                <link rel='stylesheet' href='/css/style.css'>                    
-                                <link rel='stylesheet' href='https://fonts.googleapis.com/icon?family=Material+Icons'>
-                                <script src='https://cdn.jsdelivr.net/npm/chart.js@4.5.1'></script>
-                                <script src='https://cdn.jsdelivr.net/npm/luxon@^2'></script>
-                                <script src='https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1'></script>
-                                <script src='https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js'></script>
-                                <script src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js' integrity='sha512-FRGbE3pigbYamZnw4+uT4t63+QJOfg4MXSgzPn2t8AWg9ofmFvZ/0Z37ZpCawjfXLBSVX2p2CncsmUH2hzsgJg==' crossorigin='anonymous' referrerpolicy='no-referrer'></script>
-                                <script src='/js/chart.js'></script>
-                                <script src='/js/excel.js'></script>
-                                <script src='/js/websocket.js'></script>
-                            </head>
-                            <body> ");
+            sb.AppendLine(@"
+                <!DOCTYPE html>
+                <html lang='de'>
+                    <head>
+                    <meta charset='UTF-8'>");
+            sb.AppendLine(@$"
+                    <title>{chartConfig.Caption}</title>");
+            sb.AppendLine(@"
+                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                    <link rel='stylesheet' href='/css/style.css'>                    
+                    <link rel='stylesheet' href='https://fonts.googleapis.com/icon?family=Material+Icons'>
+                    <script src='https://cdn.jsdelivr.net/npm/chart.js@4.5.1'></script>
+                    <script src='https://cdn.jsdelivr.net/npm/luxon@^2'></script>
+                    <script src='https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1'></script>
+                    <script src='https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js'></script>
+                    <script src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js' integrity='sha512-FRGbE3pigbYamZnw4+uT4t63+QJOfg4MXSgzPn2t8AWg9ofmFvZ/0Z37ZpCawjfXLBSVX2p2CncsmUH2hzsgJg==' crossorigin='anonymous' referrerpolicy='no-referrer'></script>
+                    <script src='/js/chart.js'></script>
+                    <script src='/js/excel.js'></script>
+                    <script src='/js/websocket.js'></script>
+                </head>
+                <body>                             
+            ");
 
-            sb.AppendLine($"<h1>{chartConfig.Caption}</h1>");
-            sb.AppendLine($"<p>{chartConfig.SubCaption}</p>");
-            sb.AppendLine("<span id='customspinner'>Der Browser berechnet die Kurven</span>");
+            sb.AppendLine(@$"
+                        <h1>{chartConfig.Caption}</h1>");
+            sb.AppendLine(@$"
+                        <p>{chartConfig.SubCaption}</p>");
+            sb.AppendLine(@"
+                        <span id='customspinner'>Der Browser berechnet die Kurven</span>");
 
             sb.AppendLine(@"
                     <canvas id='myChart1' class='chart' style='background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; '></canvas>
                     
                     <div class='container controls' style='max-width: fit-content; margin-left: auto; margin-right: auto;'>
                         <div class='myButton' id='chartTimespan'></div>");
-            sb.AppendLine($" <input type='datetime-local' id='start' name='start' onfocusout='loadAllCharts();' {(start == System.DateTime.MinValue ? string.Empty : $"value='{start:yyyy-MM-ddTHH:mm:ss}'")}>");
-            sb.AppendLine($"<input type='datetime-local' id='end' name='end' onfocusout='loadAllCharts();' {(end == System.DateTime.MinValue ? string.Empty : $"value='{end:yyyy-MM-ddTHH:mm:ss}'")}>");
+            sb.AppendLine(@$"
+                        <input type='datetime-local' id='start' name='start' onfocusout='loadAllCharts();' {(start == System.DateTime.MinValue ? string.Empty : $"value='{start:yyyy-MM-ddTHH:mm:ss}'")}>");
+            sb.AppendLine(@$"
+                        <input type='datetime-local' id='end' name='end' onfocusout='loadAllCharts();' {(end == System.DateTime.MinValue ? string.Empty : $"value='{end:yyyy-MM-ddTHH:mm:ss}'")}>");
 
-            sb.AppendLine(@"<button class='myButton' onclick='setDatesHours('start', 'end', 8);loadAllCharts();'><i class='material-icons'>schedule</i>8</button>
+            sb.AppendLine($@"
+                        <select class='myButton' id='interval'>
+                            <option value='0'>&#x26C1;</option>
+                            <option value='1' selected>&#x26C0;</option>            
+                        </select>
+            ");
+
+            sb.AppendLine(@"
+                        <button class='myButton' onclick='setDatesHours('start', 'end', 8);loadAllCharts();'><i class='material-icons'>schedule</i>8</button>
                         <button class='myButton' onclick='setDatesHours('start', 'end',24);loadAllCharts();'><i class='material-icons'>schedule</i>24</button>
                         <button class='myButton' onclick='excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));'><i class='material-icons'>save</i></button>
                         <button class='myButton' onclick='zoom(['myChart1', 'myChart2'], 1.2);'><i class='material-icons'>zoom_in</i></button>
@@ -803,7 +812,7 @@ function setDatesToStartOfMonth(startId, endId) {
                 foreach (var t in chartConfig.Chart1Tags)
                     sb.AppendLine($" ['{t.Key}', '{t.Value}'],");
 
-            sb.AppendLine("]);");
+            sb.AppendLine("]);\r\n");
 
             sb.AppendLine(@"const tags2 = new Map([");
 
@@ -811,13 +820,15 @@ function setDatesToStartOfMonth(startId, endId) {
                 foreach (var t in chartConfig.Chart2Tags)
                     sb.AppendLine($" ['{t.Key}', '{t.Value}'],");
 
-            sb.AppendLine("]);");
+            sb.AppendLine("]);\r\n");
 
-            sb.AppendLine(@"initChart('myChart1', false);
-                            initChart('myChart2', true);
-                            if (!getTimeParams())
-                                setDatesHours('start', 'end', 8);
-                            loadAllCharts();
+            sb.AppendLine(@"
+                initChart('myChart1', false);
+                initChart('myChart2', true);
+                if (!getTimeParams()){
+                    setDatesHours('start', 'end', 8);
+                }
+                loadAllCharts();
             ");
 
             sb.AppendLine(@"
@@ -825,7 +836,7 @@ function setDatesToStartOfMonth(startId, endId) {
                     const url = new URL(window.location.href);
                     const s = url.searchParams.get('start');
                     const e = url.searchParams.get('end');
-                    if (isNaN(new Date(s)) || isNaN(new Date(e))) {
+                    if (!s || !e || isNaN(new Date(s)) || isNaN(new Date(e))) {
                         console.warn(`Parameter fehlerhaft: start ${s}, end ${e}`);
                         return false;
                     }
@@ -847,8 +858,8 @@ function setDatesToStartOfMonth(startId, endId) {
             sb.AppendLine(@"
                 function loadAllCharts() {
                     if (checkDuration('start', 'end', 'chartTimespan')) {
-                        loadChart('myChart1', 'start', 'end', tags1);
-                        loadChart('myChart2', 'start', 'end', tags2);
+                        loadChart('myChart1', 'start', 'end', 'interval', tags1);
+                        loadChart('myChart2', 'start', 'end', 'interval', tags2);
                         setTimeParams();
                     }   
                 }

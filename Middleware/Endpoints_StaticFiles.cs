@@ -9,6 +9,8 @@
 
         private static IResult ServeStaticFile(string filePath)
         {
+            
+
             filePath = "wwwroot" + filePath;
 #if DEBUG
             Console.WriteLine($"\r\nServing static file: {filePath}");

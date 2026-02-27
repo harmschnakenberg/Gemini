@@ -39,7 +39,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	  - Charts mit Zoom und Pan Funktionalität
 	  - dynamisch erstellte Charts aus Json-Config
 	  - Chart Zeitspanne in URL codiert
-	
+	  - Chart Datenkomprimierung
+		
 	- ToDo: Warte-Cursor (Excel Download) bei /excel beim Laden der TagComments 	
 	- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
 	- ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)

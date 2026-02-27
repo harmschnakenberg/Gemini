@@ -1,12 +1,10 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
-using Microsoft.AspNetCore.Antiforgery;
 using System.Buffers;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.Middleware
 {
@@ -15,28 +13,22 @@ namespace Gemini.Middleware
         private readonly RequestDelegate _next = next;
 
         public async Task InvokeAsync(HttpContext context)
-        {
-         
+        {         
             if (context.Request.Path == "/ws")
             {
                 if (context.WebSockets.IsWebSocketRequest)
                 {
                     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-#if DEBUG
-                    //Console.WriteLine("WebSocket wird geöffnet.");
-#endif
+
                     IPAddress? ip = context.Connection.RemoteIpAddress;
-                    await ReadTagsLoop(webSocket, context.Connection.RemoteIpAddress ?? new IPAddress([127,0,0,1]));
+                    try { await ReadTagsLoop(webSocket, context.Connection.RemoteIpAddress ?? new IPAddress([127, 0, 0, 1])); }
+                    catch (Exception ex) { Db.Db.DbLogWarn($"Error in WebSocket connection with client {ip}. Forcing disconnect.\r\n{ex}"); }
                 }
-                else
-                {
-                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
-                }
+                else                
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;                
             }
-            else
-            {
-                await _next(context);
-            }
+            else            
+                await _next(context);            
         }
 
         /// <summary>

@@ -61,7 +61,7 @@ namespace Gemini.Middleware
                 return Results.Unauthorized();
         }
 
-        private static IResult DbQuery(HttpContext ctx)
+        private static IResult DbQuery(HttpContext ctx, [FromQuery(Name = "tagnames")] string? tagNamesStr, [FromQuery(Name = "start")] string? startStr, [FromQuery(Name = "end")] string? endStr, [FromQuery(Name = "interval")] int interval = 0)
         {
             string[]? tagNames = [];
             DateTime startUtc = DateTime.UtcNow.AddHours(-8);
@@ -69,25 +69,21 @@ namespace Gemini.Middleware
 
             //Console.WriteLine($"DB Request received with query: {ctx.Request.QueryString}");
 
-            if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
-                tagNames = tagNamesStr.ToString().Split(',');
+            //if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
+                tagNames = tagNamesStr?.ToString().Split(',');
 
-            if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))            
+            //if (ctx.Request.Query.TryGetValue("start", out startStr) && DateTime.TryParse(startStr, out DateTime s))
+            if(DateTime.TryParse(startStr, out DateTime s))
                 startUtc = s.ToUniversalTime(); //lokale Zeit in UTC
             
-            if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
+            //if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
+            if(DateTime.TryParse(endStr, out DateTime e))
                 endUtc = e.ToUniversalTime();
             
-            JsonTag[] obj = Db.Db.GetDataSet(tagNames!, startUtc, endUtc).Result;
+            JsonTag[] obj = Db.Db.GetDataSet(tagNames!, startUtc, endUtc, (MiniExcel.Interval)interval).Result;
 #if DEBUG
             //Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
-#endif
-            // Console.WriteLine($"Sende {JsonSerializer.Serialize(obj, AppJsonSerializerContext.Default.JsonTagArray)}");
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "application/json";
-            //await ctx.Response.WriteAsJsonAsync(obj, AppJsonSerializerContext.Default.JsonTagArray);
-            //await ctx.Response.CompleteAsync();
-
+#endif          
             return Results.Json(obj, AppJsonSerializerContext.Default.JsonTagArray);
         }
 

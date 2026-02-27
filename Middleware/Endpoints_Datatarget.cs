@@ -1,5 +1,7 @@
 ﻿using Gemini.Db;
+using Gemini.DynContent;
 using Gemini.Models;
+using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
 using System.Security.Claims;
 using System.Text;
@@ -12,10 +14,45 @@ namespace Gemini.Middleware
 
         #region Kurven
 
-        private static IResult Chart()
+        private static IResult StaticChart()
         {            
             var file = File.ReadAllText("wwwroot/html/chart.html");
             return Results.Content(file, "text/html");
+        }
+
+        /// <summary>
+        /// Generates a dynamic chart page based on the specified chart ID and associated tag data.
+        /// </summary>
+        /// <remarks>The method retrieves the chart ID from the route values and uses it to fetch relevant
+        /// tag data, which is then used to create a customized chart page. If the chart ID is not valid, a default
+        /// chart configuration is used.</remarks>
+        /// <param name="context">The HTTP context containing the request information, including route values used to retrieve the chart ID.</param>
+        /// <returns>An IResult containing the generated HTML for the chart page, with a content type of 'text/html'.</returns>
+        private static IResult DynChart(int chartId, [FromQuery(Name = "start")] string? startStr, [FromQuery(Name = "end")] string? endStr)
+        {
+
+            //Console.WriteLine("\r\n"+JsonSerializer.Serialize(chartConfig2, AppJsonSerializerContext.Default.ChartConfig));
+            //{"Id":0,"Caption":"Chart 0","SubCaption":"Dynamisch generiertes Chart mit ID 0","Chart1Tags":{"A01_DB10_DBW4":"Minute","A01_DB10_DBW2":"Stunde"},"Chart2Tags":{"A01_DB10_DBX7_3":"Sekunde Bit4"}}
+
+            _ = DateTime.TryParse(startStr, out DateTime start);
+            _ = DateTime.TryParse(endStr, out DateTime end);
+#if DEBUG
+            Console.WriteLine($"DynChart {chartId} von {start} bis {end}");
+#endif
+            string json;
+
+            using (TextReader reader = new StreamReader($"wwwroot/html/chart/chart{chartId}.json"))
+            {
+                json = reader.ReadToEndAsync().Result;
+            }
+            ;
+
+            ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
+
+            if (chartConfig is null)
+                return Results.Content($"<h1>Ungültige Chart-Konfiguration für ID: {chartId}</h1>", "text/html", Encoding.UTF8);
+
+            return Results.Content(HtmlHelper.DynChart(chartConfig, start, end), "text/html", Encoding.UTF8);
         }
 
         #endregion
@@ -26,12 +63,6 @@ namespace Gemini.Middleware
 
         private static IResult GetExcelForm()
         {
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "text/html";
-            //var file = File.ReadAllText("wwwroot/html/excel.html", Encoding.UTF8);
-            //await ctx.Response.WriteAsync(file);
-            //await ctx.Response.CompleteAsync();
-
             var file = File.ReadAllText("wwwroot/html/excel.html");
             return Results.Content(file, "text/html");
         }

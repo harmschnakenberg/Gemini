@@ -42,7 +42,11 @@
         <input type="datetime-local" id="start" name="start" onfocusout="loadAllCharts();">
         <input type="datetime-local" id="end" name="end" onfocusout="loadAllCharts();">
         <button class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();"><i class="material-icons">schedule</i>8</button>
-        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>
+        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>         
+        <select class='myButton' id='interval'>
+            <option value='0'>&#x26C1;</option>
+            <option value='1' selected>&#x26C0;</option>            
+        </select>
         <button class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));"><i class="material-icons">save</i></button>
         <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 1.2);"><i class="material-icons">zoom_in</i></button>
         <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 0.8);"><i class="material-icons">zoom_out</i></button>
@@ -109,8 +113,8 @@
 
         function loadAllCharts() {
             if (checkDuration('start', 'end', 'chartTimespan')) {                
-                loadChart('myChart1', 'start', 'end', tags1);
-                loadChart('myChart2', 'start', 'end', tags2);   
+                loadChart('myChart1', 'start', 'end', 'interval', tags1);
+                loadChart('myChart2', 'start', 'end', 'interval', tags2);   
                 setTimeParams();
             }   
         }

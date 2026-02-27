@@ -69,8 +69,8 @@ namespace Gemini.Db
         private static readonly Lock _writerLock = new();
 
         // Konfiguration
-        const int TagsWriteBufferMax = 500;
-        private const int WriterMaxBatch = 1000; // max. Tags pro DB-Schreibvorgang (tunable)
+        const int TagsWriteBufferMax = 100;
+        private const int WriterMaxBatch = 500; // max. Tags pro DB-Schreibvorgang (tunable)
         private static readonly TimeSpan WriterIdleDelay = TimeSpan.FromMilliseconds(500); // Sammelzeitfenster (optional)
 
         // Aufruf: beim Start (z.B. in InitiateDbWriting) sicherstellen, dass Writer läuft:
@@ -374,7 +374,7 @@ namespace Gemini.Db
         {
             List<JsonTag> items = [];
 
-            int roundSeconds = 0; // Aggregatfunktion für die Zeiten in der Datenabfrage
+            //int roundSeconds = 0; // Aggregatfunktion für die Zeiten in der Datenabfrage
             string tableName = "Data";
 
             tagNames = [.. tagNames.Distinct()]; //Doppelte TagNames entfernen
@@ -385,16 +385,16 @@ namespace Gemini.Db
                 //    break;
                 case DynContent.MiniExcel.Interval.Minute:
                     tableName = "DataMinute";
-                    roundSeconds = 60;
+                    //roundSeconds = 60;
                     break;
                 case DynContent.MiniExcel.Interval.Viertelstunde:
-                    roundSeconds = 900;
+                    //roundSeconds = 900;
                     break;
                 case DynContent.MiniExcel.Interval.Stunde:
-                    roundSeconds = 3600;
+                    //roundSeconds = 3600;
                     break;
                 case DynContent.MiniExcel.Interval.Tag:
-                    roundSeconds = 86400;
+                    //roundSeconds = 86400;
                     break;
                 case DynContent.MiniExcel.Interval.Monat:
                     //nicht implementiert
@@ -407,7 +407,7 @@ namespace Gemini.Db
             }
 
 #if DEBUG
-            Console.WriteLine($"Zeit Aggregat {interval} mit {roundSeconds} Sekunden.");
+            Console.WriteLine($"Zeit Aggregat {interval}. Tagesdatei: {DayDbSource}");
 #endif
             #region Datenbanken
             //_ = GetAttachedDatabases(true); //Alle angeschlossenen Datenbanken ausdocken (eig. nur nötig wenn vorhergehende Transaktion unvollständig war
@@ -428,8 +428,8 @@ namespace Gemini.Db
                 var nameParam = command.Parameters.Add("@TagName", SqliteType.Text);
                 var startParam = command.Parameters.Add("@Start", SqliteType.Text);
                 var endParam = command.Parameters.Add("@End", SqliteType.Text);
-                var roundParam = command.Parameters.Add("@Round", SqliteType.Integer);
-                roundParam.Value = roundSeconds;
+                //var roundParam = command.Parameters.Add("@Round", SqliteType.Integer);
+                //roundParam.Value = roundSeconds;
                 #endregion
 
                 try
@@ -617,12 +617,7 @@ namespace Gemini.Db
         internal static async void InsertTagsBulk(JsonTag[] jsonTags)
         {
             CreateDayDatabaseAsync();
-            //string connectionString = "Data Source=" + GetDayDbPath(DateTime.UtcNow); //DayDbSource wird bei Aufruf nicht aktualisiert, daher hier direkt den Pfad holen
-
-            //TEST Wird nach Tagessprung in die richtige Datenbank geschrieben? --> JA
-            //if (DateTime.UtcNow.Hour < 1)
-            //    Db.DbLogInfo($"InsertTagsBulk() {DateTime.UtcNow:t} mit {connectionString}");
-
+           
             lock (_dbLock)
             {
                 using var connection = new SqliteConnection(DayDbSource);

@@ -7,18 +7,24 @@ using System.Runtime.CompilerServices;
 
 namespace Gemini.Db
 {
-   
+
     internal sealed partial class Db
-    {        
-        
+    {
+
         private static readonly Lock _dbLock = new();
 
         #region Pfade
+        /* Warum Ihre ursprüngliche Variante nicht funktioniert hat:
+            private static string DayDbSource { get; } = "Data Source=" + DayDbPath; 
+           ist ein Auto-Property Initializer. Der Wert wird einmalig berechnet und im Hintergrund in einem statischen Feld gespeichert.           
+         */
+
         internal static readonly string AppFolder = AppDomain.CurrentDomain.BaseDirectory;
         private static readonly string MasterDbPath = Path.Combine(AppFolder, "db", "Master.db");
         private static readonly string MasterDbSource = "Data Source=" + MasterDbPath;
-        private static string DayDbPath { get; } = GetDayDbPath(DateTime.UtcNow);
-        private static string DayDbSource { get; } = "Data Source=" + DayDbPath;
+        private static string DayDbPath => GetDayDbPath(DateTime.UtcNow);
+        // Jedes Mal, wenn DayDbSource abgerufen wird, wird es neu berechent. Das ist notwendig, damit immer die aktuelle Tagesdatenbank angesprochen wird.
+        private static string DayDbSource =>  "Data Source=" + DayDbPath;
 
         static Db()
         {           
@@ -140,15 +146,13 @@ namespace Gemini.Db
         }
 
         private static void CreateDayDatabaseAsync()
-        {           
+        {                
             if (File.Exists(DayDbPath))
                 return;
             try
             {
-                
                 lock (_dbLock)
-                {
-                    //using var connection = new SqliteConnection("Data Source=" + dayDbPath); //DataSource muss hier so angegeben werden, damit die Datenbankdatei erstellt wird, falls sie nicht existiert. ConnectionStringBuilder funktioniert hier nicht.
+                {                    
                     using var connection = new SqliteConnection(DayDbSource);
                     connection.Open();
                     using var command = connection.CreateCommand();
@@ -181,13 +185,26 @@ namespace Gemini.Db
                     CONSTRAINT fk_TagId FOREIGN KEY (TagId) REFERENCES Tag (Id) ON DELETE NO ACTION
                     );
 
-                    CREATE VIEW IF NOT EXISTS DataMinute AS
-                    SELECT * FROM Data
+                    CREATE VIEW DataMinute AS
+                    SELECT Time, TagId, MIN(TagValue) AS TagValue
+                    FROM Data			
+                    GROUP BY TagId, strftime ('%Y%m%d %H:%M', Time)	
+                    UNION
+                    SELECT Time, TagId, MAX(TagValue) 
+                    FROM Data		
                     GROUP BY TagId, strftime ('%Y%m%d %H:%M', Time)
                     ORDER BY Time;
 
                     PRAGMA journal_mode=WAL;
                     ";
+
+                    /* Nur den letzten Wert aus jeder Minute. Ergibt ein verzerrtes Bild der Daten.
+                    CREATE VIEW IF NOT EXISTS DataMinute AS
+                    SELECT * FROM Data
+                    GROUP BY TagId, strftime ('%Y%m%d %H:%M', Time)
+                    ORDER BY Time;
+                    */
+
                     int result = command.ExecuteNonQuery();
 #if DEBUG
                     Db.DbLogInfo("Tagestabelle erstellt. Ergebnis: " + result);
