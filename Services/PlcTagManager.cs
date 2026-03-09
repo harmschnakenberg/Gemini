@@ -150,7 +150,7 @@ namespace Gemini.Services
             if (clientId == DataBaseClientIdentifier) 
                 Db.Db.InitiateDbWriting();
         }
-
+        
         private async Task PollLoop()
         {
             while (!_cts.IsCancellationRequested)

@@ -4,11 +4,10 @@
  * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
  */
 self.onmessage = async function (e) {
-    const { chartId, url, aliases, colors } = e.data;
-
-    try {
+    const { chartId, url, aliases } = e.data;
+    
+    try {  
         // 1. Daten asynchron laden
-        //const response = await fetch(url);
         const response = await fetchWithCookies(url);
         if (!response.ok) {
             throw new Error(`HTTP-Fehler! Status: ${response.status}`);
@@ -16,7 +15,7 @@ self.onmessage = async function (e) {
         const jsonData = await response.json();
 
         // 2. Daten verarbeiten (kann bei vielen Daten rechenintensiv sein)
-        const newDatasets = processData(chartId, jsonData, aliases, colors);
+        const newDatasets = await processData(chartId, jsonData, aliases);
 
         // 3. Verarbeitete Daten zurück an den Haupt-Thread senden
         self.postMessage({
@@ -40,11 +39,11 @@ self.onmessage = async function (e) {
  * @param {Array<string>} colors - Array von Farb-Strings
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
-function processData(chartId, jsonData, aliases, colors) {
-
-    //TEST      
-    //colors = await import(`https://${window.location.host}/js/chartTheme1.js`).CHART_COLORS; //TEST
-    const REPORT_INTERVAL = 100;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
+async function processData(chartId, jsonData, aliases) {
+    const theme = await import('../module/chartTheme1.mjs');    
+    let colors = theme.CHART_COLORS; //TEST
+    //console.warn('Farben: ' + colors);
+    const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
     const totalItems = jsonData.length;

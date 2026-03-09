@@ -1,34 +1,5 @@
-﻿//import { CHART_COLORS } from './chartTheme1.js';
-
-const myCharts = new Map();
+﻿const myCharts = new Map();
 const workers = new Map();
-
-// Standardfarben für Datensätze (Chart.js vergibt auch automatisch Farben)
-/*const CHART_COLORS = [
-    'rgba(75, 192, 192, 1)',
-    'rgba(255, 99, 132, 1)',
-    'rgba(54, 162, 235, 1)',
-    'rgba(255, 206, 86, 1)',
-    'rgba(153, 102, 255, 1)',
-    'rgba(255, 159, 64, 1)',
-    'rgba(75, 99, 235, 1)',
-    'rgba(54, 159, 64, 1)'
-]; //*/
-
-
-const CHART_COLORS = [
-    'rgba(0, 255, 255, 0.8)',
-    'rgba(255, 255, 0, 0.8)',
-    'rgba(0, 128, 255, 0.8)',
-    'rgba(0, 255, 0, 0.8)',
-    'rgba(255, 0, 0, 0.8)',
-    'rgba(0, 255, 128, 0.8)',   
-    'rgba(255, 128, 0, 0.8',
-    'rgba(128, 0, 255, 0.8)',
-    'rgba(255, 0, 255, 0.8)'    
-];
-
-
 
  //Initialisiert das Chart.js Liniendiagramm.
 function initChart(chartId, isStatusChart = false) {
@@ -203,7 +174,7 @@ function initChart(chartId, isStatusChart = false) {
 
     myCharts.set(chartId, myChart);
 
-    const worker = new Worker('/js/chartworker.js'); 
+    const worker = new Worker('/js/chartworker.js', { type: "module" });     
     worker.onmessage = workermessage;
     workers.set(chartId, worker);
 }
@@ -296,13 +267,16 @@ function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) {
         //<a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;">Rohdaten</a>
         document.getElementById('rawDataLinks').appendChild(aEl);
     }
+
+    
+   
+    //let colors = theme.CHART_COLORS;
     
     // Sende alle notwendigen Daten an den Worker
     workers.get(chartId).postMessage({
         chartId: chartId,
         url: link,
-        aliases: LABEL_ALIASES,
-        colors: CHART_COLORS
+        aliases: LABEL_ALIASES
     });
 }
 
@@ -417,3 +391,5 @@ function panX(chartIds, pixel) {
         }
     });
 }
+
+//export { initChart, loadChart, setDatesHours , zoom, resetZoom, panX };

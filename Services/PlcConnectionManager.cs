@@ -1,9 +1,7 @@
 ﻿// Services\PlcConnectionManager.cs
 using S7.Net;
-using System;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace Gemini.Services
 {

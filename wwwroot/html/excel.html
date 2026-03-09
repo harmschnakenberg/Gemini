@@ -4,18 +4,17 @@
     <meta charset="UTF-8">
     <title>Excel Export</title>
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
-    <link rel='stylesheet' href='/css/style.css'>
+    <link rel='stylesheet' href='../css/style.css'>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
-    <script src='/js/excel.js'></script>
-    <script src='/js/websocket.js'></script>
+    <script type="module" src='../js/script.js'></script>    
 </head>
 <body>
     <h1>Export aufgezeichneter Anlagendaten</h1>
 
     <p>
-        Hier können Sie die aufgezeichneten Daten als Excel-Tabelle oder SQLite-Datenbank (Rohwerte) herunterladen. 
+        Hier können Sie die aufgezeichneten Daten als Excel-Tabelle oder SQLite-Datenbank (Rohwerte) herunterladen.
     </p>
 
     <fieldset style="width:fit-content;">
@@ -56,7 +55,7 @@
         <div class="container">
             <div class="controls">
                 <input type="text" id="newItemInput" class="myButton" list='comments' placeholder="Neue Tabellenspalte hinzufügen">
-                <button onclick="addItem()">Hinzufügen</button>
+                <button onclick="dragdrop.addItem()">Hinzufügen</button>
             </div>
 
             <ol id="sortable-list">
@@ -72,12 +71,12 @@
         <legend>Download:</legend>
         <div class="container">
             <div class="controls">
-                <button class="myButton" style="width:10rem;" onclick="getExcelFromForm();">Excel-Export</button>
+                <button class="myButton" style="width:10rem;" onclick="excel.getExcelFromForm();">Excel-Export</button>
                 <div>
                     Der Excel-Export kann einen Moment in Anspruch nehmen. Die Datenpunkte werden in der oben zugewiesenen Reihenfolge in Spalten ausgegeben. Die Excel-Datei wird in Ihren Download-Ordner heruntergeladen.
                 </div>
                 <hr />
-                <button class="myButton" style="width:10rem;" onclick="getDbFromForm('start', 'end');">SQLite-Export</button>
+                <button class="myButton" style="width:10rem;" onclick="excel.getDbFromForm('start', 'end');">SQLite-Export</button>
                 <div>
                     Der Datenbank-Export kann einen Moment in Anspruch nehmen. Es werden alle aufgezeichneten Tags exportiert.
                     Die SQLite-Dateien werden als ZIP in Ihren Download-Ordner heruntergeladen. <a href="https://sqlite.org/" target="_blank">SQLite.org</a>, <a href="https://sqlitebrowser.org/" target="_blank">SQLite Browser</a>
@@ -88,7 +87,8 @@
 
     <hr />
 
-    <fieldset style="width:fit-content;">
+    <span style="padding:0 1rem">Funktion bald verfügbar:</span>
+    <fieldset style="width:fit-content; opacity:50%">
         <legend>Konfiguration laden / speichern:</legend>
         <p class="info-container">
             Vergeben Sie einen Konfigurationsnamen und speichern Sie die aktuelle Konfiguration. Laden Sie eine gespeicherte Konfiguration anhand des Konfigurationsnamens.
@@ -98,93 +98,18 @@
                 <input class="myButton" list="taglists" id="configName" placeholder="Konfigurationsname">
                 <datalist id="taglists"></datalist>
 
-                <button onclick="confImport();">Konfig-Import</button>
-                <button onclick="confExport();">Konfig-Export</button>
+                <button onclick="excel.confImport();">Konfig-Import</button>
+                <button onclick="excel.confExport();">Konfig-Export</button>
 
                 <datalist id='comments'></datalist>
             </div>
         </div>
     </fieldset>
 
-    <script>
-        let tagCollections = [];
-
-        list = document.getElementById('sortable-list');
-        loadOptions('comments', `/tag/comments`);
-        setDatesToStartOfMonth('start', 'end');
-
-        async function confImport() {
-            const url = '/excel/config/all';
-
-            const res = await fetchSecure(url, {
-                method: 'GET'
-            });
-
-            if (res.ok) {
-                
-                console.info(res);
-
-                const tc = res.json;
-                alertSuccess(tc.value );
-                /*const tc = JSON.parse(txt);*/
-
-                console.info(`ID:${tc.value}, Name:${tc.name}`);
-                //TagCollection
-                // public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
-               
-
-            } else {
-                alertError('Konfiguration - Nicht erlaubte Operation - Status ' + res.status);
-            }
-
-        }
-
-        async function confExport() {
-            const url = '/excel/config/create';
-            const chartName = document.getElementById('configName').value;
-            const start = new Date(document.getElementById('start').value);
-            const end = new Date(document.getElementById('end').value);
-            const interval = document.getElementById('interval').value;
-            const inputs = document.querySelectorAll('.sortable-item > input');
-            const tagNames = [];
-
-            for (let i = 0; i < inputs.length; i++) {
-                const comment = inputs[i].value;
-                const tagName = allTagComments.get(comment);
-                tagNames.push({ tagName: tagName, tagComment: comment, tagValue: null, chartFlag: false });
-                //Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
-            }
-
-            //(string Name, string Author, DateTime Start, DateTime End, MiniExcel.Interval Interval, Tag[] Tags)
-            const str = JSON.stringify({ id: 0, name: chartName, author: '', start: start.toISOString(), end: end.toISOString(), interval: parseInt(interval), tags: tagNames });
-            console.log(str);
-
-            const res = await fetchSecure(url, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: str
-            });
-
-            if (res.ok) {
-                alertSuccess('Konfiguration gespeichert');
-            } else {
-                alertError('Konfiguration - Nicht erlaubte Operation - Status ' + res.status);
-            }
-
-        }
-
-        /*
-        function replacer(key, value) {
-            if (value instanceof Map) {
-                return {
-                    dataType: 'Map',
-                    value: Array.from(value.entries()),
-                };
-            } else {
-                return value;
-            }
-        } */
+    <script type="module">        
+        excel.loadOptions('comments', `/tag/comments`);
+        excel.setDatesToStartOfMonth('start', 'end');        
     </script>
-
+    
 </body>
 </html>

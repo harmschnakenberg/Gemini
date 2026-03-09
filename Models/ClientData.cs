@@ -6,9 +6,9 @@ using System.Text.Json.Serialization;
 
 namespace Gemini.Models
 {
-    public record LoginRequest(string Username, string Password);
+    public record LoginRequest(string UserName, string UserToken);
 
-    public record LoginResponse(string RequestToken);
+    //public record LoginResponse(string RequestToken);
 
     public record CsrfTokenResponse(string Token);
 
@@ -133,7 +133,7 @@ namespace Gemini.Models
 [JsonSerializable(typeof(MenuLink[]))]
 [JsonSerializable(typeof(SollwertFromJson[]))]
 [JsonSerializable(typeof(LoginRequest))]
-[JsonSerializable(typeof(LoginResponse))]
+//[JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(CsrfTokenResponse))]
 [JsonSerializable(typeof(ChartConfig))]
 [JsonSerializable(typeof(Tag[]))]

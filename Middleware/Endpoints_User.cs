@@ -39,6 +39,7 @@ namespace Gemini.Middleware
 
         private static IResult UserUpdate(HttpContext ctx, ClaimsPrincipal user)
         {
+            _ = int.TryParse(ctx.Request.Form["id"].ToString(), out int id);             
             string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
             string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
             string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
@@ -48,19 +49,20 @@ namespace Gemini.Middleware
 
             if (!isAdmin && !isCurrentUser) //Benutzer können sich nur selbst ändern 
             {
-                Console.WriteLine($"Benutzer {name} ändern: Keine Berechtigung {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+                Db.Db.DbLogWarn($"Benutzer {name} ändern: Keine Berechtigung {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
                 return Results.Unauthorized();
             }
 
-            int result = Db.Db.UpdateUser(name, pwd, Enum.Parse<Role>(role));
+            int result = Db.Db.UpdateUser(id, name, pwd, Enum.Parse<Role>(role));
+#if DEBUG
             Console.WriteLine($"UserUpdate DatenbankQuery Result = " + result);
-
+#endif
 
             if (result > 0)
                 return Results.Ok();
             else
             {
-                Console.WriteLine($"Fehler bei Benutzer {name} ändern durch {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}] (SQL)");
+                Db.Db.DbLogError($"Fehler bei Benutzer {name} ändern durch {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}] (SQL)");
                 return Results.InternalServerError();
             }
         }
@@ -97,14 +99,14 @@ namespace Gemini.Middleware
         {
 
 
-            if (Db.Db.AuthenticateUser(request.Username, request.Password, out Role userRole))
+            if (Db.Db.AuthenticateUser(request.UserName, request.UserToken, out Role userRole))
             {
 #if DEBUG
-                Console.WriteLine($"Anmeldung {request.Username}");
+                Console.WriteLine($"Anmeldung {request.UserName}");
 #endif
                 // A. User einloggen (Setzt das Auth-Cookie)
                 var claims = new List<Claim> {
-                    new(ClaimTypes.Name, request.Username),
+                    new(ClaimTypes.Name, request.UserName),
                     new(ClaimTypes.Role, userRole.ToString())
                 };
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -115,19 +117,20 @@ namespace Gemini.Middleware
                 // Das ist entscheidend: Der Client bekommt das Token für den NÄCHSTEN Request.
                 var tokens = antiforgery.GetAndStoreTokens(context);
 
-                Db.Db.DbLogInfo($"Login: {request.Username} [{userRole}]");
+                Db.Db.DbLogInfo($"Login: {request.UserName} [{userRole}]");
 
-                return Results.Ok(new LoginResponse(tokens.RequestToken!));
+                return Results.Ok(new LoginRequest(request.UserName, tokens.RequestToken!));
             }
 
             return Results.Unauthorized();
         }
 
-        private static IResult Logout(LoginResponse request, HttpContext context)
+        private static IResult Logout(LoginRequest request, HttpContext context)
         {
+            Console.WriteLine($"LOGOUT() {request.UserName}, {request.UserToken}");
             context.SignOutAsync();
-            Db.Db.DbLogInfo($"Logout: {request.RequestToken} ");
-            return Results.Ok(new { Message = "Ausgeloggt" });
+            Db.Db.DbLogInfo($"Logout: {request.UserName} ");
+            return Results.Ok(request);
         }
 
         private static IResult RefreshAntiForgeryToken(IAntiforgery antiforgery, HttpContext context)

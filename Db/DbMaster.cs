@@ -15,6 +15,7 @@ namespace Gemini.Db
 
     internal sealed class User 
     {
+        public required int Id { get; set; }
         public required string Name { get; set; }
         public required Role Role { get; set; }
     }
@@ -96,14 +97,15 @@ namespace Gemini.Db
                 using var connection = new SqliteConnection(MasterDbSource);
                 connection.Open();
                 var command = connection.CreateCommand();
-                var query = @"SELECT Name, RoleId FROM User;";
+                var query = @"SELECT Id, Name, RoleId FROM User;";
                 command.CommandText = query;
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                    string userName = reader.GetString(0);
-                    Role userRole = (Role)reader.GetInt32(1);                    
-                    users.Add(new User(){ Name = userName, Role = userRole});
+                    int userId = reader.GetInt32(0);
+                    string userName = reader.GetString(1);
+                    Role userRole = (Role)reader.GetInt32(2);                    
+                    users.Add(new User(){ Id = userId, Name = userName, Role = userRole});
                 }
                 connection.Dispose();
             }
@@ -151,7 +153,7 @@ namespace Gemini.Db
             }
         }
 
-        internal static int UpdateUser(string name, string password, Role role = Role.Guest)
+        internal static int UpdateUser(int id, string name, string password, Role role = Role.Guest)
         {
             lock (_dbLock)
             {
@@ -159,6 +161,7 @@ namespace Gemini.Db
                 connection.Open();
                 var command = connection.CreateCommand();
 
+                command.Parameters.AddWithValue("@UserId", id);
                 command.Parameters.AddWithValue("@Name", name);
                 command.Parameters.AddWithValue("@RoleId", (int)role);
 
@@ -167,16 +170,16 @@ namespace Gemini.Db
                     //Console.WriteLine("Benutzer geändert ohne Passwortänderung.");
                     command.CommandText =
                 @"  UPDATE User 
-                    SET RoleId = @RoleId
-                    WHERE Name = @Name; ";
+                    SET RoleId = @RoleId, Name = @Name
+                    WHERE Id = @UserId; ";
                 }
                 else
                 {
                     //Console.WriteLine("Benutzer geändert mit Passwortänderung.");
                     command.CommandText =
                 @"  UPDATE User 
-                    SET Hash = @Hash, RoleId = @RoleId
-                    WHERE Name = @Name; ";
+                    SET Hash = @Hash, RoleId = @RoleId, Name = @Name 
+                    WHERE Id = @UserId; ";
 
                     string passwordHash = Gemini.Middleware.PasswordHasher.HashPassword(password);
                     command.Parameters.AddWithValue("@Hash", passwordHash);

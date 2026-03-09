@@ -65,7 +65,6 @@ ul {
     background-color: blue;
 }
 
-
     input[type=datetime-local], select{
         font-size: 1em;
         font-family: sans-serif;
@@ -351,21 +350,21 @@ input.checkbox {
 	#alert > .success {
 		margin: 1px;
 		padding: 0.3rem;
-		background-color: rgba(0, 204, 0, 0.5);
+		background-color: rgba(0, 204, 0, 0.8);
 		border: 2px solid rgb(0, 204, 0);
 	}
 
     #alert > .warn {
         margin: 1px;
         padding: 0.3rem;
-        background-color: rgba(255, 215, 0, 0.5);
+        background-color: rgba(255, 215, 0, 0.8);
         border: 2px solid rgb(255, 215, 0);
     }
 
     #alert > .error {
         margin: 1px;
         padding: 0.3rem;
-        background-color: rgba(255, 99, 71, 0.5);
+        background-color: rgba(255, 99, 71, 0.8);
         border: 2px solid rgb(255, 99, 71);
     }
 

@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <title>Demo Kurve</title>
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
-    <link rel='stylesheet' href='/css/style.css'>
+    <link rel='stylesheet' href='../css/style.css'>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script> <!-- für PAN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js" integrity="sha512-FRGbE3pigbYamZnw4+uT4t63+QJOfg4MXSgzPn2t8AWg9ofmFvZ/0Z37ZpCawjfXLBSVX2p2CncsmUH2hzsgJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src='/js/chart.js'></script>
-    <script src='/js/excel.js'></script>
-    <script src='/js/websocket.js'></script>
+    <script type="module" src='../js/script.js'></script>
+    <script scr="../js/chart.js"></script>
+
 </head>
 <body>
     <h1>Demo Kurvendarstellung</h1>
@@ -42,10 +42,10 @@
         <input type="datetime-local" id="start" name="start" onfocusout="loadAllCharts();">
         <input type="datetime-local" id="end" name="end" onfocusout="loadAllCharts();">
         <button class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();"><i class="material-icons">schedule</i>8</button>
-        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>         
+        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>
         <select class='myButton' id='interval'>
             <option value='0'>&#x26C1;</option>
-            <option value='1' selected>&#x26C0;</option>            
+            <option value='1' selected>&#x26C0;</option>
         </select>
         <button class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));"><i class="material-icons">save</i></button>
         <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 1.2);"><i class="material-icons">zoom_in</i></button>
@@ -64,32 +64,28 @@
     </div>
 
     <div id="rawDataLinks" style="position:sticky; bottom:0.5rem; left:0.5rem;"></div>
-    
+
+
     <script>
 
-        const tags1 = new Map([
-            ['A01_DB10_DBW2', 'Stunden'],
-            ['A01_DB10_DBW4', 'Minuten'],
-            ['A01_DB10_DBW6', 'Sekunden']
-        ]);
 
-        const tags2 = new Map([
-            ['A01_DB10_DBX7_7', 'Sekunde Bit0'],
-            ['A01_DB10_DBX7_6', 'Sekunde Bit1'],
-            ['A01_DB10_DBX7_5', 'Sekunde Bit2'],
-            ['A01_DB10_DBX7_4', 'Sekunde Bit3'],
-            ['A01_DB10_DBX7_3', 'Sekunde Bit4'],
-            ['A01_DB10_DBX7_2', 'Sekunde Bit5'],
-            ['A01_DB10_DBX7_1', 'Sekunde Bit6'],
-            ['A01_DB10_DBX7_0', 'Sekunde Bit7']
-        ]);
 
-        initChart('myChart1', false);
-        initChart('myChart2', true);
-        if (!getTimeParams())
-            setDatesHours('start', 'end', 8);
-        loadAllCharts();
-        
+        function checkDuration(startId, endId, outputId) {
+            const start = new Date(document.getElementById(startId).value);
+            const end = new Date(document.getElementById(endId).value);
+            const duration = (end - start) / 86400000;
+            const obj = document.getElementById(outputId)
+            obj.innerHTML = duration.toFixed(0) + ' Tage';
+
+            if (duration > 91 || duration < 0) {
+                obj.style.color = 'red';
+                return false;
+            } else {
+                obj.style.color = 'inherit';
+                return true;
+            }
+        }
+
         function setTimeParams() {
             const url = new URL(window.location.href);
             url.searchParams.set('start', document.getElementById('start').value);
@@ -112,30 +108,43 @@
         }
 
         function loadAllCharts() {
-            if (checkDuration('start', 'end', 'chartTimespan')) {                
+            if (checkDuration('start', 'end', 'chartTimespan')) {
                 loadChart('myChart1', 'start', 'end', 'interval', tags1);
-                loadChart('myChart2', 'start', 'end', 'interval', tags2);   
+                loadChart('myChart2', 'start', 'end', 'interval', tags2);
                 setTimeParams();
-            }   
-        }
-
-        function checkDuration(startId, endId, outputId) {
-            const start = new Date(document.getElementById(startId).value);
-            const end = new Date(document.getElementById(endId).value);
-            const duration = (end - start) / 86400000;
-            const obj = document.getElementById(outputId)
-            obj.innerHTML = duration.toFixed(0) + ' Tage';
-
-            if (duration > 91 || duration < 0) {
-                obj.style.color = 'red';
-                return false;
-            } else {
-                obj.style.color = 'inherit';
-                return true;              
             }
         }
 
 
-    </script> 
+        const tags1 = new Map([
+            ['A01_DB10_DBW2', 'Stunden'],
+            ['A01_DB10_DBW4', 'Minuten'],
+            ['A01_DB10_DBW6', 'Sekunden']
+        ]);
+
+        const tags2 = new Map([
+            ['A01_DB10_DBX7_7', 'Sekunde Bit0'],
+            ['A01_DB10_DBX7_6', 'Sekunde Bit1'],
+            ['A01_DB10_DBX7_5', 'Sekunde Bit2'],
+            ['A01_DB10_DBX7_4', 'Sekunde Bit3'],
+            ['A01_DB10_DBX7_3', 'Sekunde Bit4'],
+            ['A01_DB10_DBX7_2', 'Sekunde Bit5'],
+            ['A01_DB10_DBX7_1', 'Sekunde Bit6'],
+            ['A01_DB10_DBX7_0', 'Sekunde Bit7']
+        ]);
+
+
+        initChart('myChart1', false);
+        initChart('myChart2', true);
+        if (!getTimeParams())
+            setDatesHours('start', 'end', 8);
+        loadAllCharts();
+
+    </script>
+
+
+
+
+
 </body>
 </html>

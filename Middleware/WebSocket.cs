@@ -16,6 +16,9 @@ namespace Gemini.Middleware
         {         
             if (context.Request.Path == "/ws")
             {
+#if DEBUG
+                Console.WriteLine("WebSocket connection attempt from " + context.Connection.RemoteIpAddress);
+#endif
                 if (context.WebSockets.IsWebSocketRequest)
                 {
                     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
@@ -230,7 +233,7 @@ namespace Gemini.Middleware
                 return;
             }
 
-            //Console.WriteLine("Initialnachricht: " + jsonString);
+            Console.WriteLine("Initialnachricht: " + jsonString);
             JsonTag[]? clientData = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray);
 
             if (clientData is null || clientData?.Length == 0)

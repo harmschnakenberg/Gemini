@@ -1,4 +1,4 @@
-using static Gemini.Db.Db;
+Ôªøusing static Gemini.Db.Db;
 using Gemini.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Identity;
 
 
 
-#region Datenbank aufr‰umen und vorbereiten
+#region Datenbank aufr√§umen und vorbereiten
 
-VaccumAllDatabases(); //Datenbanken aufr‰umen
+VaccumAllDatabases(); //Datenbanken aufr√§umen
 
 InitiateDbWriting(); //Daten mit Log-Flag in DB schreiben
 
@@ -26,15 +26,15 @@ builder.WebHost.UseKestrelHttpsConfiguration();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    // Falls Nginx auf demselben Server l‰uft, reicht oft die Standardeinstellung.
-    // Bei externen Proxys m¸ssen Sie KnownProxies oder KnownNetworks leeren:
+    // Falls Nginx auf demselben Server l√§uft, reicht oft die Standardeinstellung.
+    // Bei externen Proxys m√ºssen Sie KnownProxies oder KnownNetworks leeren:
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 
 #endregion
 
-#region JSON f¸r native AOT vorbereiten
+#region JSON f√ºr native AOT vorbereiten
 
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default));
@@ -43,13 +43,13 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 #region Authentifizierung
 
-// 2. Authentication (Cookies) hinzuf¸gen
+// 2. Authentication (Cookies) hinzuf√ºgen
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.Cookie.Name = "KreuAuthCookie";
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur ¸ber HTTPS senden        
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur √ºber HTTPS senden        
         options.Cookie.SameSite = SameSiteMode.Strict;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
         options.LoginPath = "/";
@@ -68,13 +68,13 @@ builder.Services.AddAuthorizationBuilder()
 
 builder.Services.AddAuthorization();
 
-// CORS aktivieren, damit der Browser (wenn er auf einem anderen Port l‰uft) zugreifen darf
-// AllowCredentials ist notwendig f¸r Cookies ¸ber verschiedene Ports/Domains!
+// CORS aktivieren, damit der Browser (wenn er auf einem anderen Port l√§uft) zugreifen darf
+// AllowCredentials ist notwendig f√ºr Cookies √ºber verschiedene Ports/Domains!
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy => policy
-        //.AllowAnyOrigin() //mit https nicht mˆglich
+        //.AllowAnyOrigin() //mit https nicht m√∂glich
         .WithOrigins(
         "https://harm.local",
         "https://kreuwebapp.local",
@@ -83,7 +83,7 @@ builder.Services.AddCors(options =>
         ) // Deine Client-URL explizit nennen!
         .AllowAnyMethod()
         .AllowAnyHeader()
-        .AllowCredentials()// <-- Zwingend erforderlich f¸r Cookies
+        .AllowCredentials()// <-- Zwingend erforderlich f√ºr Cookies
         );    
 });
 
@@ -120,58 +120,28 @@ app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 app.MapEndpoints();
 app.MapGet("/restart", () => { app.Lifetime.StopApplication(); });
-
 app.Map("/db/clean", () => { VaccumAllDatabases(); });
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    // Signalisieren, damit andere Services (z.B. Poller) herunterfahren k√∂nnen
+    Endpoints.cancelTokenSource.Cancel();
+
+    try
+    {
+        // Blockierender Flush: bis zu 5 Sekunden warten, damit gepufferte DB‚ÄëWrites noch ausgef√ºhrt werden
+        StopBackgroundWriterAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+    }
+    catch (Exception ex) { logger.LogError(ex, "Fehler beim Flushen des DB-Write-Queues beim Herunterfahren."); }
+});
 
 while (!Endpoints.PleaseStop)
 {
     Gemini.Db.Db.DbLogInfo("Webserver gestartet.");
     logger.LogInformation("Webserver neu gestartet.");
 
-    //app.Lifetime.ApplicationStopping.Register(() =>
-    //{
-    //    Endpoints.cancelTokenSource.Cancel();
-    //});
-
     app.Run();
 
     Gemini.Db.Db.DbLogInfo("Webserver beendet.");
     logger.LogInformation("Webserver beendet.");
 }
-
-
-
-//class ShutdownService(IHostApplicationLifetime applicationLifetime) : IHostedService
-//{
-//    private bool pleaseStop;
-//    private Task? BackgroundTask;
-//    private readonly IHostApplicationLifetime applicationLifetime = applicationLifetime;
-
-//    public Task StartAsync(CancellationToken _)
-//    {
-//        Console.WriteLine("Starting service");
-
-//        BackgroundTask = Task.Run(async () =>
-//        {
-//            while (!pleaseStop)
-//            {
-//                await Task.Delay(50);
-//            }
-
-//            Console.WriteLine("Background task gracefully stopped");
-//        }, _);
-
-//        return Task.CompletedTask;
-//    }
-
-//    public async Task StopAsync(CancellationToken cancellationToken)
-//    {
-//        Console.WriteLine("Stopping service");
-
-//        pleaseStop = true;
-//        await BackgroundTask;
-
-//        Console.WriteLine("Service stopped");
-//    }
-//}
 

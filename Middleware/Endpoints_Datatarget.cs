@@ -44,8 +44,7 @@ namespace Gemini.Middleware
             using (TextReader reader = new StreamReader($"wwwroot/html/chart/chart{chartId}.json"))
             {
                 json = reader.ReadToEndAsync().Result;
-            }
-            ;
+            };
 
             ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
 
