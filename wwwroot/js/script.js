@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     dragdrop.setupDragAndDrop();
 });
 
+
 //window.onload = () => {
 
     //checkLoginStatus();

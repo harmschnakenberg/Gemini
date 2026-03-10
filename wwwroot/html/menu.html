@@ -11,6 +11,22 @@
 <body>
     <h1>Kreutzträger WebApp</h1>
 
+    <div style="position:absolute; right:0.5rem; top:3.5rem;">
+        <input type="hidden" id="hour" data-name='A01_DB10_DBW2'/>
+        <input type="hidden" id="min" data-name='A01_DB10_DBW4'/>
+        <input type="hidden" id="sec" data-name='A01_DB10_DBW6'/>
+        SPS-Zeit <span id="time">00:00:00</span>
+        <script>
+            function clock() {
+                h = document.getElementById('hour').value;
+                m = document.getElementById('min').value;
+                s = document.getElementById('sec').value;
+                document.getElementById('time').innerHTML = h.padStart(2, "0") + ':' + m.padStart(2, "0") + ':' + s.padStart(2, "0");
+            }
+            window.setInterval(clock, 1000);
+        </script>
+    </div>
+
     <div id="logincard">
         <div id="loginheader" onclick="user.checkLoginStatus();">Login</div>
         <input type="text" id="username" placeholder="Benutzername" value="Admin"><br />

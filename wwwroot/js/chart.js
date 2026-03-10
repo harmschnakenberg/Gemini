@@ -392,4 +392,47 @@ function panX(chartIds, pixel) {
     });
 }
 
-//export { initChart, loadChart, setDatesHours , zoom, resetZoom, panX };
+
+/* START DOM-Manipulation */
+
+function checkDuration(startId, endId, outputId) {
+    const start = new Date(document.getElementById(startId).value);
+    const end = new Date(document.getElementById(endId).value);
+    const duration = (end - start) / 86400000;
+    const obj = document.getElementById(outputId)
+    obj.innerHTML = duration.toFixed(0) + ' Tage';
+
+    if (duration > 91 || duration < 0) {
+        obj.style.color = 'red';
+        return false;
+    } else {
+        obj.style.color = 'inherit';
+        return true;
+    }
+}
+
+function setTimeParams() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('start', document.getElementById('start').value);
+    url.searchParams.set('end', document.getElementById('end').value);
+    window.history.pushState(null, '', url.toString())
+}
+
+function getTimeParams() {
+    const url = new URL(window.location.href);
+    const s = url.searchParams.get('start');
+    const e = url.searchParams.get('end');
+    console.log(`start ${s}; end ${e}`);
+    if (!s || !e || isNaN(new Date(s)) || isNaN(new Date(e))) {
+        console.warn(`Parameter fehlerhaft: start ${s}, end ${e}`);
+        return false;
+    }
+    document.getElementById('start').value = s;
+    document.getElementById('end').value = e;
+    return true;
+}
+
+/* ENDE DOM-Manipulation */
+
+export { initChart, loadChart, setDatesHours, zoom, resetZoom, panX };
+export { checkDuration, setTimeParams, getTimeParams };

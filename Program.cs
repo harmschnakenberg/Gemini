@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 
 
-
 #region Datenbank aufräumen und vorbereiten
 
 VaccumAllDatabases(); //Datenbanken aufräumen

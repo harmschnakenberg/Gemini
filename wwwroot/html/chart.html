@@ -12,8 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script> <!-- für PAN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/2.2.0/chartjs-plugin-zoom.min.js" integrity="sha512-FRGbE3pigbYamZnw4+uT4t63+QJOfg4MXSgzPn2t8AWg9ofmFvZ/0Z37ZpCawjfXLBSVX2p2CncsmUH2hzsgJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="module" src='../js/script.js'></script>
-    <script scr="../js/chart.js"></script>
-
 </head>
 <body>
     <h1>Demo Kurvendarstellung</h1>
@@ -65,56 +63,7 @@
 
     <div id="rawDataLinks" style="position:sticky; bottom:0.5rem; left:0.5rem;"></div>
 
-
-    <script>
-
-
-
-        function checkDuration(startId, endId, outputId) {
-            const start = new Date(document.getElementById(startId).value);
-            const end = new Date(document.getElementById(endId).value);
-            const duration = (end - start) / 86400000;
-            const obj = document.getElementById(outputId)
-            obj.innerHTML = duration.toFixed(0) + ' Tage';
-
-            if (duration > 91 || duration < 0) {
-                obj.style.color = 'red';
-                return false;
-            } else {
-                obj.style.color = 'inherit';
-                return true;
-            }
-        }
-
-        function setTimeParams() {
-            const url = new URL(window.location.href);
-            url.searchParams.set('start', document.getElementById('start').value);
-            url.searchParams.set('end', document.getElementById('end').value);
-            window.history.pushState(null, '', url.toString())
-        }
-
-        function getTimeParams() {
-            const url = new URL(window.location.href);
-            const s = url.searchParams.get('start');
-            const e = url.searchParams.get('end');
-            console.log(`start ${s}; end ${e}`);
-            if (!s || !e || isNaN(new Date(s)) || isNaN(new Date(e))) {
-                console.warn(`Parameter fehlerhaft: start ${s}, end ${e}`);
-                return false;
-            }
-            document.getElementById('start').value = s;
-            document.getElementById('end').value = e;
-            return true;
-        }
-
-        function loadAllCharts() {
-            if (checkDuration('start', 'end', 'chartTimespan')) {
-                loadChart('myChart1', 'start', 'end', 'interval', tags1);
-                loadChart('myChart2', 'start', 'end', 'interval', tags2);
-                setTimeParams();
-            }
-        }
-
+    <script type="module" >
 
         const tags1 = new Map([
             ['A01_DB10_DBW2', 'Stunden'],
@@ -133,12 +82,19 @@
             ['A01_DB10_DBX7_0', 'Sekunde Bit7']
         ]);
 
-
-        initChart('myChart1', false);
-        initChart('myChart2', true);
-        if (!getTimeParams())
-            setDatesHours('start', 'end', 8);
+        chart.initChart('myChart1', false);
+        chart.initChart('myChart2', true);
+        if (!chart.getTimeParams())
+            chart.setDatesHours('start', 'end', 8);
         loadAllCharts();
+
+        function loadAllCharts() {
+            if (chart.checkDuration('start', 'end', 'chartTimespan')) {
+                chart.loadChart('myChart1', 'start', 'end', 'interval', tags1);
+                chart.loadChart('myChart2', 'start', 'end', 'interval', tags2);
+                chart.setTimeParams();
+            }
+        }
 
     </script>
 
