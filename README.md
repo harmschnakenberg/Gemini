@@ -14,8 +14,9 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Liste der vorhandenen Datenbanken
 	- Liste der Lesefehler aus der SPS-Kommunikation
      - NiceToHave: Logging mit Source Generated Logging für bessere Performance
-	 - ToDo: Liste der verbundenen Clients im Webinterface anzeigen		
-	
+	 - ToDo: Disclaimer und Cookie-Hinweis im Webinterface anzeigen
+	 - ToDo: Dynamisch erstelle HTML-Seiten alle auf statische Seiten mit Platzhaltern basieren lassen (=> Editierbar für Kunden-Admin)
+		
 	- Sicherheit
 	  - HTTPS Support über Rechnernamen | avahi-daemon notwendig
 	  - Zertifikat Download über Webinterface? -> braucht man nicht, da Zertifikate in der Regel auf dem Server installiert werden und nicht vom Client heruntergeladen werden müssen.
@@ -23,19 +24,24 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	
 	- Benutzerverwaltung
 	  - Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
-	  
+	  - Liste der verbundenen Clients im Webinterface anzeigen		
+		
 	- Sollwerte
 	  - Statische Sollwert-Bilder
 	  - dynamisch erzeugtes, eingeblendetes Sollwerte-Menü 		
 	  - Liste der zuletzt geänderten Sollwerte im Webinterface anzeigen	
 	  - Altwert und Neuwert bei Sollwertänderung im Webinterface (Liste) anzeigen	
-	   - ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
-	   - ToDo: Filter bei Liste Sollwertänderungen
+	  - Filter bei Liste Sollwertänderungen
+		- ToDo: dynamisch erstellte Sollwert-Bilder (aus Json-Config?)
+	   
 		
 	- Datenexport
 	  - Excel-Export einstellbarer Werte und Zeiträume
-	  - Excel-Export aus Charts
-	   - ToDo: Warte-Cursor (Excel Download) bei /excel beim Laden der TagComments 	
+	  - Excel-Export aus Charts	   
+	  - Lücken in Excel-Tabelle mit zuletzt gelesenem Wert auffüllen 
+	  - Warte-Cursor (Excel Download) beim Laden der TagComments
+	  - Tag-Sammlung als JSON speicherbar machen.
+		- ToDo: Tag-Sammlung JSON einladbar machen.
 	
 	- Kurvendarstellug	
 	  - Charts zur Visualisierung von Prozessdaten	
@@ -48,10 +54,11 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	  - dynamisch erstellte Charts aus Json-Config
 	  - Chart Zeitspanne in URL codiert
 	  - Chart Datenkomprimierung
-       - ToDo: Hist-Kurven Zusammenstellung in Anlehnung an Excel-Auswahl
-	
+      - für jede Kurve eine eigene Ladeanzeige
+	    - ToDo: Hist-Kurven Zusammenstellung in Anlehnung an Excel-Auswahl
+	  
 	- Ereignisse und Benachrichtigungen 
-       - ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
+        - ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	
     - Graphische Darstellung
 	 - ToDo: SVG Support für Bilder		
@@ -61,8 +68,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Multiple Data Types (Bool, Int, DInt, Real, etc.)
 	- Meldung nur bei geänderten Werten (Polling)
 	- keine doppelten Abfragen bei mehreren Clients
-	- ToDo: Unterstützung für OpcUa Kommunikation
-	- NiceToHave: VPN, wenn zwei Netzwerkkarten verbaut sind / nur zum testen?
+	  - ToDo: Unterstützung für OpcUa Kommunikation
+	  - NiceToHave: VPN, wenn zwei Netzwerkkarten verbaut sind / nur zum testen?
 			
 - SQLite Database
 	- SPS Verwaltung in Datenbank und Confifg-Datei (Datenbank mit Vorrang vor Config-Datei)

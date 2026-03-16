@@ -1,26 +1,34 @@
 ﻿
 import fetchSecure from '../module/fetch.js';
 import { JsonTag } from '../module/data.js';
+import * as alert from '../module/alert.js';
 
-function TagCollection(id, name, author, start, end, interval, tags) {
-    //   public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
-    this.Id = id;
-    this.Name = name;
-    this.Author = author;
-    this.Start = start;
-    this.End = end;
-    this.Interval = interval;
-    this.Tags = tags;
+class TagCollection {
+    constructor(id, name, author, start, end, interval, tags) {
+        //   public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
+        this.Id = id;
+        this.Name = name;
+        this.Author = author;
+        this.Start = start;
+        this.End = end;
+        this.Interval = interval;
+        this.Tags = tags;
+    }
 }
 
+function ChartConfig(id, caption, subCaption, chart1Tags, chart2Tags) {
+        this.Id = id;
+        this.Caption = caption;
+        this.SubCaption = subCaption;
+        this.Chart1Tags = chart1Tags;
+        this.Chart2Tags = chart2Tags;   
+}
 
-const allTagComments = new Map();
+const locLists = new Map(); //Map of Maps
 
-async function loadOptions(selectId, link) {
-
-    document.body.style.opacity = "0.5";
-
-    //const ws = await import('../module/fetch.js');
+async function loadOptions(selectId, locListName, link) {  
+    document.body.classList.add('is-loading');
+    const locList = new Map();
     const response = await fetchSecure(link, {
         method: 'POST'
     });
@@ -33,14 +41,19 @@ async function loadOptions(selectId, link) {
     const json = await response.json();
 
     json.forEach((t) => {
-        allTagComments.set(t.V?.length > 3 ? t.V : t.N, t.N);
-        const para = document.createElement("OPTION");
-        //console.info(`# ${t.V}=${t.N}`);       
-        para.setAttribute("value", t.V?.length > 3 ? t.V : t.N);
-        document.getElementById(selectId).appendChild(para);
+        if (t.N?.length > 0) {
+            //console.log(`${t.N}=${t.V}`)
+            //console.log(`${(t.V.length > 0 || Number.isInteger(t.V) ?  t.V : t.N)} = ${t.N}`)
+            locList.set((t.V.length > 0 || Number.isInteger(t.V)) ? t.V : t.N, t.N);
+
+            const para = document.createElement("OPTION");
+            para.setAttribute("value", t.V?.length > 0 ? t.V : t.N);
+            document.getElementById(selectId).appendChild(para);
+        }
     });
-    document.body.style.opacity = "1";
-    // document.body.style.cursor = "auto";
+
+    locLists.set(locListName, locList);
+    document.body.classList.remove('is-loading');
 }
 
 function setDatesToStartOfMonth(startId, endId) {
@@ -49,7 +62,8 @@ function setDatesToStartOfMonth(startId, endId) {
     document.getElementById(endId).value = now.toISOString().slice(0, 16);
 
     var begin = new Date();
-    begin.setUTCMonth(begin.getUTCMonth() - 1, 1);
+    const d = begin.getUTCDate(); 
+    begin.setUTCMonth(begin.getUTCMonth() - (d < 5 ? 1 : 0), 1);
     begin.setUTCHours(0, 0, 0);
     document.getElementById(startId).value = begin.toISOString().slice(0, 16);
 }
@@ -63,7 +77,6 @@ async function getDbFromForm(startId, endId) {
     const e = new Date(document.getElementById(endId).value);
     let filename = 'db.zip';
 
-    //const ws = await import('../module/fetch.js');
     await fetchSecure('/db/download', {
         method: 'POST',
         headers: {
@@ -91,8 +104,7 @@ async function getDbFromForm(startId, endId) {
 
 function getExcelFromForm() {
 
-    document.body.style.cursor = "wait";
-    document.body.style.opacity = "0.5";
+    document.body.classList.add('is-loading');
 
     const inputs = document.querySelectorAll('.sortable-item > input');
     const interval = document.getElementById('interval').value;
@@ -100,7 +112,7 @@ function getExcelFromForm() {
 
     for (let i = 0; i < inputs.length; i++) {
         const comment = inputs[i].value;
-        const tagName = allTagComments.get(comment);
+        const tagName = locLists.get('allTagComments').get(comment);
         //console.info(`${allTagComments.size} hinzufügen: ${tagName}=${comment}`)
         tags.set(tagName, comment);
     }
@@ -112,12 +124,11 @@ function getExcelFromForm() {
     //console.info(`Übergebene Tags: ${tags.size}`);
 
     if (tags.size > 0)
-        excelExport('start', 'end', interval, tags);
+        excelExport('start', 'end', interval, tags); 
     else
         console.warn("Keine Tags für Excel-Export ausgewählt.");
 
-    document.body.style.opacity = "1";
-    document.body.style.cursor = "auto";
+    document.body.classList.remove('is-loading');
 }
 
 async function excelExport(startId, endId, ival, tags) {
@@ -125,10 +136,7 @@ async function excelExport(startId, endId, ival, tags) {
     const s = new Date(document.getElementById(startId).value);
     const e = new Date(document.getElementById(endId).value);
     const arr = [];
-    let filename = 'excel.xlsx';
-
-    //console.info(`Übergebene Tags: ${tags.size}`);
-    //const ws = await import('../module/fetch.js');
+    let filename = 'kreu.xlsx';
 
     tags.forEach(function (value, key) {
         //console.info('Exportvorbereitung: ' + key + ' = ' + value);
@@ -137,7 +145,7 @@ async function excelExport(startId, endId, ival, tags) {
     });
 
     if (arr.length > 0)
-        await fetchSecure('/excel', {
+        await fetchSecure('/export', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -147,8 +155,7 @@ async function excelExport(startId, endId, ival, tags) {
         }) //https://stackoverflow.com/questions/44168090/fetch-api-to-force-download-file
             .then((res) => {
                 try {
-                    filename = res.headers.get('Content-Disposition').split("filename=")[1];
-                    //filename = res.headers.get('Content-Disposition').split("filename*=UTF-8''")[1]; //UTF8-Filename
+                    filename = res.headers.get('Content-Disposition').split("filename=")[1].split(';')[0];                   
                 } catch (e) {
                     console.warn("Fehler beim Auslesen des Dateinamens aus den Response-Headern: " + e.message);
                 }
@@ -166,66 +173,79 @@ async function excelExport(startId, endId, ival, tags) {
 
 
 async function confImport() {
-    const url = '/excel/config/all';
+    const configName = document.getElementById('configlist').value;
+    const configList = locLists.get('allConfigs');
+    let configId;
 
-    //const alert = import('../module/alert.js');
-    //const ws = await import('../js/websocket.js');
+    locLists.get('allConfigs').forEach(function (value, key) {
+        if (value == configName) 
+            configId = key;       
+    });
+
+    if (configId == 'undefined') { 
+        console.error(`Konfiguration mit dem Namen ${configName} nicht bekannt.`);
+        return;
+    }
+
+    const url = `/chart/config/${configId}`;
+    console.info(`Lade Konfiguration ${configName} mit ID ${configId} von ${url}`)
     const res = await fetchSecure(url, {
-        method: 'GET'
+        method: 'POST',
+        headers: { "Content-Type": "application/json" }
     });
 
     if (res.ok) {
+        const config = await res.json();
+        console.info(config);
+        alert.success(`Konfiguration [${config.Id}] '${config.Caption}' geladen.`);
 
-        console.info(res);
+        
+        
 
-        const tc = res.json;
-        alertSuccess(tc.value);
-        /*const tc = JSON.parse(txt);*/
-
-        console.info(`ID:${tc.value}, Name:${tc.name}`);
+        console.info(`TEST:${config.Chart1Tags.keys}`);
         //TagCollection
         // public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
 
 
     } else {
-        alertError('Konfiguration - Nicht erlaubte Operation - Status ' + res.status);
+        alert.error('Konfiguration laden - Nicht erlaubte Operation - Status ' + res.status);
     }
 
 }
 
+
 async function confExport() {
-    const url = '/excel/config/create';
-    const chartName = document.getElementById('configName').value;
-    const start = new Date(document.getElementById('start').value);
-    const end = new Date(document.getElementById('end').value);
-    const interval = document.getElementById('interval').value;
-    const inputs = document.querySelectorAll('.sortable-item > input');
-    const tagNames = [];
+    const url = '/chart/config/create';
+    const caption = document.getElementById('configName').value;
+    const subCaption = 'Excel-Export Konfiguration';    
+    const inputs = document.querySelectorAll('.sortable-item > input');   
+    const tags1 = new Map();
+
+    console.info(`Exportiere Konfiguration: ${caption} mit ${inputs.length} Tags`);
 
     for (let i = 0; i < inputs.length; i++) {
         const comment = inputs[i].value;
-        const tagName = allTagComments.get(comment);
-        tagNames.push({ tagName: tagName, tagComment: comment, tagValue: null, chartFlag: false });
-        //Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
+        const tagName = locList.get('allTagComments').get(comment);
+        tags1.set(tagName, comment);       
     }
+                   
+    const chartConfig = new ChartConfig(0, caption, subCaption, Object.fromEntries(tags1), Object.fromEntries(new Map()) );
+    const json = JSON.stringify(chartConfig); 
+    //console.warn(json);
 
-    //(string Name, string Author, DateTime Start, DateTime End, MiniExcel.Interval Interval, Tag[] Tags)
-    const str = JSON.stringify({ id: 0, name: chartName, author: '', start: start.toISOString(), end: end.toISOString(), interval: parseInt(interval), tags: tagNames });
-    console.log(str);
-
-    //const ws = await import('../module/fetch.js');
     const res = await fetchSecure(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" },
-        body: str
+        body: json
     });
 
     if (res.ok) {
-        alertSuccess('Konfiguration gespeichert');
+        alert.success(`Konfiguration ${caption} gespeichert`);
     } else {
-        alertError('Konfiguration - Nicht erlaubte Operation - Status ' + res.status);
+        alert.error('Konfiguration speichern - Nicht erlaubte Operation - Status ' + res.status);
     }
 
 }
 
-export { loadOptions, setDatesToStartOfMonth, excelExport, getExcelFromForm, getDbFromForm, TagCollection }
+
+export { loadOptions, setDatesToStartOfMonth, excelExport as export, getExcelFromForm, getDbFromForm, TagCollection, confExport, confImport }

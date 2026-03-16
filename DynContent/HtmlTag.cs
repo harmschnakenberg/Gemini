@@ -24,7 +24,6 @@ namespace Gemini.DynContent
                 </head>
                 <body>");
 
-
             List<Models.Tag> allTags = GetDbTagNames(System.DateTime.UtcNow, 1);
 
             sb.Append("<h1>Datenpunkte</h1>");
@@ -33,41 +32,20 @@ namespace Gemini.DynContent
             sb.AppendLine("<a href='/db/list' class='menuitem'>Datenbanken</a>");
 
             sb.Append("<h2>Gelesene Datenpunkte</h2>");
-            sb.Append("<hr/><table>");
+            sb.Append("<hr/><table class='sollwerte'>");
             sb.Append("<tr><th>Item-Name</th><th>Beschreibung</th><th>mom. Wert</th><th>Log</th></tr>");
-
 
             foreach (Models.Tag tag in allTags)
             {
                 sb.Append("<tr>");
-                sb.Append($"<td><input value='{tag.TagName}' disabled></td>");
-                sb.Append($"<td><input style='text-align: left;' onchange='updateTag(this);' value='{tag.TagComment}' {(isAdmin ? "" : "disabled")}></td>");
-                sb.Append($"<td><input data-name='{tag.TagName}' disabled></td>");
-                sb.Append($"<td><input type='checkbox' onchange='updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")}  {(isAdmin ? "" : "disabled")}></td>");
+                sb.Append($"<td><input class='myInput' style='text-align: left;' value='{tag.TagName}' disabled></td>");
+                sb.Append($"<td><input class='myInput' style='text-align: left; width:40rem;' onchange='data.updateTag(this);' value='{tag.TagComment}' {(isAdmin ? "" : "disabled")}></td>");
+                sb.Append($"<td><input class='myInput' style='width:6rem;' data-name='{tag.TagValue}' disabled></td>");
+                sb.Append($"<td><input class='myInput' type='checkbox' onchange='data.updateTag(this);' value='{tag.ChartFlag}'{(tag.ChartFlag == true ? "checked" : "")}  {(isAdmin ? "" : "disabled")}></td>");
                 sb.Append("</tr>");
             }
 
             sb.Append("</table>");
-
-            sb.Append(@"
-            <script>
-                
-                async function updateTag(obj) {                    
-                    const tagName = obj.parentNode.parentNode.children[0].children[0].value;
-                    const tagComm = obj.parentNode.parentNode.children[1].children[0].value;
-                    const tagChck = obj.parentNode.parentNode.children[3].children[0].checked;
-
-                    const ws = await import('../module/fetch.js');
-                    ws.fetchSecure('/tag/update', {
-                      method: 'POST',   
-                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },                      
-                      body: new URLSearchParams({ tagName: tagName, tagComm: tagComm, tagChck: tagChck })
-                    });
-                }
-
-            </script>
-            ");
-
             sb.Append(@"
                 </body>
                 </html>");
@@ -85,32 +63,34 @@ namespace Gemini.DynContent
         /// associated tag information.</param>
         /// <returns>A string containing the generated HTML markup representing the altered tags, or null if no tags are
         /// provided.</returns>
-        internal static string? ListAlteredTags(List<TagAltered> aTags, System.DateTime startUtc, System.DateTime endUtc)
+        internal static string? ListAlteredTags(List<TagAltered> aTags, System.DateTime startUtc, System.DateTime endUtc, string filter)
         {
             //Console.WriteLine($"Gefundene Änderung: {time} | {user} | {tagName} | {tagComment} | {newValue} | {oldValue}");
             StringBuilder sb = new();
 
-            sb.Append(@"<!DOCTYPE html>
+            sb.AppendLine(@"<!DOCTYPE html>
                             <html lang='de'>
                             <head>
+                                <title>Sollwertänderungen</title>
                                 <meta charset='UTF-8'>
-                                <title>Sollwertänderungen</title>                    
-                                <link rel='shortcut icon' href='/favicon.ico'>
-                                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                                <meta name='viewport' content='width=device-width, initial-scale=1.0'>                    
+                                <link rel='shortcut icon' href='/favicon.ico'>                                
                                 <link rel='stylesheet' href='../css/style.css'>                    
                                 <script type='module' src='../js/script.js'></script>
                             </head>
                             <body>");
 
-            sb.Append($"<h1>{aTags.Count} Sollwertänderungen</h1>");
+            sb.AppendLine($"<h1>{aTags.Count} Sollwertänderungen</h1>");
 
-            sb.Append(@" <div class='container'>
+            sb.AppendLine(@" <div class='container'>
                 <label style='padding:0 1rem;' for='start'>Beginn</label>");
-            sb.Append($"<input class='myButton' type='datetime-local' id='start' name='start' value='{startUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")}' onchange='getAlteredTags()'>");
-            sb.Append("<label style='padding:0 1rem;' for='end'>Ende</label>");
-            sb.Append($"<input class='myButton' type='datetime-local' id='end' name='end' value='{endUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")}' onchange='getAlteredTags()'>");
+            sb.AppendLine($"<input class='myButton' type='datetime-local' id='start' name='start' value='{startUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")}' onchange='data.getAlteredTags();'>");
+            sb.AppendLine("<label style='padding:0 1rem;' for='end'>Ende</label>");
+            sb.AppendLine($"<input class='myButton' type='datetime-local' id='end' name='end' value='{endUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")}' onchange='data.getAlteredTags();'>");
+            sb.AppendLine("<label style='padding:0 1rem;' for='filter'>Filter</label>");
+            sb.AppendLine($"<input class='myButton' type='text' id='filter' name='filter' value='{filter}' onchange='data.getAlteredTags();'>");
             //sb.Append("<button class='myButton' onclick='getAlteredTags()'>Filter anwenden</button>");
-            sb.Append("</div>");
+            sb.AppendLine("</div>");
 
             sb.AppendLine("<table class='datatable'>");
             sb.AppendLine("<tr>" +
@@ -133,60 +113,21 @@ namespace Gemini.DynContent
                     $"<td>{tag.OldValue ?? "?"}</td>" +
                     "</tr>");
             }
+            if (aTags.Count == 0)
+                sb.AppendLine("<td colspan='6'>keine Sollwertänderungen aufgezeichnet</td>");
+
             sb.Append("</table>");
 
             sb.AppendLine($"<p class='container'>" +
                         $"Änderungen von <strong>{startUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")}</strong> " +
                         $"bis <strong>{endUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")}</strong>" +
                         $"</p>");
-            sb.Append($"<span style='position:sticky; left:0; bottom:0;'>Stand {System.DateTime.Now.ToShortTimeString()}</span>");
+            sb.AppendLine($"<span style='position:sticky; left:0; bottom:0;'>Stand {System.DateTime.Now.ToShortTimeString()}</span>");
 
-            sb.AppendLine(@"<script>
-
-            async function getAlteredTags()
-            {
-                const start = document.getElementById('start').value;
-                const end = document.getElementById('end').value;
-               
-                if ('URLSearchParams' in window) {
-                    var searchParams = new URLSearchParams(window.location.search);
-                    searchParams.set('start', start);
-                    searchParams.set('end', end);
-                    window.location.search = searchParams.toString();
-                }
-
-               const link = `/soll/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
-
-               try {
-                    const ws = await import('../module/fetch.js');
-                    const response = await ws.fetchSecure(link);
-
-                    if (!response.ok) 
-                        throw new Error(`Response status: ${response.status}`);
-                    
-                    const html = await response.text();
-                    document.body.innerHTML = html;
-                } catch (error) {
-                console.error('Fehler beim Laden:', error);
-                }
-                
-            }
-
-            function setDates() {
-                const urlParams = new URLSearchParams(window.location.search);
-                var s = urlParams.get('start');
-                var e = urlParams.get('end');
-      
-                if(s)
-                    document.getElementById('start').value = s;
-
-                if(e)
-                    document.getElementById('end').value = e;
-            }
-
-            setDates();
+            sb.AppendLine(
+            @"<script type='module'>                                    
+                chart.setTimeParams();                 
             </script>");
-
 
             sb.Append("</body></html>");
             return sb.ToString();

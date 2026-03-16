@@ -1,6 +1,9 @@
 ﻿:root {
     --primary-bg-color: rgb(60, 60, 60);
     --primary-color: #eeeeee;
+    --hover-bg-color: #999;
+    --active-bg-color: cornflowerblue;
+    --border-color: #666;
 }
 
 body {
@@ -25,6 +28,37 @@ ul {
     list-style-type: none;    
 }
 
+#logincard {
+    position: absolute;
+    right: 11rem;
+    top: 3rem;
+    width: 15rem;
+}
+
+@media (max-width: 1000px) {
+    #logincard {
+        position: relative;
+        left: 2.5rem;
+        top: 0;
+    }
+}
+
+#logincard button {
+    width: 50%;
+    background-color: white;
+    font-size: 1.1rem;
+}
+
+#logincard input {
+    width: 100%
+}
+
+#loginheader {
+    padding: 0.5rem 0.1rem;
+    color: white;
+    font-size: 1.3rem;
+}
+
 #sidemenu {
     overflow-y: auto;
     scrollbar-color: pink lightblue;
@@ -34,14 +68,19 @@ ul {
     padding: 10px;
     z-index: 1000;
     height: 95vh;
-    background-color: transparent;
-    opacity: 0.98;
+    opacity: 0.96;
+    background-color: var(--primary-bg-color);
+  
+    /* background-color: transparent;
     /*list-style-type: none;*/
     /*transform: translate(0px);*/
 }
 
     #sidemenu:hover {
-        background-color: rgb(70, 70, 70);
+        /*background-color: rgb(70, 70, 70); */
+        border-bottom-right-radius: 10px;
+        border-right: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
         transform: translate(430px, 91vh)
     }
 
@@ -53,7 +92,7 @@ ul {
 
 .menuitem:link, .menuitem:visited {
     background-color: slategrey;
-    color: white;
+    /* color: white; */
     padding: 14px 25px;
     text-decoration: none;
     margin: 1px;
@@ -62,7 +101,7 @@ ul {
 }
 
 .menuitem:hover, .menuitem:active {
-    background-color: blue;
+    background-color: var(--hover-bg-color);
 }
 
     input[type=datetime-local], select{
@@ -70,6 +109,7 @@ ul {
         font-family: sans-serif;
         padding: 0.2rem;
     }
+
 
 .info-container {
     min-width: 800px;
@@ -97,10 +137,11 @@ ul {
 .myButton {
     flex-grow: 1;
     padding: 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
 }
+
 
 .myInput {
     flex-grow: 1;
@@ -109,6 +150,11 @@ ul {
     border-radius: 4px;
     font-size: 1rem;
 }
+    .myInput:read-only {
+        background-color: lightgray;
+        border: 0;
+    }
+    
 
 .delete-btn {
     background-color: #ff4d4d;
@@ -163,15 +209,8 @@ ul {
     }
 
     .sortable-item.over {
-        border-top: 2px solid #333; /* Visuelles Feedback wo es fallen gelassen wird */
+        border-top: 2px solid var(--border-color); /* Visuelles Feedback wo es fallen gelassen wird */
     }
-
-/*.item-content {    
-    min-width:30rem;
-    max-width:90%;*/
-    /*flex-grow: 1;*/
-    /*border: none;
-}*/
 
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
@@ -187,7 +226,6 @@ input[type=number] {
 
 .sollwerte {
     display: grid;
-    /*grid-template-columns: 40rem 7rem 3rem 7rem 3rem;*/
     grid-template-columns: 40rem 7rem max-content 7rem max-content;
 }
 
@@ -195,14 +233,6 @@ input[type=number] {
     display: grid;
     grid-template-columns: 7rem 40rem 3rem 1rem 1rem 3rem;
 }
-
-@media (max-width: 1000px) {
-    .sollwerte {
-        display: grid;
-        grid-template-columns: auto 7rem max-content 7rem max-content;
-    }
-}
-
 
 .sollwerte > * {
     padding: 0.5rem;
@@ -253,7 +283,7 @@ input[type=number] {
 
 .sollwerte input {
     text-align: right;
-    border: 0px solid grey;
+    border: 0px;
 }
 
     .sollwerte input:not([disabled]) {
@@ -285,8 +315,15 @@ input[type=number] {
         }
 
         .sollwerte input:enabled:focus-visible {
-            border: 1px solid blue;
+            border: 1px solid var(--active-bg-color);
         }
+
+@media (max-width: 1000px) {
+    .sollwerte {
+        display: grid;
+        grid-template-columns: auto 7rem max-content 7rem max-content;
+    }
+}
 
 input[type="checkbox"] {
     grid-column: span 2;
@@ -296,17 +333,6 @@ input[type="checkbox"] {
         background-color: black;
         accent-color: black;
     }
-/*	input[type="checkbox"]:read-only {
-		cursor: pointer;
-		accent-color: lightgray;
-	}*//*
-			input[type="checkbox"]:before {
-				content: 'X' !important;
-				font-size: 14px !important;
-				color: red;
-				text-align: center;
-				line-height: 7px
-			}*/
 
 input.checkbox {
     font-size: 2rem;
@@ -343,8 +369,6 @@ input.checkbox {
     padding: 0.5rem;
     margin:0.1rem;
     width: 58rem;
-    /*alert .style.padding = '0.2rem 0.5rem';
-    alert .style.width = '30rem';*/
 }
 
 	#alert > .success {
@@ -368,9 +392,22 @@ input.checkbox {
         border: 2px solid rgb(255, 99, 71);
     }
 
-#customspinner {
-    /* visibility:hidden; */
+.is-loading {
+    cursor: wait !important;
+    opacity: 0.5;
+}
+
+#waitforserver {
     position: absolute;
+    margin: 5vh 40vw;
+    padding: 1rem 2rem;
+    width: 22rem;
+    background-color:var(--hover-bg-color);
+}
+
+/*#customspinner {*/
+    /* visibility:hidden; */
+    /*position: absolute;
     margin: 50vh 1vw;
     padding: 1rem 2rem;
     animation-name: myAnimation;
@@ -379,13 +416,13 @@ input.checkbox {
     animation-delay: 1.5s;
     animation-iteration-count: infinite;
     animation-direction: alternate; 
-}
+
 
 @keyframes myAnimation {
     0% {
         background-color: white;
         color: black;
-        left: 0vw;
+        /*left: 0vw;
     }
 
     50% {
@@ -400,7 +437,7 @@ input.checkbox {
         left: 80vw;
     }
 
-}
+}*/
 
 .datatable {
     margin-left: auto;
@@ -428,6 +465,52 @@ input.checkbox {
     td, th {
         padding: 8px;
         text-align: left;
-        border-bottom: 1px solid #777;
+        border-bottom: 1px solid var(--border-color);
+    }
+}
+
+/* Menü-Streifen */
+.tab {
+    overflow: hidden;
+    margin: 0 2.5rem;
+    width: 28rem;
+}
+
+    /* Buttons auf Menüstreifen */
+    .tab button {
+        display: flex;
+        background-color: dimgray ;
+        color: var(--primary-color);
+        float: inline-start;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        margin: 0 1px;
+        transition: 0.3s;
+        font-size: 1rem;
+    }
+
+        /* hover Buttons auf Menüstreifen */
+        .tab button:hover {
+            background-color: var(--hover-bg-color);
+        }
+
+        /* Create an active/current tablink class */
+        .tab button.active {
+            background-color: var(--active-bg-color);
+        }
+
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    background-color: #444;
+    padding: 1rem;
+    border: 1px solid var(--border-color);  
+    margin: 1px 2.5rem;
+    width: 26rem;
+
+    h3 {
+        padding: initial;
     }
 }

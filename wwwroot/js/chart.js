@@ -73,6 +73,16 @@ function initChart(chartId, isStatusChart = false) {
             responsive: true,
             maintainAspectRatio: false,
             animation: false,
+            //animation: {
+            //    onComplete: function (animation) {
+            //        if (animation.initial) { //nur einmal ausführen
+            //            console.log(`Diagramm  ${chartId} ist vollständig gerendert.`);
+            //            // Hier Code ausführen, der nach dem Rendern erfolgen soll
+            //            // z.B. Chart als Bild exportieren
+            //            elm.classList.remove('is-loading');
+            //        }
+            //    }
+            //},
             spanGaps: true,
             // parsing: false, //Geht nicht?
             scales: {
@@ -174,7 +184,7 @@ function initChart(chartId, isStatusChart = false) {
 
     myCharts.set(chartId, myChart);
 
-    const worker = new Worker('/js/chartworker.js', { type: "module" });     
+    const worker = new Worker('/module/chartworker.js', { type: "module" });     
     worker.onmessage = workermessage;
     workers.set(chartId, worker);
 }
@@ -212,21 +222,46 @@ function initChart(chartId, isStatusChart = false) {
     chart.update();
 }  //*/
 
+/* Initialisiert die Fortschrittsanzeige für das Laden und Verarbeiten der Daten. Erstellt die notwendigen HTML-Elemente, wenn sie noch nicht existieren, und setzt die Anzeige zurück. */
+function setupProgressbar(chartId) {
 
+    let allProgressContainer = document.getElementById('progressContainer'); 
+    let myProgressContainer = document.getElementById('progressContainer' + chartId);
+    if (!myProgressContainer) {
+        myProgressContainer = document.createElement('div');
+        myProgressContainer.setAttribute("id", 'progressContainer' + chartId);           
+        allProgressContainer.appendChild(myProgressContainer);
 
-/**
- * Sendet die Anfrage an den Web Worker, um Daten zu laden und zu verarbeiten.
- */
-function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) { 
+        const label = document.createElement('label');
+        label.setAttribute("for", 'progressBar' + chartId);
+        label.textContent = 'Verarbeitung: ';
+        myProgressContainer.appendChild(label);
 
-    document.body.style.cursor = "wait";
-    document.body.style.opacity = "0.5";
-    document.getElementById('customspinner').style.visibility = 'visible';
+        const progressBar = document.createElement('progress');
+        progressBar.setAttribute("id", 'progressBar' + chartId);
+        progressBar.setAttribute("value", "0");
+        progressBar.setAttribute("max", "100");
+        progressBar.style.width = '300px';
+        myProgressContainer.appendChild(progressBar);
+
+        const progressText = document.createElement('span');
+        progressText.setAttribute("id", 'progressText' + chartId);
+        progressText.textContent = '0%';
+        myProgressContainer.appendChild(progressText);
+    }
 
     // Setze die Fortschrittsanzeige zurück und zeige sie an
-    document.getElementById('progressBar').value = 0;
-    document.getElementById('progressText').textContent = '0%';
-    document.getElementById('progressContainer').style.display = 'block';
+    document.getElementById('progressBar' + chartId).value = 0;
+    document.getElementById('progressText' + chartId).textContent = '0%';
+    myProgressContainer.style.display = 'block';
+}
+
+/* Sendet die Anfrage an den Web Worker, um Daten zu laden und zu verarbeiten. */
+function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) { 
+
+    document.getElementById(chartId).classList.add('is-loading');    
+    document.getElementById('waitforserver').showModal();
+    setupProgressbar(chartId);
 
     const startDate = new Date(document.getElementById(startId).value);
     const endDate = new Date(document.getElementById(endId).value);
@@ -263,8 +298,7 @@ function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) {
         aEl.style.color = 'white';
         aEl.style.textDecoration = 'none';
         aEl.style.display = 'block';
-        aEl.innerHTML = 'Rohdaten';
-        //<a id="rawDataLink" style="position:absolute; bottom:0.5rem; left:0.5rem;color:white; text-decoration:none;">Rohdaten</a>
+        aEl.innerHTML = 'Rohdaten';        
         document.getElementById('rawDataLinks').appendChild(aEl);
     }
 
@@ -279,11 +313,6 @@ function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) {
         aliases: LABEL_ALIASES
     });
 }
-
-//function TimeSpanInDays(startDate, endDate) {
-//    let diffInMs = endDate.getTime() - startDate.getTime();
-//    return diffInMs / 86400000;
-//}
 
 /*
   Lade laufend aktuelle Werte nach
@@ -305,19 +334,17 @@ function loadChart(chartId, startId, endId, intervalId, LABEL_ALIASES) {
 //    });
 //}
 
-/**
- * Empfängt die verarbeiteten Daten vom Web Worker und aktualisiert das Chart.
- */
+/* Empfängt die verarbeiteten Daten vom Web Worker und aktualisiert das Chart. */
 function workermessage(e) {
 
         const message = e.data;
+        const chartId = message.chartId;
 
         if (message.type === 'progress') {
             // Fortschritts-Update verarbeiten
-            const percentage = message.percentage;
-            //     console.log(percentage);
-            progressBar.value = percentage;
-            progressText.textContent = `${percentage}%,  ${message.processedCount}/${message.totalCount} Datensätze`;
+            const percentage = message.percentage;       
+            document.getElementById('progressBar' + chartId).value = percentage;
+            document.getElementById('progressText' + chartId).textContent = `${percentage}%,  ${message.processedCount}/${message.totalCount} Datensätze`;
 
             if (message.processedCount == message.totalCount)
                 document.getElementById(message.chartId + 'link').innerHTML = `Rohdaten [${message.totalCount} Datensätze]`;
@@ -334,10 +361,13 @@ function workermessage(e) {
             // Aktualisiere das Diagramm
             myChart.update('none');
             //console.log('Chart aktualisiert.');
-            progressContainer.style.display = 'none';
-            document.body.style.opacity = "1";
-            document.body.style.cursor = "auto";   
-            document.getElementById('customspinner').style.visibility = 'hidden';
+             
+            setTimeout(() => {
+                document.getElementById('progressContainer' + chartId).style.display = 'none';
+                document.getElementById(chartId).classList.remove('is-loading');
+            }, 50); 
+            
+            document.getElementById('waitforserver').close();
         } else if (message.type === 'error') {
             // Fehlerbehandlung
             progressContainer.style.display = 'none';
@@ -345,6 +375,7 @@ function workermessage(e) {
         }
     }
 
+/* Setzt die Start- und Endzeit basierend auf der aktuellen Uhrzeit und der angegebenen Anzahl von Stunden zurück. Die Zeiten werden im ISO-Format (YYYY-MM-DDTHH:mm) in die entsprechenden Eingabefelder eingefügt. */
 function setDatesHours(startId, endId, hh) {
     var now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -355,6 +386,7 @@ function setDatesHours(startId, endId, hh) {
     document.getElementById(startId).value = begin.toISOString().slice(0, 16);
 }
 
+/* Konsolidiert alle Tags aus den verschiedenen Diagrammen in einer einzigen Map, um Duplikate zu vermeiden. Nimmt ein Map-Array an.*/
 function getAllTags(tags) {
     const allTags = new Map();
 
@@ -395,6 +427,7 @@ function panX(chartIds, pixel) {
 
 /* START DOM-Manipulation */
 
+/* Überprüft die Dauer zwischen Start- und Endzeitpunkt und gibt die Anzahl der Tage aus. Wenn die Dauer größer als 91 Tage oder negativ ist, wird die Ausgabe rot gefärbt. */
 function checkDuration(startId, endId, outputId) {
     const start = new Date(document.getElementById(startId).value);
     const end = new Date(document.getElementById(endId).value);
@@ -411,6 +444,7 @@ function checkDuration(startId, endId, outputId) {
     }
 }
 
+/* Setze Zeitparameter in URL Query-String */
 function setTimeParams() {
     const url = new URL(window.location.href);
     url.searchParams.set('start', document.getElementById('start').value);
@@ -418,13 +452,14 @@ function setTimeParams() {
     window.history.pushState(null, '', url.toString())
 }
 
+/* Lese Zeitparameter aus URL*/
 function getTimeParams() {
     const url = new URL(window.location.href);
     const s = url.searchParams.get('start');
     const e = url.searchParams.get('end');
     console.log(`start ${s}; end ${e}`);
     if (!s || !e || isNaN(new Date(s)) || isNaN(new Date(e))) {
-        console.warn(`Parameter fehlerhaft: start ${s}, end ${e}`);
+        //console.warn(`URL-Parameter fehlerhaft: start ${s}, end ${e}`);
         return false;
     }
     document.getElementById('start').value = s;
@@ -434,5 +469,5 @@ function getTimeParams() {
 
 /* ENDE DOM-Manipulation */
 
-export { initChart, loadChart, setDatesHours, zoom, resetZoom, panX };
+export { initChart, loadChart, setDatesHours, getAllTags, zoom, resetZoom, panX };
 export { checkDuration, setTimeParams, getTimeParams };

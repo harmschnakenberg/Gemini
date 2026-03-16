@@ -23,11 +23,6 @@ namespace Gemini.Middleware
         {
             bool isAdmin = claimsPrincipal.IsInRole(Role.Admin.ToString());
 
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "text/html";
-            //await ctx.Response.WriteAsync(await HtmlHelper.ListAllTags(isAdmin));
-            //await ctx.Response.CompleteAsync();
-
             return Results.Content(HtmlHelper.ListAllTags(isAdmin), "text/html", Encoding.UTF8, 200);
         }
 
@@ -111,13 +106,30 @@ namespace Gemini.Middleware
 
             if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
             {
+#if DEBUG
                 Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung {tagName} zu ändern.");
+#endif
                 return Results.Unauthorized();
             }
             else
+            {
+#if DEBUG
                 Console.WriteLine($"Benutzer {user.Identity?.Name} [{user.Claims.FirstOrDefault()?.Value}] - Versucht {tagName} auf '{tagVal}' zu ändern.");
+#endif
+            }
+
+                if (string.IsNullOrEmpty(tagName) || string.IsNullOrEmpty(tagVal))
+                {
+                    return Results.Json(new AlertMessage(Type: "error", Text: "Tagname oder Wert fehlt"), AppJsonSerializerContext.Default.AlertMessage);
+                }
 
             int result = Db.Db.WriteTag(tagName, tagVal, oldVal, username);
+
+            if (tagName.Contains('X'))
+            {   //object as int siehe https://stackoverflow.com/a/745204/22035462                       
+                tagVal = Convert.ToInt32(tagVal) > 0 ? "☒" : "☐";
+                oldVal = Convert.ToInt32(oldVal) > 0 ? "☒" : "☐";
+            }
 
             if (result > 0)
                 return Results.Json(new AlertMessage(Type: "success", Text: $"Tag [{tagName}] von [{oldVal}] auf [{tagVal}] gesetzt"), AppJsonSerializerContext.Default.AlertMessage);
@@ -127,7 +139,7 @@ namespace Gemini.Middleware
         }
 
         private static IResult GetAlterations(HttpContext ctx)
-        {
+        {      
             DateTime startUtc = DateTime.UtcNow.AddDays(-1);
             DateTime endUtc = DateTime.UtcNow;
 
@@ -137,11 +149,17 @@ namespace Gemini.Middleware
             if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
                 endUtc = e.ToUniversalTime();
 
-            var aTags =  Db.Db.SelectTagAlterations(startUtc, endUtc);
+            string filter = string.Empty;
+            if (ctx.Request.Query.TryGetValue("filter", out var rawFilter))
+                filter = rawFilter.ToString();
+
+            filter = filter.ToString() ?? string.Empty;
+
+            var aTags =  Db.Db.SelectTagAlterations(startUtc, endUtc, filter);
 #if DEBUG
-            Console.WriteLine($"Zeige Sollwertänderungen {startUtc.ToLocalTime()} bis {endUtc.ToLocalTime()}. {aTags.Count} Änderungen gefunden.");
+            Console.WriteLine($"Zeige Sollwertänderungen {startUtc.ToLocalTime()} bis {endUtc.ToLocalTime()}. Filter '%{filter}%' {aTags.Count} Änderungen gefunden.");
 #endif
-            string html = HtmlHelper.ListAlteredTags(aTags, startUtc, endUtc) ?? "<html><h1>leer</h1></html>";
+            string html = HtmlHelper.ListAlteredTags(aTags, startUtc, endUtc, filter) ?? "<html><h1>leer</h1></html>";
 
             //Console.WriteLine(html);
             

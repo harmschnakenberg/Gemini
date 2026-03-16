@@ -13,8 +13,9 @@ namespace Gemini.Middleware
 {
     public static partial class Endpoints
     {
-        private static IResult UserCreate(HttpContext ctx, ClaimsPrincipal user)
+        private static IResult UserCreate(HttpContext ctx)
         {
+            var user = ctx.User;
             bool isAdmin = user.IsInRole(Role.Admin.ToString());
             if (!isAdmin) // Nur Admins können Benutzer erstellen
             {
@@ -37,8 +38,9 @@ namespace Gemini.Middleware
                 return Results.InternalServerError();
         }
 
-        private static IResult UserUpdate(HttpContext ctx, ClaimsPrincipal user)
+        private static IResult UserUpdate(HttpContext ctx)
         {
+            var user = ctx.User;
             _ = int.TryParse(ctx.Request.Form["id"].ToString(), out int id);             
             string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
             string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
@@ -67,23 +69,29 @@ namespace Gemini.Middleware
             }
         }
 
-        private static IResult UserDelete(HttpContext ctx, ClaimsPrincipal user)
+        private static IResult UserDelete(HttpContext ctx)
         {
+            var user = ctx.User;
             bool isAdmin = user.IsInRole(Role.Admin.ToString());
             string name = ctx.Request.Form["name"].ToString() ?? string.Empty;
-            
-            Console.WriteLine($"Benutzer {name} löschen durch {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+                       
             if (!isAdmin) // Nur Admins können Benutzer löschen
             {
+#if DEBUG
                 Console.WriteLine($"Benutzer {name} löschen: Keine Berechtigung {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+#endif
                 return Results.Unauthorized();
             }
 
             int result = Db.Db.DeleteUser(name);
+#if DEBUG
             Console.WriteLine("Delete Result = " + result);
-
+#endif
             if (result > 0)
+            {
+                Db.Db.DbLogInfo($"Benutzer {name} wurde durch {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}] gelöscht.");
                 return Results.Ok();
+            }
             else
                 return Results.InternalServerError();
         }

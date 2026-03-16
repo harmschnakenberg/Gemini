@@ -1,4 +1,7 @@
-﻿const booleanTags = [];
+﻿import colors from './chartTheme1.mjs';
+
+const booleanTags = [];
+const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
 
 /**
  * Web Worker: Empfängt Nachrichten vom Haupt-Thread.
@@ -13,7 +16,7 @@ self.onmessage = async function (e) {
             throw new Error(`HTTP-Fehler! Status: ${response.status}`);
         }
         const jsonData = await response.json();
-
+        
         // 2. Daten verarbeiten (kann bei vielen Daten rechenintensiv sein)
         const newDatasets = await processData(chartId, jsonData, aliases);
 
@@ -39,11 +42,8 @@ self.onmessage = async function (e) {
  * @param {Array<string>} colors - Array von Farb-Strings
  * @returns {Array<Object>} Die für Chart.js formatierten Datensätze
  */
-async function processData(chartId, jsonData, aliases) {
-    const theme = await import('../module/chartTheme1.mjs');    
-    let colors = theme.CHART_COLORS; //TEST
-    //console.warn('Farben: ' + colors);
-    const REPORT_INTERVAL = 10;// Fortschritts-Schwellwert: Alle 1000 Elemente senden wir ein Update
+async function processData(chartId, jsonData, aliases) {    
+    
     // Verwende eine Map, um Datensätze nach Label N zu gruppieren
     const datasetsMap = new Map();
     const totalItems = jsonData.length;
@@ -97,6 +97,7 @@ async function processData(chartId, jsonData, aliases) {
         i++;
         if ((i + 1) % REPORT_INTERVAL === 0 || (i + 1) === totalItems) {
             const percentage = Math.round(((i + 1) / totalItems) * 100);
+
 
             // Sende eine Nachricht vom Typ 'progress'
             self.postMessage({

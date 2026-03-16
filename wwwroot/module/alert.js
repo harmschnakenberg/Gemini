@@ -1,5 +1,5 @@
 ﻿
-function message(adjClass, txt) {
+function message(adjClass, txt, fadeTime = 5000) {
     let alert = document.getElementById('alert');
 
     if (!alert) {
@@ -12,7 +12,7 @@ function message(adjClass, txt) {
     msg.classList.add(adjClass);
     msg.innerHTML = `<b>${txt}</b>`
 
-    setTimeout(function () { msg.remove(); }, 5000);
+    setTimeout(function () { msg.remove(); }, fadeTime);
 
     alert.appendChild(msg);
 }

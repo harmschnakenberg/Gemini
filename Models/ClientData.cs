@@ -29,7 +29,7 @@ namespace Gemini.Models
     {
         public string TagName { get; set; } = tagName;
         public string TagComment { get; set; } = tagComment;
-        public object? TagValue { get; set; } = tagValue;    
+        public object? TagValue { get; set; } = tagValue;
         public bool ChartFlag { get; set; } = chartFlag;
     }
 
@@ -52,19 +52,21 @@ namespace Gemini.Models
         public DateTime Timestamp { get; set; } = timestamp;
         //public string TagName { get; set; } = tagName;
         //public string TagComment { get; set; } = tagComment;
-        public object? NewValue { get; set; } = tagValue;        
+        public object? NewValue { get; set; } = tagValue;
         public object? OldValue { get; set; } = oldValue;
         public string User { get; set; } = user;
     }
 
-    public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
+    public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, ChartConfig ChartConfig); //Tag[] Tags
 
     //Todo: ChartConfig könnte man auch in der Datenbank speichern, um die Zuordnung von Tags zu Charts dynamisch zu gestalten.    
     //Die ChartConfig-Klasse definiert die Struktur für die Konfiguration von Diagrammen, einschließlich der Zuordnung von Tags zu zwei verschiedenen Diagrammen (Chart1 und Chart2).
     //ToDo: Prüfen, ob JsonTag, Tag, TagCollection und ChartConfig zusammengefasst werden können, um die Anzahl der Klassen zu reduzieren und
     //die Datenstruktur zu vereinfachen. Es könnte sinnvoll sein, eine einheitliche Klasse zu verwenden,
     //die sowohl die Tag-Informationen als auch die Chart-Konfiguration enthält, um die Handhabung der Daten zu erleichtern und Redundanzen zu vermeiden.
-    internal class ChartConfig
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    public class ChartConfig
     {
         public int Id { get; set; }
         public required string Caption { get; set; } 
@@ -136,6 +138,7 @@ namespace Gemini.Models
 //[JsonSerializable(typeof(LoginResponse))]
 [JsonSerializable(typeof(CsrfTokenResponse))]
 [JsonSerializable(typeof(ChartConfig))]
+//[JsonSerializable(typeof(ChartConfig[]))]
 [JsonSerializable(typeof(Tag[]))]
 [JsonSerializable(typeof(TagCollection))]
 [JsonSerializable(typeof(TagCollection[]))]

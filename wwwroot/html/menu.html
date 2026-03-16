@@ -11,22 +11,6 @@
 <body>
     <h1>Kreutzträger WebApp</h1>
 
-    <div style="position:absolute; right:0.5rem; top:3.5rem;">
-        <input type="hidden" id="hour" data-name='A01_DB10_DBW2'/>
-        <input type="hidden" id="min" data-name='A01_DB10_DBW4'/>
-        <input type="hidden" id="sec" data-name='A01_DB10_DBW6'/>
-        SPS-Zeit <span id="time">00:00:00</span>
-        <script>
-            function clock() {
-                h = document.getElementById('hour').value;
-                m = document.getElementById('min').value;
-                s = document.getElementById('sec').value;
-                document.getElementById('time').innerHTML = h.padStart(2, "0") + ':' + m.padStart(2, "0") + ':' + s.padStart(2, "0");
-            }
-            window.setInterval(clock, 1000);
-        </script>
-    </div>
-
     <div id="logincard">
         <div id="loginheader" onclick="user.checkLoginStatus();">Login</div>
         <input type="text" id="username" placeholder="Benutzername" value="Admin"><br />
@@ -40,7 +24,7 @@
         <li><a class="menuitem" href="/user">Benutzerverwaltung</a></li>
         <li><a class="menuitem" href="/soll/history">Sollwertänderungen</a></li>
         <li><a class="menuitem" href="/log">Server Log</a></li>
-        <li><a class="menuitem" href="/excel">Datenexport</a></li>
+        <li><a class="menuitem" href="/export">Datenexport</a></li>
     </ul>
 
     <h3>Demo</h3>
@@ -49,9 +33,8 @@
         <li><a class="menuitem" href="/db/list">Datenbanken</a></li>
         <li><a class="menuitem" href="/tag/failures">Letzte Lesefehler</a></li>
         <li><a class="menuitem" href="/soll/1">Demo Sollwertfenster</a></li>
-
         <li><a class="menuitem" id="rawjsonlink" href="#">Demo Json Rohdaten abfragen</a></li>
-        <li><a class="menuitem" href="/chart">Demo Kurvendarstellung</a></li>
+        <li><a class="menuitem" href="/chart/0">Demo Kurvendarstellung</a></li>
     </ul>
 
     <script>
@@ -70,38 +53,70 @@
         setDemoLink(); //nur Demo
     </script>
 
-    <style>
-        #logincard {
-            position: absolute;
-            right: 11rem;
-            top: 3rem;
-            width: 15rem;
-        }
 
-        @media (max-width: 1000px) {
-            #logincard {
-                position: relative;
-                left: 2.5rem;
-                top: 0;
+
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'cookies')">Cookies</button>
+        <button class="tablinks" onclick="openTab(event, 'privacy')">Datenschutzerklärung</button>
+        <button class="tablinks" onclick="openTab(event, 'impressum')">Impressum</button>
+    </div>
+
+    <div id="cookies" class="tabcontent">
+        <h3>Cookies</h3>
+        <p>
+            Diese Anwendung nutzt:
+            <ul>
+                <li>✅ Technisch notwendige Cookies</li>
+                <li>❌ Statistik-Cookies</li>
+                <li>❌ Cookies von Drittanbietern</li>
+            </ul>
+            Die Cookies werden benötigt, um Benutzerberechtigungen (Anmeldung) zu steuern.<br />
+            Die Cookies werden nur für die Dauer einer Session gespeichert.<br />
+            Die Cookies oder deren Inhalt werden nicht weitergeleitet oder von dritten verarbeitet.<br />
+            Mit der Anmeldung (Login) stimmen Sie der Nutzung von Cookies zu diesen Zwecken zu.<br />
+            Wenn Sie der Nutzung der Cookies zu diesen Zwecken wiedersprechen, können Sie diese Anwendung nicht nutzen.
+        </p>
+    </div>
+
+    <div id="privacy" class="tabcontent">
+        <h3>Datenschutzerklärung</h3>
+        <p>Datenschutzerklärung.</p>
+    </div>
+
+    <div id="impressum" class="tabcontent">
+        <h3>Impressum</h3>
+        <p>
+            Kreutzträger Kältetechnik GmbH & Co. KG<br />
+            Theodor-Barth-Straße 21<br />
+            28307 Bremen<br />
+        </p>
+        <p>
+            Telefon: +49 421–43 867–0<br />
+            E-mail: firma(at)kreutztraeger.de<br />
+        </p>
+        <p>
+            USt-IdNr.: DE 214 098 380<br />
+            Amtsgericht Bremen, HRA 22382<br />
+        </p>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks, isActive;
+            isActive = evt.currentTarget.classList.contains("active");
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
             }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {                
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            if (isActive) return;
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
         }
-
-        #logincard button {
-            width: 50%;
-            background-color: white;
-            font-size: 1.1rem;
-        }
-
-        #logincard input {
-            width: 100%
-        }
-
-        #loginheader {
-            padding: 0.5rem 0.1rem;
-            color: white;
-            font-size: 1.3rem;
-        }
-    </style>
+    </script>
 
 </body>
 </html>

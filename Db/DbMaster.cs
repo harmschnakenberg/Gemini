@@ -586,7 +586,15 @@ namespace Gemini.Db
 
                 Console.WriteLine($"Übergebene Tags: {tags}");
 
-                Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
+                //Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
+                ChartConfig? tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.ChartConfig);
+
+                if (tagArray is null)
+                {
+                    Console.WriteLine($"Fehler beim Deserialisieren der Tags für TagCollection '{name}'. JSON: {tags}");
+                    continue; // überspringe diese TagCollection
+                }
+
                 MiniExcel.Interval interval = MiniExcel.GetTimeFormat(intervalStr);
                 TagCollection tc = new(id, name, author, start, end, (int)interval, tagArray);
 
@@ -625,7 +633,16 @@ namespace Gemini.Db
 
                 Console.WriteLine($"Übergebene Tags: {tags}");
 
-                Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
+                //Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
+
+                ChartConfig? tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.ChartConfig);
+
+                if (tagArray is null)
+                {
+                    Console.WriteLine($"Fehler beim Deserialisieren der Tags für TagCollection '{name}'. JSON: {tags}");
+                    continue; // überspringe diese TagCollection
+                }
+
                 MiniExcel.Interval interval = MiniExcel.GetTimeFormat(intervalStr);
                 tc = new(id, name, author, start, end, (int)interval, tagArray);
 
@@ -639,7 +656,7 @@ namespace Gemini.Db
             return tc;
         }
 
-        internal static int CreateChartconfig(string chartName, string author, DateTime start, DateTime end, DynContent.MiniExcel.Interval interval, Tag[] tags)
+        internal static int CreateChartconfig(string chartName, string author, DateTime start, DateTime end, DynContent.MiniExcel.Interval interval, ChartConfig tags)
         {
             /*
                    CREATE TABLE IF NOT EXISTS ChartConfig ( 
@@ -656,10 +673,10 @@ namespace Gemini.Db
 #if DEBUG
             if (_logger?.IsEnabled(LogLevel.Debug) == true)
             {
-                _logger.LogDebug("Erstelle ChartConfig: {ChartName}, {Author}, {Start}, {End}, {Interval}, {Tags}", chartName, author, start, end, interval, tags.Length);
+                _logger.LogDebug("Erstelle ChartConfig: {ChartName}, {Author}, {Start}, {End}, {Interval}, {Tags}", chartName, author, start, end, interval, tags.Chart1Tags.Count);
             }
 #endif
-            string tagsJson = System.Text.Json.JsonSerializer.Serialize(tags, AppJsonSerializerContext.Default.TagArray);
+            string tagsJson = System.Text.Json.JsonSerializer.Serialize(tags, AppJsonSerializerContext.Default.ChartConfig);
 
             lock (_dbLock)
             {

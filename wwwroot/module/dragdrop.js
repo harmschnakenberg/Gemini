@@ -91,7 +91,7 @@ function createListItem(text) {
     inputField.value = text;
     inputField.classList.add('myButton');
     inputField.setAttribute('readonly', 'readonly');
-    inputField.style.width = '91%';
+    inputField.style.width = '42rem';
     inputField.addEventListener('blur', function () { isValid(this) });
 
     const deleteBtn = document.createElement('button');

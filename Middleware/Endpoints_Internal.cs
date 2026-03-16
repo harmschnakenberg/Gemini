@@ -19,8 +19,7 @@ namespace Gemini.Middleware
                 <head>
                     <meta charset='UTF-8'>
                     <title>Server Log</title>
-                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
-                    <link rel='shortcut icon' href='/favicon.ico'>
+                    <link rel='icon' type='image/x-icon' href='/favicon.ico'>                  
                     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
                     <link rel='stylesheet' href='../css/style.css'>    
                     <script type='module' src='../js/script.js'></script>

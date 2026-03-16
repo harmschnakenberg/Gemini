@@ -2,13 +2,10 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Excel Export</title>
+    <title>Export</title>
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <link rel='stylesheet' href='../css/style.css'>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
-    <script type="module" src='../js/script.js'></script>    
+    <script type="module" src='../js/script.js'></script>
 </head>
 <body>
     <h1>Export aufgezeichneter Anlagendaten</h1>
@@ -17,7 +14,7 @@
         Hier können Sie die aufgezeichneten Daten als Excel-Tabelle oder SQLite-Datenbank (Rohwerte) herunterladen.
     </p>
 
-    <fieldset style="width:fit-content;">
+    <fieldset style="width:50rem;">
         <legend>Zeitraum:</legend>
         <p class="info-container">
             Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Werteintervall,
@@ -32,18 +29,18 @@
             <select class='myButton' id='interval' name='interval'>
                 <option value='0'>Sekunde</option>
                 <option value='1' selected>Minute</option>
-                <option value='2'>Viertelstunde</option>
-                <option value='3'>Stunde</option>
-                <option value='4'>Tag</option>
-                <option value='5'>Monat</option>
-                <option value='6'>Jahr</option>
+                <option value='2' disabled>Viertelstunde</option>
+                <option value='3' disabled>Stunde</option>
+                <option value='4' disabled>Tag</option>
+                <option value='5' disabled>Monat</option>
+                <option value='6' disabled>Jahr</option>
             </select>
         </div>
     </fieldset>
 
     <hr />
 
-    <fieldset style="width:fit-content;">
+    <fieldset style="width: 50rem; ">
         <legend>Zuordnung Tabellenspalten:</legend>
         <p class="info-container">
             Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.<br />
@@ -57,7 +54,7 @@
                 <input type="text" id="newItemInput" class="myButton" list='comments' placeholder="Neue Tabellenspalte hinzufügen">
                 <button onclick="dragdrop.addItem()">Hinzufügen</button>
             </div>
-
+            <datalist id='comments'></datalist>
             <ol id="sortable-list">
                 <li class="myButton">Zeitstempel</li>
                 <!-- Dynamische Listenelemente -->
@@ -67,18 +64,18 @@
 
     <hr />
 
-    <fieldset style="width:fit-content;">
+    <fieldset style="width: 50rem; ">
         <legend>Download:</legend>
         <div class="container">
             <div class="controls">
-                <button class="myButton" style="width:10rem;" onclick="excel.getExcelFromForm();">Excel-Export</button>
+                <button class="myButton" style="width:10rem;" onclick="exp.getExcelFromForm();">Excel-Export</button>
                 <div>
                     Der Excel-Export kann einen Moment in Anspruch nehmen. Die Datenpunkte werden in der oben zugewiesenen Reihenfolge in Spalten ausgegeben. Die Excel-Datei wird in Ihren Download-Ordner heruntergeladen.
                 </div>
                 <hr />
-                <button class="myButton" style="width:10rem;" onclick="excel.getDbFromForm('start', 'end');">SQLite-Export</button>
+                <button class="myButton" style="width:10rem;" onclick="exp.getDbFromForm('start', 'end');">SQLite-Export</button>
                 <div>
-                    Der Datenbank-Export kann einen Moment in Anspruch nehmen. Es werden alle aufgezeichneten Tags exportiert.
+                    Der Datenbank-Export kann einen Moment in Anspruch nehmen. Es werden alle aufgezeichneten Tags des gewählten Zeitraums exportiert.
                     Die SQLite-Dateien werden als ZIP in Ihren Download-Ordner heruntergeladen. <a href="https://sqlite.org/" target="_blank">SQLite.org</a>, <a href="https://sqlitebrowser.org/" target="_blank">SQLite Browser</a>
                 </div>
             </div>
@@ -88,27 +85,29 @@
     <hr />
 
     <span style="padding:0 1rem">Funktion bald verfügbar:</span>
-    <fieldset style="width:fit-content; opacity:50%">
+    <fieldset style="width: 50rem; opacity: 50% ">
         <legend>Konfiguration laden / speichern:</legend>
         <p class="info-container">
             Vergeben Sie einen Konfigurationsnamen und speichern Sie die aktuelle Konfiguration. Laden Sie eine gespeicherte Konfiguration anhand des Konfigurationsnamens.
         </p>
         <div class="container">
             <div class="controls">
-                <input class="myButton" list="taglists" id="configName" placeholder="Konfigurationsname">
-                <datalist id="taglists"></datalist>
+                <input class="myButton" list="configs" id="configlist" placeholder="Konfigurationsname">
+                <datalist id="configs"></datalist>
 
-                <button onclick="excel.confImport();">Konfig-Import</button>
-                <button onclick="excel.confExport();">Konfig-Export</button>
+                <button onclick="exp.confImport();">Konfig-Import</button>
+                <button onclick="exp.confExport();">Konfig-Export</button>
 
-                <datalist id='comments'></datalist>
+               
             </div>
         </div>
     </fieldset>
 
     <script type="module">        
-        excel.loadOptions('comments', `/tag/comments`);
-        excel.setDatesToStartOfMonth('start', 'end');        
+        exp.loadOptions('comments', 'allTagComments', `/tag/comments`);
+        exp.setDatesToStartOfMonth('start', 'end');   
+
+        exp.loadOptions('configs', 'allConfigs', `/chart/config/allnames`);
     </script>
     
 </body>

@@ -86,7 +86,7 @@ function checkLoginStatus() {
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('auth') || urlParams.get('auth') == 'failed') {
-        sessionStorage.removeItem(LOGGED_USER);
+        logout();
         console.log("SessionStorage bereinigt.");
     }
 
@@ -97,14 +97,12 @@ function checkLoginStatus() {
     } else {
         span.textContent = 'Kein Benutzer';
         span.style.color = 'grey';
-        fetchSecure("/logout")           
+        sessionStorage.removeItem(TOKEN_NAME);
     }
 }
 
 
-
-
-function getData(row)
+function getUserDataFromTableRow(row)
 {
 
     const username = row.children[0].children[0].value;
@@ -116,7 +114,7 @@ function getData(row)
     document.getElementById('role').value = userrole;
 }
 
-async function update(verb)
+async function updateUser(verb)
 {
     const userid = document.getElementById('userid').value
     const username = document.getElementById('username').value;
@@ -141,5 +139,5 @@ async function update(verb)
     }
 }
 
-export { TOKEN_NAME, login, logout, checkLoginStatus, getData, update };
+export { TOKEN_NAME, login, logout, checkLoginStatus, getUserDataFromTableRow, updateUser };
 

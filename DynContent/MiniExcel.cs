@@ -49,26 +49,35 @@ namespace Gemini.DynContent
         }
 
 
-
         public static MemoryStream DownloadExcel(Interval interval, Dictionary<string, string> tagNamesAndComment, JsonTag[] jsonTags)
         {
             string timeFormat = GetTimeFormat(interval);
             int i = 0;
+
+            //Zeitspalte
             List<DynamicExcelColumn> colStyle = [new("Zeit") { Index = i, Format = timeFormat, Width = 19 }];
 
+            //Überschriften 
             foreach (var tagName in tagNamesAndComment.Keys)            
                 colStyle.Add(new(tagName) { Index = ++i, Name = tagNamesAndComment[tagName]});
             
+            //Tabellenblatt
             var config = new OpenXmlConfiguration
             {
                 DynamicSheets = [new("usersSheet") { Name = "Werte", State = SheetState.Visible }],
                 DynamicColumns = [.. colStyle]
             };
 
-            //Console.WriteLine($"Es wird versucht {jsonTags.Length} Tags in Excel zu speichern..");
+#if DEBUG
+            Console.WriteLine($"Es wird versucht {jsonTags.Length} Tags in Excel zu speichern..");
+#endif
+            //Groupiere die Daten nach gleichen Zeitstempeln
             var groups = jsonTags.GroupBy(t => DateTime.Parse(t.T.ToString(timeFormat))).OrderBy(o => o.Key);
             var values = new List<Dictionary<string, object?>>();
 
+            Dictionary<string, object?> lastValues = [];
+
+            //<DataTime, JsonTag>
             foreach (var group in groups)
             {
                 var cols = new Dictionary<string, object?>
@@ -79,7 +88,15 @@ namespace Gemini.DynContent
                 foreach (var tagName in tagNamesAndComment.Keys)
                 {
                     JsonTag? x = group.Where(o => o.N == tagName).FirstOrDefault();
-                    cols.Add(tagName, x?.V);
+                    
+                    #region Wenn x == null hier den zuletzt gespeicherten Wert eintragen, da sonst nur bei der Wertänderung ein Eintrag kommt
+                    if (!lastValues.TryGetValue(tagName, out object? lastValue) || (x?.V is not null && lastValue != x?.V))
+                        lastValues[tagName] = x?.V;
+
+                    #endregion
+
+                    //cols.Add(tagName, x?.V); //nur bei Wertänderung in Tabelle schreiben
+                    cols.Add(tagName, lastValues[tagName]); //zuletzt gelesenen Wert wieder in die Zeile eintragen
                 }
 
                 values.Add(cols);
@@ -89,7 +106,6 @@ namespace Gemini.DynContent
             {
                 ["usersSheet"] = values
             };
-
 
             var memoryStream = new MemoryStream();
             memoryStream.SaveAs(sheets, configuration: config);

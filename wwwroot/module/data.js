@@ -1,7 +1,9 @@
 ﻿
+import fetchSecure from '../module/fetch.js';
+import * as alert from '../module/alert.js';
+
 const TICKEDBOX = '☒';
-const UNTICKEDBOX = '☐';
-   
+const UNTICKEDBOX = '☐';   
 let lastValOnFocus = null;
 
 function JsonTag(name, value, time) {
@@ -111,11 +113,11 @@ function tagNameToObject(name) {
 async function updInputEvent(obj) {
     const t = obj.getAttribute('data-name');
     let v = obj.value;
-    if (v == TICKEDBOX) v = 1;
-    if (v == UNTICKEDBOX) v = 0;
 
     console.info(`Trigger Änderung ${t} von ${lastValOnFocus} auf ${v}`);
-  
+    if (v == TICKEDBOX) v = 1;
+    if (v == UNTICKEDBOX) v = 0;
+    
     const tag = new JsonTag(t, v, new Date());
     const link = `/tag/write`;
     const res = await fetchSecure(link, {
@@ -123,12 +125,12 @@ async function updInputEvent(obj) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({tagName: t, tagVal: v, oldVal: lastValOnFocus })
     });
-    console.info(new URLSearchParams(tag, { oldVal: lastValOnFocus }));
+    console.info(new URLSearchParams({ tagName: t, tagVal: v, oldVal: lastValOnFocus }));
 
     if (res.ok) {
         const result = await res.json();
         console.log(result.Text);
-        alertMessage(result.Type, result.Text);
+        alert.message(result.Type, result.Text);
     } else {
         console.error('Wertänderung - Nicht erlaubte Operation - Status ' + res.status);
     }
@@ -155,6 +157,48 @@ function drawTags(arr) {
     }
 }
 
+async function updateTag(obj) {
+    const tagName = obj.parentNode.parentNode.children[0].children[0].value;
+    const tagComm = obj.parentNode.parentNode.children[1].children[0].value;
+    const tagChck = obj.parentNode.parentNode.children[3].children[0].checked;
 
-export { JsonTag, drawTags, initTags, initUnits, initWebsocket, tagNameToObject };
+    fetchSecure('/tag/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ tagName: tagName, tagComm: tagComm, tagChck: tagChck })
+    });
+}
+
+
+async function getAlteredTags() {
+    const start = document.getElementById('start').value;
+    const end = document.getElementById('end').value;
+    const filter = document.getElementById('filter').value;
+
+    if ('URLSearchParams' in window) {
+        var searchParams = new URLSearchParams(window.location.search);
+        searchParams.set('start', start);
+        searchParams.set('end', end);
+        searchParams.set('filter', filter);
+        window.location.search = searchParams.toString();
+    }
+
+    const link = `/soll/history?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&filter=${encodeURIComponent(filter)}`;
+
+    try {
+        //const ws = await import('../module/fetch.js');
+        const response = await fetchSecure(link);
+
+        if (!response.ok)
+            throw new Error(`Response status: ${response.status}`);
+
+        const html = await response.text();
+        document.body.innerHTML = html;
+    } catch (error) {
+        console.error('Fehler beim Laden:', error);
+    }
+
+}
+
+export { JsonTag, drawTags, initTags, initUnits, initWebsocket, tagNameToObject, updateTag, getAlteredTags };
                     

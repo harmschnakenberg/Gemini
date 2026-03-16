@@ -1,23 +1,7 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
-using MiniExcelLibs;
-using S7.Net;
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection.PortableExecutable;
 using System.Collections.Concurrent;
-using System.Threading;
-
-
-//using OfficeOpenXml.FormulaParsing.Excel.Functions.DateTime;
-using System.Text.Json;
-using System.Transactions;
-using System.Xml.Linq;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
-//using static OfficeOpenXml.ExcelErrorValue;
 using DateTime = System.DateTime;
 
 namespace Gemini.Db
@@ -193,19 +177,6 @@ namespace Gemini.Db
         #endregion
 
         /// <summary>
-        /// Schwellwert für die Anzahl der geänderten Tags, die im Puffer gehalten werden, bevor sie in die Datenbank geschrieben werden.
-        /// </summary>
-        //const int TagsWriteBufferMaxOld = 100;
-
-        /// <summary>
-        /// Puffer für geänderte Tags, die in die Datenbank geschrieben werden sollen. 
-        /// Sobald die Anzahl der Tags im Puffer den Schwellenwert 'TagsWriteBufferMax' erreicht, werden sie in die Datenbank geschrieben.
-        /// Soll die Anzahl der Schreibvorgänge reduzieren und die Performance verbessern, 
-        /// auf Kosten eines möglichen Datenverlusts bei einem Absturz (je nach Schwellenwert).
-        /// </summary>
-       // private static List<JsonTag> TagsWriteBufferOld { get; set; } = [];
-        
-        /// <summary>
         /// Returns a list of database file paths for each day in the specified date range.
         /// </summary>
         /// <param name="startUtcDate">The start date of the range, in Coordinated Universal Time (UTC). The search includes this date.</param>
@@ -226,7 +197,6 @@ namespace Gemini.Db
 
             return dbFilePaths;
         }
-
 
         /// <summary>
         /// Liest alle Tag-Namen aus der Tagesdatenbank mit dem Datum <date>. Wenn keine Tags gefunden werden, wird für max. <counter> Tage zurückgegangen, um Tag-Namen zu finden.
@@ -724,7 +694,7 @@ namespace Gemini.Db
                       );";
 
 #if DEBUG
-                    Console.WriteLine($"WriteTag: Schreibe Tag {tagName} mit Wert {tagVal} (alt {oldVal}) von Benutzer {username} in die Datenbank.");
+                    Console.WriteLine($"WriteTag: Schreibe Tag {tagName} mit Wert {tagVal} (alt {oldVal}) von Benutzer {username} in die Datenbank {Path.GetFileName(DayDbSource)}.");
 #endif
                     return command.ExecuteNonQuery();
                 }
@@ -736,7 +706,7 @@ namespace Gemini.Db
         }
 
         //Auflistung der Tag-Änderungen (Setpoints) zwischen zwei Zeitpunkten mit User, altem und neuem Wert, TagName und Kommentar. Nützlich für die Anzeige von Änderungen in einem Änderungsprotokoll.
-        internal static List<TagAltered> SelectTagAlterations(DateTime startUtc, DateTime endUtc)
+        internal static List<TagAltered> SelectTagAlterations(DateTime startUtc, DateTime endUtc, string filter)
         {
             //Ausgabe: Zeit|User|TagName|TagComment|NewValue|OldValue
             /* CREATE TABLE IF NOT EXISTS Setpoint (                         
@@ -752,7 +722,7 @@ namespace Gemini.Db
 #if DEBUG
             Console.WriteLine($"Sollwertänderungen in {dataBases.Count} Datenbanken suchen..");
 #endif
-            using var connection = new SqliteConnection(DayDbSource); //ToDo: mehrere Datenbanken ATTACH
+            using var connection = new SqliteConnection(DayDbSource); 
             connection.Open();
             var command = connection.CreateCommand();
             try
@@ -765,45 +735,73 @@ namespace Gemini.Db
                     pos += steps;
 
                     List<string> attach = [];
-                    List<string> query = []; // "PRAGMA wal_checkpoint(FULL);"//konsolidiert die Write-Ahead-Log-Datei vor der Abfrage
+                    List<string> query = [];
                     List<string> detach = [];
 
                     foreach (var day in dbChunk.Keys)
                     {
                         if (day.Date == DateTime.UtcNow.Date)
                             //aktuelle Datenbank muss nicht angehängt werden
-                            query.Add($"SELECT Time, User, (SELECT Name FROM main.Tag WHERE Id = TagId) AS TagName, (SELECT Comment FROM main.Tag WHERE Id = TagId) AS TagComment, TagValue, OldValue FROM main.Setpoint WHERE Time BETWEEN @Start AND @End ");
+                            query.Add(@"
+                                SELECT Time, User, (SELECT Name FROM main.Tag WHERE Id = TagId) AS TagName, (SELECT Comment FROM main.Tag WHERE Id = TagId) AS TagComment, TagValue, OldValue 
+                                FROM main.Setpoint 
+                                WHERE Time BETWEEN @Start AND @End 
+                                AND TagComment LIKE '%'||@Filter||'%' 
+                                OR (TagComment ISNULL AND TagName LIKE '%'||@Filter||'%')
+                            ");
                         else
                         {
                             string dbName = $"db{day.Year:00}{day.Month:00}{day.Day:00}";
                             attach.Add($"ATTACH DATABASE '{dbChunk[day]}' AS '{dbName}';");
-                            query.Add($" SELECT Time, User, (SELECT Name FROM {dbName}.Tag WHERE Id = TagId) AS TagName, (SELECT Comment FROM {dbName}.Tag WHERE Id = TagId) AS TagComment, TagValue, OldValue FROM {dbName}.Setpoint WHERE Time BETWEEN @Start AND @End ");
+                            query.Add(@$" 
+                                SELECT Time, User, (SELECT Name FROM {dbName}.Tag WHERE Id = TagId) AS TagName, (SELECT Comment FROM {dbName}.Tag WHERE Id = TagId) AS TagComment, TagValue, OldValue 
+                                FROM {dbName}.Setpoint 
+                                WHERE Time BETWEEN @Start AND @End 
+                                AND TagComment LIKE '%'||@Filter||'%' 
+                                OR (TagComment ISNULL AND TagName LIKE '%'||@Filter||'%')
+                            ");
                             detach.Add($"DETACH DATABASE '{dbName}';");
                         }
                     }
+                    /* 
+                     *                                 --AND TagComment LIKE '@Filter' 
+                                --OR (TagComment ISNULL AND TagName LIKE '@Filter')
+                    */
 
                     #region Datenbanken anhängen
                     command.CommandText = string.Join(' ', attach);
-                    //Console.WriteLine($"SelectTagAlterations() ATTACH\r\n{string.Join(Environment.NewLine, attach)}");
-
                     int result = command.ExecuteNonQuery();
+#if DEBUG
+                    Console.WriteLine($"SelectTagAlterations()={result} ATTACH\r\n{string.Join(Environment.NewLine, attach)}");
+#endif                   
                     #endregion
 
                     #region Abfrage ausführen
                     var startParam = command.Parameters.Add("@Start", SqliteType.Text);
                     var endParam = command.Parameters.Add("@End", SqliteType.Text);
+                    var filterParam = command.Parameters.Add("@Filter", SqliteType.Text);
                     startParam.Value = startUtc.ToString("yyyy-MM-dd HH:mm:ss");
                     endParam.Value = endUtc.ToString("yyyy-MM-dd HH:mm:ss");
+                    filterParam.Value = filter;
 
                     command.CommandText = string.Join(" UNION ", query) + "ORDER BY Time DESC; ";
 #if DEBUG
-                    Console.WriteLine($"SelectTagAlterations()\r\n{string.Join("\r\nUNION ", query) + "\r\nORDER BY Time DESC; "}");
-                    Console.WriteLine($"{startParam.ParameterName}={startParam.Value}");
-                    Console.WriteLine($"{endParam.ParameterName}={endParam.Value}");
+                    //Console.WriteLine($"SelectTagAlterations()\r\n{string.Join("\r\nUNION ", query) + "\r\nORDER BY Time DESC; "}");
+                    //Console.WriteLine($"{startParam.ParameterName}={startParam.Value}");
+                    //Console.WriteLine($"{endParam.ParameterName}={endParam.Value}");
+                    //Console.WriteLine($"{filterParam.ParameterName}={filterParam.Value}");
+
+                    string txt = string.Join(" UNION ", query) + "ORDER BY Time DESC;\r\n\r\n";
+                    
+                    Console.WriteLine(txt
+                        .Replace(startParam.ParameterName, startParam.Value.ToString())
+                        .Replace(endParam.ParameterName, endParam.Value.ToString())
+                        .Replace(filterParam.ParameterName, filterParam.Value.ToString())
+                    );
 #endif
                     using var reader = command.ExecuteReader();
                     try
-                    {
+                    {                        
                         while (reader.Read())
                         {
                             //Zeit | User | TagName | TagComment | NewValue | OldValue

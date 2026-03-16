@@ -113,10 +113,11 @@ namespace Gemini.Db
                           Start TEXT,
                           End TEXT,
                           Interval TEXT,
-                          Tags TEXT
+                          Tags1 TEXT,
+                          Tags2 TEXT
                           );
 
-                    PRAGMA journal_mode=WAL;
+                    PRAGMA journal_mode = WAL;
                     PRGAMA foreign_keys = ON;
                     PRAGMA synchronous = NORMAL;
                     ";
@@ -136,6 +137,7 @@ namespace Gemini.Db
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Admin},'{Role.Admin}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.User},'{Role.User}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Guest},'{Role.Guest}'); 
+                    UPDATE SQLITE_SEQUENCE SET seq = 9999 WHERE name = 'ChartConfig';
                     INSERT INTO ChartConfig (Name, Author, Start, End, Interval, Tags) VALUES ('Test', 'Admin', '{DateTime.Now.AddDays(-1):yyyy-MM-dd HH:mm:ss}','{DateTime.Now.AddDays(1):yyyy-MM-dd HH:mm:ss}', '{MiniExcel.Interval.Minute}', '{{""dataType"":""Map"",""value"":[[""A01_DB10_DBW2"",""Stunden""],[""A01_DB10_DBW4"",""Minuten""],[""A01_DB10_DBW6"",""Sekunden""]]}}');
             ";
 
@@ -165,6 +167,8 @@ namespace Gemini.Db
                     ChartFlag INTEGER DEFAULT 0,
                     LogFlag INTEGER DEFAULT 0
                     ); 
+
+                    UPDATE sqlite_sequence SET seq = 0 WHERE name = 'Tag'; -- Autoincrement zurücksetzen
                 
                     CREATE TABLE IF NOT EXISTS Data (                         
                     Time TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, 

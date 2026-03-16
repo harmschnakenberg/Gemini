@@ -60,9 +60,18 @@ namespace Gemini.Middleware
         #region Excel
 
 
-        private static IResult GetExcelForm()
+        private static IResult GetExportForm(ClaimsPrincipal user)
         {
-            var file = File.ReadAllText("wwwroot/html/excel.html");
+            bool isAdmin = user.IsInRole(Role.Admin.ToString());
+            bool isUser = user.IsInRole(Role.User.ToString());
+            var file = File.ReadAllText("wwwroot/html/export.html");
+
+            if (!(isAdmin || isUser)) //nur Admins und Benutzer dürfen Daten exportieren
+                file = file
+                    .Replace("input ", "input disabled ")
+                    .Replace("button ", "button disabled ")
+                    .Replace("<fieldset style='width: 50rem; '>", "<fieldset style='width: 50rem; opacity: 0.6;'>");
+
             return Results.Content(file, "text/html");
         }
 
@@ -80,8 +89,17 @@ namespace Gemini.Middleware
         /// an Excel file attachment if the parameters are valid; otherwise, a plain text error message is returned.</returns>
         private static IResult ExcelDownload(HttpContext ctx)
         {
+            ClaimsPrincipal user = ctx.User;            
+            string username = user.Identity?.Name ?? "-unbekannt-";
+
+            if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
+            {
+                Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung zum Export von Excel-Dateien.");
+                return Results.Unauthorized();
+            }
+
             string jsonString = ctx.Request.Form["tags"].ToString() ?? string.Empty;
-            //Console.WriteLine("/excel : " + jsonString);
+            
 
             if (
             !DateTime.TryParse(ctx.Request.Form["start"], out DateTime start) ||
@@ -91,7 +109,6 @@ namespace Gemini.Middleware
             )
             {
                 string msg = $"Mindestens ein Übergabeparameter war nicht korrekt.\r\n";
-
 #if DEBUG
                 msg +=
                 $"start: '{ctx.Request.Form["start"]}'\r\n" +
@@ -99,9 +116,7 @@ namespace Gemini.Middleware
                 $"interval: '{ctx.Request.Form["interval"]}'\r\n" +
                 $"tags: '{ctx.Request.Form["tags"]}'\r\n";
 #endif
-                //ctx.Response.ContentType = "text/plain";
-                //await ctx.Response.WriteAsync(msg);
-                //await ctx.Response.CompleteAsync();
+
                return Results.BadRequest(msg);
             }
 
@@ -117,24 +132,20 @@ namespace Gemini.Middleware
 
             string excelFileName = $"Kreu_{start:yyyyMMdd}_{end:yyyyMMdd}_{interval}_{DateTime.Now.TimeOfDay.TotalSeconds:0000}.xlsx";
 
-            //ctx.Response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            //ctx.Response.Headers.ContentDisposition = $"attachment; filename={excelFileName}";
-            //ctx.Response.ContentLength = fileStream.Length;
-
-            //await fileStream.CopyToAsync(ctx.Response.Body);
-            //await ctx.Response.CompleteAsync();
+            Db.Db.DbLogInfo($"Benutzer {username} [{user.Claims.FirstOrDefault()?.Value}] hat {excelFileName} auf {ctx.Request.Host} heruntergeladen.");
 
             return Results.File(fileStream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excelFileName);
 
         }
 
-        private static IResult GetExcelConf(HttpContext context)
+        private static IResult GetExportConf(HttpContext context)
         {
             List<TagCollection> ChartCollections = Db.Db.GetTagCollections();
 
             foreach (var item in ChartCollections)
             {
-                Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.Tags[0].TagName}");
+                //Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.Tags[0].TagName}");
+                Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.ChartConfig.Chart1Tags}");
             }
 
             //HIER FEHLER
@@ -163,9 +174,10 @@ namespace Gemini.Middleware
                 $"startStr={x?.Start}\r\n" +
                 $"endStr= {x?.End}\r\n" +
                 $"intervalStr={x?.Interval}\r\n" +
-                $"tagsStr={x?.Tags}\r\n");
+                //$"tagsStr={x?.Tags}\r\n");
+                $"tagsStr={x?.ChartConfig.Chart1Tags}\r\n");
 #endif
-            int result = Db.Db.CreateChartconfig(x!.Name, author, x.Start, x.End, (Gemini.DynContent.MiniExcel.Interval)x.Interval, x.Tags);
+            int result = Db.Db.CreateChartconfig(x!.Name, author, x.Start, x.End, (Gemini.DynContent.MiniExcel.Interval)x.Interval, x.ChartConfig);
 
             if (result > 0)
                 return Results.Ok();

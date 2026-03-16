@@ -6,7 +6,7 @@
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <link rel='stylesheet' href='../css/style.css'>
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script> <!-- für PAN -->
@@ -15,8 +15,12 @@
 </head>
 <body>
     <h1>Demo Kurvendarstellung</h1>
+    <p>Beispiel Kurve</p>
 
-    <span id="customspinner">Der Browser berechnet die Kurven</span>
+    <dialog id="waitforserver">
+        <p>Daten werden vom Server angefordert</p>
+        <button commandfor="waitforserver" command="close">Schließen</button>
+    </dialog>
 
     <div style="position:absolute; right:0.5rem; top:3.5rem;">
         <input type="hidden" id="hour" data-name='A01_DB10_DBW2' />
@@ -39,54 +43,37 @@
         <div class="myButton" id="chartTimespan"></div>
         <input type="datetime-local" id="start" name="start" onfocusout="loadAllCharts();">
         <input type="datetime-local" id="end" name="end" onfocusout="loadAllCharts();">
-        <button class="myButton" onclick="setDatesHours('start', 'end', 8);loadAllCharts();"><i class="material-icons">schedule</i>8</button>
-        <button class="myButton" onclick="setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>
-        <select class='myButton' id='interval'>
+        <button class="myButton" onclick="chart.setDatesHours('start', 'end', 8);loadAllCharts();"><i class="material-icons">schedule</i>8</button>
+        <button class="myButton" onclick="chart.setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>
+        <select class='myButton' id='interval' onchange="loadAllCharts();">
             <option value='0'>&#x26C1;</option>
             <option value='1' selected>&#x26C0;</option>
         </select>
-        <button class="myButton" onclick="excelExport(  'start', 'end', 0, getAllTags([tags1,tags2]));"><i class="material-icons">save</i></button>
-        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 1.2);"><i class="material-icons">zoom_in</i></button>
-        <button class="myButton" onclick="zoom(['myChart1', 'myChart2'], 0.8);"><i class="material-icons">zoom_out</i></button>
-        <button class="myButton" onclick="resetZoom(['myChart1', 'myChart2'])"><i class="material-icons">center_focus_weak</i></button>
-        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], 100);"><i class="material-icons">arrow_left</i></button>
-        <button class="myButton" onclick="panX(['myChart1', 'myChart2'], -100);"><i class="material-icons">arrow_right</i></button>
+        <button class="myButton" onclick="exp.export('start', 'end', 0, chart.getAllTags([tags1,tags2]));"><i class="material-icons">save</i></button>
+        <button class="myButton" onclick="chart.zoom(['myChart1', 'myChart2'], 1.2);"><i class="material-icons">zoom_in</i></button>
+        <button class="myButton" onclick="chart.zoom(['myChart1', 'myChart2'], 0.8);"><i class="material-icons">zoom_out</i></button>
+        <button class="myButton" onclick="chart.resetZoom(['myChart1', 'myChart2'])"><i class="material-icons">center_focus_weak</i></button>
+        <button class="myButton" onclick="chart.panX(['myChart1', 'myChart2'], 100);"><i class="material-icons">arrow_left</i></button>
+        <button class="myButton" onclick="chart.panX(['myChart1', 'myChart2'], -100);"><i class="material-icons">arrow_right</i></button>
         <!-- <button class="myButton" onclick="toggleStatusChart('myChart2', tags2)"><i style="color:red;" class="material-icons">legend_toggle</i></button> -->
     </div>
     <canvas id="myChart2" class="chart" style="background-color: rgb(70, 70, 70); min-width: 50vw; max-width: 90vw; height: 30vh; max-height: 40vh; "></canvas>
 
-    <div id="progressContainer" style="position: absolute; top:10px; left: 40%; margin: auto; display: none; ">
-        <label for="progressBar">Verarbeitung:</label>
-        <progress id="progressBar" value="0" max="100" style="width: 300px;"></progress>
-        <span id="progressText">0%</span>
-    </div>
+    <div id="progressContainer" style="position: absolute; top:10px; left: 40%; margin: auto;"></div>
 
     <div id="rawDataLinks" style="position:sticky; bottom:0.5rem; left:0.5rem;"></div>
 
-    <script type="module" >
-
-        const tags1 = new Map([
-            ['A01_DB10_DBW2', 'Stunden'],
-            ['A01_DB10_DBW4', 'Minuten'],
-            ['A01_DB10_DBW6', 'Sekunden']
-        ]);
-
-        const tags2 = new Map([
-            ['A01_DB10_DBX7_7', 'Sekunde Bit0'],
-            ['A01_DB10_DBX7_6', 'Sekunde Bit1'],
-            ['A01_DB10_DBX7_5', 'Sekunde Bit2'],
-            ['A01_DB10_DBX7_4', 'Sekunde Bit3'],
-            ['A01_DB10_DBX7_3', 'Sekunde Bit4'],
-            ['A01_DB10_DBX7_2', 'Sekunde Bit5'],
-            ['A01_DB10_DBX7_1', 'Sekunde Bit6'],
-            ['A01_DB10_DBX7_0', 'Sekunde Bit7']
-        ]);
-
+    <script type="module">
         chart.initChart('myChart1', false);
         chart.initChart('myChart2', true);
         if (!chart.getTimeParams())
             chart.setDatesHours('start', 'end', 8);
         loadAllCharts();
+    </script>
+    <script>
+
+        const tags1 = new Map(); 
+        const tags2 = new Map();
 
         function loadAllCharts() {
             if (chart.checkDuration('start', 'end', 'chartTimespan')) {
@@ -95,12 +82,7 @@
                 chart.setTimeParams();
             }
         }
-
     </script>
-
-
-
-
 
 </body>
 </html>
