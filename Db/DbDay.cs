@@ -229,9 +229,9 @@ namespace Gemini.Db
 #endif
                         continue;
                     }
-
-                    //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
-
+#if DEBUG
+                    Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
+#endif
                     if (date.Date == DateTime.UtcNow.Date)
                         command.CommandText = @"SELECT Name, Comment, ChartFlag FROM Tag;";
                     else
@@ -246,7 +246,9 @@ namespace Gemini.Db
                         string tagName = reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
                         string tagComment = reader.IsDBNull(1) ? string.Empty : reader.GetString(1);
                         bool chartFlag = reader.GetBoolean(2);
-                        //Console.WriteLine($"Tagestabelle: Gefundener TagName {tagName} mit Kommentar {tagComment}.");
+#if DEBUG
+                        Console.WriteLine($"Gefundener TagName {tagName} mit Kommentar {tagComment}.");
+#endif
                         tags.Add(new Tag(tagName, tagComment, null, chartFlag));
                     }
 
@@ -474,16 +476,16 @@ namespace Gemini.Db
                             using var reader2 = command.ExecuteReader();
                             while (reader2.Read())
                             {
-                                string v = reader2.GetString(1);
+                                //string v = reader2.GetString(1);
                                 ///Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
-                                object? value = null;
+                                object? value = reader2.GetValue(1);
 
-                                if (double.TryParse(v, out double floatValue))
-                                    value = floatValue;
-                                else if (Int16.TryParse(v, out Int16 intValue))
-                                    value = intValue;
-                                else if (bool.TryParse(v, out bool boolValue))
-                                    value = boolValue;
+                                //if (double.TryParse(v, out double floatValue))
+                                //    value = floatValue;
+                                //else if (Int16.TryParse(v, out Int16 intValue))
+                                //    value = intValue;
+                                //else if (bool.TryParse(v, out bool boolValue))
+                                //    value = boolValue;
 
                                 DateTime t = reader2.GetDateTime(0).ToLocalTime();
 
@@ -782,7 +784,7 @@ namespace Gemini.Db
                     var filterParam = command.Parameters.Add("@Filter", SqliteType.Text);
                     startParam.Value = startUtc.ToString("yyyy-MM-dd HH:mm:ss");
                     endParam.Value = endUtc.ToString("yyyy-MM-dd HH:mm:ss");
-                    filterParam.Value = filter;
+                    filterParam.Value = filter ?? string.Empty;
 
                     command.CommandText = string.Join(" UNION ", query) + "ORDER BY Time DESC; ";
 #if DEBUG

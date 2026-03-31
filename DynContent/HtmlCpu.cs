@@ -98,6 +98,7 @@ namespace Gemini.DynContent
 
             #region zur Zeit konfigurierte Steuerungen
             sb.AppendLine("<h2>Aktive Steuerungen</h2>");
+            sb.AppendLine("<style>td {text-align:right;}</style>");
             sb.AppendLine("<table>");
 
             var plcs = PlcTagManager.Instance.GetAllPlcs();
@@ -142,6 +143,7 @@ namespace Gemini.DynContent
                 "<th>Format</th>" +
                 "<th>Speicher gesamt</th>" +
                 "<th>Speicher frei</th>" +
+                "<th>Belegung</th>" +
                 "</tr>");
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -197,6 +199,8 @@ namespace Gemini.DynContent
                     sb.AppendLine($"<td>{driveFormat}</td>");
                     sb.AppendLine($"<td>{totalSize}&nbsp;GB</td>");
                     sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
+                    if (totalSize > 0)
+                        sb.AppendLine($"<td><meter value='{1-(float)freeSpace/totalSize}'>{1 - (float)freeSpace / totalSize}%</meter></td>");
                     sb.AppendLine("</tr>");
                 }
             }
@@ -204,14 +208,17 @@ namespace Gemini.DynContent
             {
 
                 var root = new DriveInfo("/");
-
+                long totalSize = root.TotalSize / 1024 / 1024 / 1024;
+                long freeSpace = root.AvailableFreeSpace / 1024 / 1024 / 1024;
                 sb.AppendLine($"<tr>");
                 sb.AppendLine($"<td>{root.Name}</td>");
                 sb.AppendLine($"<td>{root.VolumeLabel}</td>");
                 sb.AppendLine($"<td>{root.DriveType}</td>");
                 sb.AppendLine($"<td>{root.DriveFormat}</td>");
-                sb.AppendLine($"<td>{root.TotalSize / 1024 / 1024 / 1024}&nbsp;GB</td>");
-                sb.AppendLine($"<td>{root.AvailableFreeSpace / 1024 / 1024 / 1024}&nbsp;GB</td>");
+                sb.AppendLine($"<td>{totalSize}&nbsp;GB</td>");
+                sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
+                if(totalSize > 0)
+                    sb.AppendLine($"<td><meter value='{1 - (float)freeSpace / totalSize}'>{1 - (float)freeSpace / totalSize}%</meter></td>");
                 sb.AppendLine("</tr>");
             }
 

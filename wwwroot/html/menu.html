@@ -55,13 +55,13 @@
 
 
 
-    <div class="tab">
+    <div class="tab" style="margin: 0 2.5rem;">
         <button class="tablinks" onclick="openTab(event, 'cookies')">Cookies</button>
         <button class="tablinks" onclick="openTab(event, 'privacy')">Datenschutzerklärung</button>
         <button class="tablinks" onclick="openTab(event, 'impressum')">Impressum</button>
     </div>
 
-    <div id="cookies" class="tabcontent">
+    <div id="cookies" class="tabcontent"  style="margin: 0 2.5rem;">
         <h3>Cookies</h3>
         <p>
             Diese Anwendung nutzt:
@@ -78,12 +78,12 @@
         </p>
     </div>
 
-    <div id="privacy" class="tabcontent">
+    <div id="privacy" class="tabcontent"  style="margin: 0 2.5rem;">
         <h3>Datenschutzerklärung</h3>
         <p>Datenschutzerklärung.</p>
     </div>
 
-    <div id="impressum" class="tabcontent">
+    <div id="impressum" class="tabcontent"  style="margin: 0 2.5rem;">
         <h3>Impressum</h3>
         <p>
             Kreutzträger Kältetechnik GmbH & Co. KG<br />
@@ -99,24 +99,6 @@
             Amtsgericht Bremen, HRA 22382<br />
         </p>
     </div>
-
-    <script>
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks, isActive;
-            isActive = evt.currentTarget.classList.contains("active");
-            tabcontent = document.getElementsByClassName("tabcontent");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-            tablinks = document.getElementsByClassName("tablinks");
-            for (i = 0; i < tablinks.length; i++) {                
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-            if (isActive) return;
-            document.getElementById(tabName).style.display = "block";
-            evt.currentTarget.className += " active";
-        }
-    </script>
 
 </body>
 </html>

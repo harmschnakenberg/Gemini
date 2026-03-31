@@ -18,7 +18,7 @@
     <p>Beispiel Kurve</p>
 
     <dialog id="waitforserver">
-        <p>Daten werden vom Server angefordert</p>
+        <p><span class="loader">Daten werden vom Server angefordert </span></p>
         <button commandfor="waitforserver" command="close">Schließen</button>
     </dialog>
 
@@ -46,8 +46,8 @@
         <button class="myButton" onclick="chart.setDatesHours('start', 'end', 8);loadAllCharts();"><i class="material-icons">schedule</i>8</button>
         <button class="myButton" onclick="chart.setDatesHours('start', 'end',24);loadAllCharts();"><i class="material-icons">schedule</i>24</button>
         <select class='myButton' id='interval' onchange="loadAllCharts();">
-            <option value='0'>&#x26C1;</option>
-            <option value='1' selected>&#x26C0;</option>
+            <option value='0' selected>&#x26C1;</option>
+            <option value='1'>&#x26C0;</option>
         </select>
         <button class="myButton" onclick="exp.export('start', 'end', 0, chart.getAllTags([tags1,tags2]));"><i class="material-icons">save</i></button>
         <button class="myButton" onclick="chart.zoom(['myChart1', 'myChart2'], 1.2);"><i class="material-icons">zoom_in</i></button>

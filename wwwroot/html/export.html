@@ -14,9 +14,9 @@
         Hier können Sie die aufgezeichneten Daten als Excel-Tabelle oder SQLite-Datenbank (Rohwerte) herunterladen.
     </p>
 
-    <fieldset style="width:50rem;">
-        <legend>Zeitraum:</legend>
-        <p class="info-container">
+    <fieldset style="width:50rem;margin:1rem;">
+        <legend><button class="tablinks" onclick="openTab(event, 'setTimeInfo')">Zeitraum</button></legend>
+        <p class="info-container tabcontent" id="setTimeInfo">
             Wählen Sie den Zeitraum, aus dem die Daten entnommen werden sollen, sowie den Werteintervall,
             d.h. mit welchem Zeitabstand die Werte in die Tabelle eingetragen werden sollen.
         </p>
@@ -38,20 +38,65 @@
         </div>
     </fieldset>
 
-    <hr />
+   
 
-    <fieldset style="width: 50rem; ">
-        <legend>Zuordnung Tabellenspalten:</legend>
-        <p class="info-container">
+    <fieldset style="width: 50rem; margin: 1rem;">
+        <legend><button class="tablinks" onclick="openTab(event, 'setColsInfo')">Zuordnung Tabellenspalten</button></legend>
+        <div class="info-container tabcontent" id="setColsInfo">
             Ordnen Sie hier den Spalten der Tabelle Werte zu, indem Sie Datenpunkte im Suchfeld eingeben und mit dem Button <i>Hinzufügen</i> in die Liste eintragen.<br />
             Der genaue Wortlaut wird während der Eingabe vorgeschlagen. Ungültige Bezeichner werden rot hinterlegt.<br />
             Die Rehenfolge der Spalten kann anschließend mit der Maus per Drag and Drop geändert werden.<br />
-            Die erste Spalte 'A' enthält immer den Zeitstempel und kann nicht geändert werden.
-        </p>
+            Die erste Spalte 'A' enthält immer den Zeitstempel und kann nicht geändert werden.<br />
+            Beispiel:<br/>
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                    <th>C</th>
+                    <th>D</th>
+                    <th>...</th>
+                </tr>
+                <tr>
+                    <th>Zeitstempel</th>
+                    <th>Temperatur</th>
+                    <th>Druck</th>
+                    <th>Abtaudauer</th>
+                    <th>...</th>
+                </tr>
+                <tr>
+                    <td>2036-09-01 16:00</td>
+                    <td>8.2°C</td>
+                    <td>1.2bar</td>
+                    <td>0 min</td>
+                    <td>...</td>
+                </tr>
+                <tr>
+                    <td>2036-09-01 17:00</td>
+                    <td>8.1°C</td>
+                    <td>1.3bar</td>
+                    <td>20 min</td>
+                    <td>...</td>
+                </tr>
+                <tr>
+                    <td>2036-09-01 18:00</td>
+                    <td>8.3°C</td>
+                    <td>1.2bar</td>
+                    <td>0 min</td>
+                    <td>...</td>
+                </tr>
+                <tr>
+                    <td>...</td>
+                    <td>...</td>
+                    <td>...</td>
+                    <td>...</td>
+                    <td>...</td>
+                </tr>
+            </table>
+        </div>
 
         <div class="container">
             <div class="controls">
-                <input type="text" id="newItemInput" class="myButton" list='comments' placeholder="Neue Tabellenspalte hinzufügen">
+                <input type="text" id="newItemInput" class="myButton" list='comments' placeholder="Neue Tabellenspalte hinzufügen: Bezeichnung hier eingeben">
                 <button onclick="dragdrop.addItem()">Hinzufügen</button>
             </div>
             <datalist id='comments'></datalist>
@@ -60,11 +105,15 @@
                 <!-- Dynamische Listenelemente -->
             </ol>
         </div>
+
+
+
+
     </fieldset>
 
-    <hr />
+   
 
-    <fieldset style="width: 50rem; ">
+    <fieldset style="width: 50rem; margin: 1rem; ">
         <legend>Download:</legend>
         <div class="container">
             <div class="controls">
@@ -76,39 +125,60 @@
                 <button class="myButton" style="width:10rem;" onclick="exp.getDbFromForm('start', 'end');">SQLite-Export</button>
                 <div>
                     Der Datenbank-Export kann einen Moment in Anspruch nehmen. Es werden alle aufgezeichneten Tags des gewählten Zeitraums exportiert.
-                    Die SQLite-Dateien werden als ZIP in Ihren Download-Ordner heruntergeladen. <a href="https://sqlite.org/" target="_blank">SQLite.org</a>, <a href="https://sqlitebrowser.org/" target="_blank">SQLite Browser</a>
+                    Die SQLite-Dateien werden als ZIP in Ihren Download-Ordner heruntergeladen. 
+                    Siehe <a href="https://sqlite.org/" target="_blank">SQLite.org</a>, <a href="https://sqlitebrowser.org/" target="_blank">SQLite Browser</a>
                 </div>
             </div>
         </div>
     </fieldset>
 
-    <hr />
+ 
 
-    <span style="padding:0 1rem">Funktion bald verfügbar:</span>
-    <fieldset style="width: 50rem; opacity: 50% ">
-        <legend>Konfiguration laden / speichern:</legend>
-        <p class="info-container">
-            Vergeben Sie einen Konfigurationsnamen und speichern Sie die aktuelle Konfiguration. Laden Sie eine gespeicherte Konfiguration anhand des Konfigurationsnamens.
+    <fieldset style="width: 50rem; margin: 1rem;">        
+        <legend><button class="tablinks" onclick="openTab(event, 'setConfigInfo')">Konfiguration laden / speichern</button></legend>
+        <p class="info-container tabcontent" id="setConfigInfo">
+            Vergeben Sie einen Konfigurationsnamen und speichern Sie die aktuelle Konfiguration. Laden Sie eine gespeicherte Konfiguration anhand der Konfigurations-ID. 
+            Die Konfigurations-ID finden Sie anhand des Konfigurationsnamens.
         </p>
         <div class="container">
             <div class="controls">
-                <input class="myButton" list="configs" id="configlist" placeholder="Konfigurationsname">
+                <input class="myButton" list="configs" id="configlist" placeholder="Konfigurationsname" onchange="showConfigId(this.value);">
+                <input type="number" id="configId" style="width:3rem;" />
                 <datalist id="configs"></datalist>
 
-                <button onclick="exp.confImport();">Konfig-Import</button>
+                <button onclick="exp.confImport(document.getElementById('configId').value);">Konfig-Import</button>
                 <button onclick="exp.confExport();">Konfig-Export</button>
 
-               
             </div>
         </div>
     </fieldset>
 
-    <script type="module">        
+    <script type="module">
         exp.loadOptions('comments', 'allTagComments', `/tag/comments`);
-        exp.setDatesToStartOfMonth('start', 'end');   
+        exp.setDatesToStartOfMonth('start', 'end');
 
         exp.loadOptions('configs', 'allConfigs', `/chart/config/allnames`);
     </script>
-    
+    <script>
+        function showConfigId(configCaption) {
+            let configId = exp.getKeyFromMap('allConfigs', configCaption)
+
+            if (configId === null)
+                configId = '';
+
+            document.getElementById("configId").value = configId;
+        }
+    </script>
+    <style>
+        table, th, td {
+            border: 1px solid grey;
+            color: lightgrey;
+        }
+
+        td {
+            text-align: right;
+            padding: 0.2rem;
+        }
+    </style>
 </body>
 </html>

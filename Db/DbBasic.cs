@@ -220,7 +220,7 @@ namespace Gemini.Db
 
 
                     DateTime date = DateTime.UtcNow;
-                    int counter = 10; // limitieren, wie weit in die Vergangenheit geschaut werden soll
+                    int counter = 30; // limitieren, wie viele Tage in die Vergangenheit geschaut werden soll
 
                     //Wenn die Datenbank grade neu erstellt wurde ist sie leer.
                     //Deshalb die letzte Tages-DB suchen und TagNames übernehmen
@@ -241,8 +241,7 @@ namespace Gemini.Db
                         //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
 
                         command.CommandText =
-                                $"ATTACH DATABASE '{dbPath}' AS old_db; " +
-                                // "VACUUM old_db; " +
+                                $"ATTACH DATABASE '{dbPath}' AS old_db; " +                                
                                 "INSERT OR IGNORE INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die Id sonst immer weiter gezählt werden. IGNORE darf eigentlich nicht notwendig sein, ist es aber scheinbar?.
                                 "WHERE old_db.Tag.ChartFlag > 0 OR length( old_db.Tag.Comment ) > 0; " + //nur TagNames, die aufgezeichnet werden oder Kommentare erhalten haben. (Alle anderen werden beim ersten Lesen erneut in die Tabelle geschrieben).
                                 "DETACH DATABASE old_db; ";

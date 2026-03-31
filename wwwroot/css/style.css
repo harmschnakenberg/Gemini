@@ -70,18 +70,14 @@ ul {
     height: 95vh;
     opacity: 0.96;
     background-color: var(--primary-bg-color);
-  
-    /* background-color: transparent;
-    /*list-style-type: none;*/
-    /*transform: translate(0px);*/
 }
 
-    #sidemenu:hover {
-        /*background-color: rgb(70, 70, 70); */
+    #sidemenu:hover {      
         border-bottom-right-radius: 10px;
         border-right: 1px solid var(--border-color);
         border-bottom: 1px solid var(--border-color);
         transform: translate(430px, 91vh)
+        
     }
 
 #loginMessage{
@@ -392,52 +388,7 @@ input.checkbox {
         border: 2px solid rgb(255, 99, 71);
     }
 
-.is-loading {
-    cursor: wait !important;
-    opacity: 0.5;
-}
 
-#waitforserver {
-    position: absolute;
-    margin: 5vh 40vw;
-    padding: 1rem 2rem;
-    width: 22rem;
-    background-color:var(--hover-bg-color);
-}
-
-/*#customspinner {*/
-    /* visibility:hidden; */
-    /*position: absolute;
-    margin: 50vh 1vw;
-    padding: 1rem 2rem;
-    animation-name: myAnimation;
-    animation-duration: 10s;
-    animation-timing-function: linear;
-    animation-delay: 1.5s;
-    animation-iteration-count: infinite;
-    animation-direction: alternate; 
-
-
-@keyframes myAnimation {
-    0% {
-        background-color: white;
-        color: black;
-        /*left: 0vw;
-    }
-
-    50% {
-        background-color: black;
-        color: white;
-        left: 40vw;
-    }
-
-    100% {
-        background-color: white;
-        color: black;
-        left: 80vw;
-    }
-
-}*/
 
 .datatable {
     margin-left: auto;
@@ -471,8 +422,7 @@ input.checkbox {
 
 /* Menü-Streifen */
 .tab {
-    overflow: hidden;
-    margin: 0 2.5rem;
+    overflow: hidden; 
     width: 28rem;
 }
 
@@ -506,11 +456,111 @@ input.checkbox {
     display: none;
     background-color: #444;
     padding: 1rem;
-    border: 1px solid var(--border-color);  
-    margin: 1px 2.5rem;
+    border: 1px solid var(--border-color);
+    /* margin: 1px 2.5rem; */
     width: 26rem;
 
     h3 {
         padding: initial;
     }
 }
+
+.is-loading {
+    cursor: wait !important;
+    opacity: 0.5;
+}
+
+/* Dialog-Box */
+#waitforserver {
+    position: absolute;
+    margin: 5vh 40vw;
+    padding: 1rem 2rem;
+    width: 22rem;
+    text-align: center;
+    background-color: var(--hover-bg-color);
+}
+
+/* Spinner beim Warten auf Kurvendaten https://cssloaders.github.io/ */
+.loader {
+    transform: rotateZ(45deg);
+    perspective: 1000px;
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+    color: #fff;
+}
+
+    .loader:before,
+    .loader:after {
+        content: '';
+        display: block;
+        position: absolute;
+        top: 2rem;
+        left: 2rem;
+        width: inherit;
+        height: inherit;
+        border-radius: 50%;
+        transform: rotateX(70deg);
+        animation: 1s spin linear infinite;
+    }
+
+    .loader:after {
+        color: cornflowerblue;
+        transform: rotateY(70deg);
+        animation-delay: .4s;
+    }
+
+@keyframes rotate {
+    0% {
+        transform: translate(-50%, -50%) rotateZ(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotateZ(360deg);
+    }
+}
+
+@keyframes rotateccw {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(-360deg);
+    }
+}
+
+@keyframes spin {
+    0%, 100% {
+        box-shadow: .2em 0px 0 0px currentcolor;
+    }
+
+    12% {
+        box-shadow: .2em .2em 0 0 currentcolor;
+    }
+
+    25% {
+        box-shadow: 0 .2em 0 0px currentcolor;
+    }
+
+    37% {
+        box-shadow: -.2em .2em 0 0 currentcolor;
+    }
+
+    50% {
+        box-shadow: -.2em 0 0 0 currentcolor;
+    }
+
+    62% {
+        box-shadow: -.2em -.2em 0 0 currentcolor;
+    }
+
+    75% {
+        box-shadow: 0px -.2em 0 0 currentcolor;
+    }
+
+    87% {
+        box-shadow: .2em -.2em 0 0 currentcolor;
+    }
+}
+   

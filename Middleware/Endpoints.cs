@@ -46,7 +46,8 @@ namespace Gemini.Middleware
             app.MapPost("/export", ExcelDownload).RequireAuthorization(); // Excel-Datei generieren und ausliefern
             
             app.MapPost("/export/config/delete", ExcelConfDelete).RequireAuthorization(); // Excel-Konfiguration löschen //nicht implementiert  
-            app.MapGet("/export/config/all", GetExportConf);
+            app.MapGet("/export/config/all", GetExportConf); // Alle Excel-Export-Konfigurationen aus Datenbank als JSON ausliefern.
+                                                             // Wirklich umsetzen?  ToDo: Implementieren oder entfernen?
 
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
             app.MapPost("/db/download", DbDownload); // Datenbank-Dateien ausliefern   
@@ -179,6 +180,7 @@ namespace Gemini.Middleware
             }
 
           return Results.NotFound($"Keine Kurvenkonfiguration mit der ID {configId} gefunden.");
+       
 
         }
     }

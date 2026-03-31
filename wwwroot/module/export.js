@@ -2,6 +2,7 @@
 import fetchSecure from '../module/fetch.js';
 import { JsonTag } from '../module/data.js';
 import * as alert from '../module/alert.js';
+import { addItem } from '../module/dragdrop.js';
 
 class TagCollection {
     constructor(id, name, author, start, end, interval, tags) {
@@ -26,8 +27,9 @@ function ChartConfig(id, caption, subCaption, chart1Tags, chart2Tags) {
 
 const locLists = new Map(); //Map of Maps
 
-async function loadOptions(selectId, locListName, link) {  
+async function loadOptions(dataListId, locListName, link) {  
     document.body.classList.add('is-loading');
+    console.log(`Lade Optionen in DOM Id '${dataListId}' aus Liste '${locListName}'`);
     const locList = new Map();
     const response = await fetchSecure(link, {
         method: 'POST'
@@ -40,15 +42,24 @@ async function loadOptions(selectId, locListName, link) {
 
     const json = await response.json();
 
+    if (!json) {
+        throw new Error(`kein gültiges JSON: ${json}`);
+        return;
+    }
+
+    console.log(json);
+
     json.forEach((t) => {
+        let key = t.N;
+        let val = t.V;
         if (t.N?.length > 0) {
-            //console.log(`${t.N}=${t.V}`)
+            console.info(`ID ${val}: ${key}`)
             //console.log(`${(t.V.length > 0 || Number.isInteger(t.V) ?  t.V : t.N)} = ${t.N}`)
-            locList.set((t.V.length > 0 || Number.isInteger(t.V)) ? t.V : t.N, t.N);
+            locList.set((val.length > 0 || Number.isInteger(val)) ? val : key, key);
 
             const para = document.createElement("OPTION");
-            para.setAttribute("value", t.V?.length > 0 ? t.V : t.N);
-            document.getElementById(selectId).appendChild(para);
+            para.setAttribute("value", val.length > 0 ? val : key);
+            document.getElementById(dataListId).appendChild(para);
         }
     });
 
@@ -172,23 +183,43 @@ async function excelExport(startId, endId, ival, tags) {
 }
 
 
-async function confImport() {
-    const configName = document.getElementById('configlist').value;
-    const configList = locLists.get('allConfigs');
-    let configId;
+function getKeyFromMap(mapName, mapValue) {
 
-    locLists.get('allConfigs').forEach(function (value, key) {
-        if (value == configName) 
-            configId = key;       
+    //console.info(`Suche '${mapValue}' in '${mapName}'`);
+
+    //locLists.forEach(function (value, key) {
+    //    console.info(`Map ${key}=${value}`);      
+    //});
+
+    const map = locLists.get(mapName);
+    if (!map)
+        console.error(`Map '${mapName}' ist nicht bekannt.`);
+    let answer = null;
+    map.forEach(function (value, key) {
+        //console.log(`${key}=${value}, ${value == mapValue}`);
+        if (value == mapValue) {
+            //console.log(`die Antwort ist ${key}`);
+            answer = key;
+        }
     });
 
-    if (configId == 'undefined') { 
-        console.error(`Konfiguration mit dem Namen ${configName} nicht bekannt.`);
+    return answer;
+}
+
+
+async function confImport(configId) {
+    //const configName = document.getElementById('configlist').value;    
+    //let configId = getKeyFromMap('allConfigs', configName);
+
+    if (configId === undefined) {
+        let txt = `Die zu ladende Konfiguration hat keine gültig ID.`; 
+        console.error(txt);
+        alert.error(txt);
         return;
     }
 
     const url = `/chart/config/${configId}`;
-    console.info(`Lade Konfiguration ${configName} mit ID ${configId} von ${url}`)
+    //console.info(`Lade Konfiguration ${configName} mit ID ${configId} von ${url}`)
     const res = await fetchSecure(url, {
         method: 'POST',
         headers: { "Content-Type": "application/json" }
@@ -196,13 +227,22 @@ async function confImport() {
 
     if (res.ok) {
         const config = await res.json();
-        console.info(config);
+        //console.info(config);
         alert.success(`Konfiguration [${config.Id}] '${config.Caption}' geladen.`);
 
-        
-        
+        for (let tagName in config.Chart1Tags) {
+            let tagCaption = config.Chart1Tags[tagName];
+            console.info(`${tagName}=${tagCaption}`);
 
-        console.info(`TEST:${config.Chart1Tags.keys}`);
+            document.getElementById('newItemInput').value = tagCaption;
+            addItem();
+        };
+
+        //for (const tagName of config.Chart1Tags.keys()) {
+        //    console.info(tagName);
+        //}
+
+        //console.info(`TEST:${config.Chart1Tags.keys}`);
         //TagCollection
         // public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, Tag[] Tags);
 
@@ -248,4 +288,4 @@ async function confExport() {
 }
 
 
-export { loadOptions, setDatesToStartOfMonth, excelExport as export, getExcelFromForm, getDbFromForm, TagCollection, confExport, confImport }
+export { loadOptions, setDatesToStartOfMonth, excelExport as export, getExcelFromForm, getDbFromForm, TagCollection, confExport, confImport, getKeyFromMap }
