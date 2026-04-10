@@ -476,17 +476,19 @@ namespace Gemini.Db
                             using var reader2 = command.ExecuteReader();
                             while (reader2.Read())
                             {
-                                //string v = reader2.GetString(1);
-                                ///Console.WriteLine($"Gelesener Wert für Tag {tagName}: {v}");
-                                object? value = reader2.GetValue(1);
-
-                                //if (double.TryParse(v, out double floatValue))
-                                //    value = floatValue;
-                                //else if (Int16.TryParse(v, out Int16 intValue))
-                                //    value = intValue;
-                                //else if (bool.TryParse(v, out bool boolValue))
-                                //    value = boolValue;
-
+                                //object? value = reader2.GetFieldValue<object?>(1);// .GetValue(1); // Ergibt Fehler im WebWorker!
+                               
+                                object? value = null;
+                                string v = reader2.GetString(1);
+                                                                
+                                if (double.TryParse(v, out double floatValue))
+                                    value = floatValue;
+                                else if (Int16.TryParse(v, out Int16 intValue))
+                                    value = intValue;
+                                else if (bool.TryParse(v, out bool boolValue))
+                                    value = boolValue;
+                                //*/
+                               
                                 DateTime t = reader2.GetDateTime(0).ToLocalTime();
 
                                 items.Add(new JsonTag(tagName!, value, t));

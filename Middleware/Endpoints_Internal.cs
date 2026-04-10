@@ -44,10 +44,14 @@ namespace Gemini.Middleware
             return Results.Content(sb.ToString(), "text/html", Encoding.UTF8);
         }
 
-        private static IResult SollMenu(int id, HttpContext ctx)
+        private static IResult ShowSoll(int id, HttpContext ctx) { return ShowPageOrMenu(id, ctx, "soll"); }
+
+        private static IResult ShowBild(int id, HttpContext ctx) { return ShowPageOrMenu(id, ctx, "bild"); }
+
+        private static IResult ShowPageOrMenu(int id, HttpContext ctx, string subfolder)
         {
             string json;
-            using (TextReader reader = new StreamReader("wwwroot/html/soll/sollmenu.json"))
+            using (TextReader reader = new StreamReader($"wwwroot/html/{subfolder}/menu.json"))
             {
                 json = reader.ReadToEndAsync().Result;
             }
@@ -62,7 +66,7 @@ namespace Gemini.Middleware
             {
                 MenuLink? menuLink = menuTree.First().Value?.Where(i => i.Id == id).FirstOrDefault();
                 if (id != 0 && !string.IsNullOrEmpty(menuLink?.Link))
-                    link = $"wwwroot/html/soll/{menuLink?.Link ?? string.Empty}";
+                    link = $"wwwroot/html/{subfolder}/{menuLink?.Link ?? string.Empty}";
             }
 
             if (link.EndsWith(".html"))
@@ -144,13 +148,7 @@ namespace Gemini.Middleware
         }
 
         private static IResult MainMenu()
-        {
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "text/html";
-            //var file = File.ReadAllText("wwwroot/html/menu.html", Encoding.UTF8);
-            //await ctx.Response.WriteAsync(file);
-            //await ctx.Response.CompleteAsync();
-
+        {        
             var file = File.ReadAllText("wwwroot/html/menu.html");
             return Results.Content(file, "text/html");
         }

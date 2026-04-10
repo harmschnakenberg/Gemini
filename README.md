@@ -13,9 +13,10 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Log vom Server auf Weboberfläche
 	- Liste der vorhandenen Datenbanken
 	- Liste der Lesefehler aus der SPS-Kommunikation
-     - NiceToHave: Logging mit Source Generated Logging für bessere Performance
-	 - ToDo: Disclaimer und Cookie-Hinweis im Webinterface anzeigen
+    - Disclaimer und Cookie-Hinweis im Webinterface anzeigen 
+	 - NiceToHave: Logging mit Source Generated Logging für bessere Performance	 
 	 - ToDo: Dynamisch erstelle HTML-Seiten alle auf statische Seiten mit Platzhaltern basieren lassen (=> Editierbar für Kunden-Admin)
+	 - ToDo: WebUi-Anzeige Größe Datenbanken von '/source' nach '/db/list' verschieben	
 		
 	- Sicherheit
 	  - HTTPS Support über Rechnernamen | avahi-daemon notwendig
@@ -24,7 +25,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	
 	- Benutzerverwaltung
 	  - Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
-	  - Liste der verbundenen Clients im Webinterface anzeigen		
+	  - Liste der verbundenen Clients im Webinterface anzeigen	
+       - ToDo: Bei Login als Gast in Sollwertfenstern/allgemein Eingabefelder readonly + hellgrauer Hintergrund	  
 		
 	- Sollwerte
 	  - Statische Sollwert-Bilder

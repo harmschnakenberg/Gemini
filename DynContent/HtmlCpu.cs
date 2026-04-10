@@ -200,7 +200,7 @@ namespace Gemini.DynContent
                     sb.AppendLine($"<td>{totalSize}&nbsp;GB</td>");
                     sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
                     if (totalSize > 0)
-                        sb.AppendLine($"<td><meter value='{1-(float)freeSpace/totalSize}'>{1 - (float)freeSpace / totalSize}%</meter></td>");
+                        sb.AppendLine($"<td><meter high='0.8' value='{1-(float)freeSpace/totalSize}'>{100*(1 - (float)freeSpace / totalSize)}%</meter></td>");
                     sb.AppendLine("</tr>");
                 }
             }
@@ -218,7 +218,7 @@ namespace Gemini.DynContent
                 sb.AppendLine($"<td>{totalSize}&nbsp;GB</td>");
                 sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
                 if(totalSize > 0)
-                    sb.AppendLine($"<td><meter value='{1 - (float)freeSpace / totalSize}'>{1 - (float)freeSpace / totalSize}%</meter></td>");
+                    sb.AppendLine($"<td><meter high='0.8' value='{1 - (float)freeSpace / totalSize}'>{100*(1 - (float)freeSpace / totalSize)}%</meter></td>");
                 sb.AppendLine("</tr>");
             }
 

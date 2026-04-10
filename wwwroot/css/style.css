@@ -1,10 +1,43 @@
-﻿:root {
+﻿/*
+:root {
     --primary-bg-color: rgb(60, 60, 60);
     --primary-color: #eeeeee;
     --hover-bg-color: #999;
     --active-bg-color: cornflowerblue;
     --border-color: #666;
+} 
+*/
+
+@property --primary-bg-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: rgb(60, 60, 60);
 }
+
+@property --primary-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #eeeeee;
+}
+
+@property --hover-bg-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #999;
+}
+
+@property --active-bg-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: cornflowerblue;
+}
+
+@property --border-color {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: #666;
+}
+
 
 body {
     background-color: var(--primary-bg-color);
@@ -185,6 +218,18 @@ ul {
     justify-content: space-between;
     align-items: center;*/
 }
+
+/* 
+@scope (.container) {
+  h2 {
+    font-size: 30px;
+    color: green;
+  }
+  img {
+    border: 5px solid maroon;
+  }
+}
+*/
 
 .sortable-item {
     cursor: grab;

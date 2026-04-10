@@ -16,7 +16,9 @@ self.onmessage = async function (e) {
             throw new Error(`HTTP-Fehler! Status: ${response.status}`);
         }
         const jsonData = await response.json();
-        
+        console.info(`Daten geladen: ${jsonData.length} Einträge von ${url}`);
+        console.info(`Alias-Mapping: ${JSON.stringify(Array.from(aliases.entries()))}`);
+
         // 2. Daten verarbeiten (kann bei vielen Daten rechenintensiv sein)
         const newDatasets = await processData(chartId, jsonData, aliases);
 
@@ -56,7 +58,7 @@ async function processData(chartId, jsonData, aliases) {
         const timestamp = item.T; // Zeitstempel (z.B. Unix-Zeit in Millisekunden)
 
         // Ignoriere Einträge ohne gültiges Label oder Wert
-        if (!tagName || tagValue === undefined || tagValue === null) {
+        if (!tagName || tagValue === undefined || tagValue === null ) {
             continue;
         }
 

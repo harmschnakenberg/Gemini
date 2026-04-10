@@ -38,7 +38,7 @@ window.openTab = openTab;
 user.checkLoginStatus();
 data.initUnits();
 data.initWebsocket(data.initTags());
-loadSiteMenu('soll', '/html/soll/sollmenu.json');
+loadSiteMenu('soll', '/html/soll/menu.json');
 
 document.addEventListener('DOMContentLoaded', (event) => {
     // Initialisierung der Drag-and-Drop-Funktionalität für vorhandene Elemente

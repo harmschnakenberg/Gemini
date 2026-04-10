@@ -54,6 +54,114 @@ namespace Gemini.Middleware
             return Results.Content(HtmlHelper.DynChart(chartConfig, start, end), "text/html", Encoding.UTF8);
         }
 
+
+        private static IResult ChartConfigCreate(HttpContext context, ChartConfig chartConfig)
+        {
+            ClaimsPrincipal user = context.User;
+            string username = user.Identity?.Name ?? "-unbekannt-";
+
+            if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
+            {
+#if DEBUG
+                Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung Kurvenkonfigurationen anzulegen.");
+#endif
+                return Results.LocalRedirect("/");
+            }
+
+            #region größte ChartId finden
+            int maxId = 0;
+            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
+
+            foreach (var path in chartConfigFiles)
+            {
+                string idStr = Path.GetFileNameWithoutExtension(path);
+                //Console.WriteLine(idStr);
+                _ = int.TryParse(idStr.AsSpan(5), out int id);
+                if (id > maxId)
+                    maxId = id;
+            }
+
+            int chartId = ++maxId;
+
+            #endregion
+
+            chartConfig.Id = chartId;
+            string fileName = $"chart{chartId}.json";
+            string json = JsonSerializer.Serialize(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
+
+            //Wohl formatiert 'Pretty Print' für Menschen lesbar machen.
+            json = json.Replace("{", "{" + Environment.NewLine).Replace("}", Environment.NewLine + "}").Replace(",", "," + Environment.NewLine);
+
+            File.WriteAllText(Path.Combine(ChartConfigDir, fileName), json);
+
+            Db.Db.DbLogInfo($"Benutzer {username} erstellt Kurvenkonfiguration {fileName} [{chartConfig.Caption}] mit {chartConfig.Chart1Tags.Count} Tags: {string.Join(',', chartConfig.Chart1Tags.Values)}");
+
+            return Results.Ok();
+
+            //throw new NotImplementedException();
+        }
+
+        private static IResult ChartConfigLoadNames()
+        {
+
+            List<JsonTag> chartConfigNames = new();
+            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
+            foreach (var path in chartConfigFiles)
+            {
+                if (!Path.GetFileName(path).StartsWith("chart") || !Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    string json = File.ReadAllText(path);
+                    ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
+                    if (chartConfig != null)
+                        chartConfigNames.Add(new JsonTag(chartConfig.Caption, chartConfig.Id, System.DateTime.Now));
+
+                    Console.WriteLine($"Überschrift: {chartConfig?.Caption}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
+                }
+            }
+
+            /*
+             Was, wenn zwei Konfigurationen den gleichen Namen haben? Aktuell werden beide Namen in die Liste aufgenommen, da die ID ja eindeutig ist.
+             */
+
+            return Results.Json([.. chartConfigNames], AppJsonSerializerContext.Default.JsonTagArray);
+
+        }
+
+        private static IResult ChartConfigImport(HttpContext context, int configId)
+        {
+            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
+            foreach (var path in chartConfigFiles)
+            {
+                if (!Path.GetFileName(path).StartsWith("chart") || !Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    string json = File.ReadAllText(path);
+                    ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
+                    if (chartConfig != null && chartConfig.Id == configId)
+                        return Results.Json(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
+#endif
+                }
+            }
+
+            return Results.NotFound($"Keine Kurvenkonfiguration mit der ID {configId} gefunden.");
+
+
+        }
+
         #endregion
 
 

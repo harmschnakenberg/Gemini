@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Beispiel Bild</title>
+    <link rel='icon' type='image/x-icon' href='/favicon.ico'>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel='stylesheet' href='../css/style.css'>
+    <!--<script type='module' src='../js/script.js'></script>
+        -->
+    <style>
+        @property --pageBgColor {
+            syntax: "<color>";
+            inherits: true;
+            initial-value: rgb(60, 60, 60);
+        }
+
+        @property --passiveBgColor {
+            syntax: "<color>";
+            inherits: true;
+            initial-value: rgb(128,128,128);
+        }
+
+        @property --activeBgColor {
+            syntax: "<color>";
+            inherits: true;
+            initial-value: rgb(0,255,0);
+        }
+
+        @property --borderColorLight {
+            syntax: "<color>";
+            inherits: true;
+            initial-value: rgb(169, 169, 169);
+        }
+
+        @property --borderColorDark {
+            syntax: "<color>";
+            inherits: true;
+            initial-value: rgb(80, 80, 80);
+        }
+
+
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+            color: white;
+        }
+
+        #controls {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        button {
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: white;
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-width: 45px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+            button:hover {
+                background: #f8f8f8;
+            }
+
+            button:active {
+                background: #eee;
+                transform: translateY(1px);
+            }
+
+        svg {
+            width: 100vw;
+            height: 100vh;
+            cursor: grab;
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <button id="zoom-in" title="Vergrößern">+</button>
+        <button id="zoom-out" title="Verkleinern">−</button>
+        <button id="reset-btn" title="Ansicht zurücksetzen">⟲</button>
+    </div>
+
+    <svg id="svg-canvas" viewBox="0 0 1920 1080" style="background-color: var(--pageBgColor);">
+
+        <defs>
+            <!-- ToDo: Importiere Symbole aus extern.svg -->
+            <!-- <use id="meineVorlage" xlink:href="extern.svg#icon" /> -->
+
+            <g id="istwert">
+                <rect width="80" height="20" fill="black" />
+                <text text-anchor="end" font-family="sans-serif" font-size="14">
+                    <tspan y="15" x="60" fill="white" content-value="param(val)">0,0</tspan>
+                    <tspan y="15" x="75" fill="white" content-value="param(unit)">°C</tspan>
+                </text>
+            </g>
+
+            <g id="ventilator">
+                <circle r="20" fill="grey" style="stroke:var(--borderColorDark);stroke-width:1;" />
+                <ellipse rx="9" ry="4" cx="-9" style="fill:var(--borderColorLight);stroke:var(--borderColorDark);" />
+                <ellipse rx="9" ry="4" cx="9" style="fill:var(--borderColorLight);stroke:var(--borderColorDark);" />
+            </g>
+
+            <g id="pumpe">
+                <circle r="20" fill="var(--passiveBgColor)" style="stroke:var(--borderColorLight);" />
+                <path d="M-18 0 L0 17 L18 0" style="fill:none;stroke:var(--borderColorLight);stroke-width:2" />
+            </g>
+
+            <linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="70%" style="stop-color:grey;stop-opacity:1" />
+                <stop offset="70%" style="stop-color:rgb(0,255,0);stop-opacity:1" />
+            </linearGradient>
+
+            <rect id="vessel" rx="25" ry="50" width="300" height="100" style="stroke:var(--borderColorLight);" fill="url(#grad2)" />
+
+        </defs>
+
+
+        <animate id="viewbox-anim" attributeName="viewBox" dur="0.25s" fill="freeze" />
+        <rect x="300" y="200" width="200" height="200" fill="dodgerblue" rx="10" />
+        <circle cx="100" cy="100" r="40" fill="tomato" />
+        <text x="400" y="550" text-anchor="middle" font-size="14">Nutze Buttons, Scrollen oder Ziehen</text>
+
+        <rect x="1300" y="100" width="120" height="150" fill="darkgrey" style="stroke:black;stroke-width:1;" />
+
+        <use x="1335" y="135" href="#ventilator" data-name="A01_DB10_DBW4" />
+        <use x="1385" y="135" href="#ventilator" data-name="A01_DB10_DBW4" />
+
+        <use x="600" y="400" href="#vessel" data-name="A01_DB10_DBW4" />
+
+        <use x="1200" y="400" href="#vessel" data-name="A01_DB10_DBW4" />
+
+        <use class="wertanzeige" x="620" y="410" href="#istwert" data-name="A01_DB10_DBW6" />
+
+        <use class="wertanzeige" x="1220" y="410" href="#istwert" data-name="A01_DB10_DBW4" />
+
+        <use x="1300" y="550" href="#pumpe" data-name="A01_DB10_DBW4" />
+        <use x="1400" y="550" href="#pumpe" data-name="A01_DB10_DBW4" />
+
+
+
+    </svg>
+
+    <script>
+        const svg = document.getElementById('svg-canvas');
+        const anim = document.getElementById('viewbox-anim');
+        const INITIAL_VB = { x: 0, y: 0, w: 1920, h: 1080 };
+
+        const CONFIG = {
+            minWidth: 200, maxWidth: 4000,
+            sensitivity: 0.15, // Stärke für Mausrad
+            stepSize: 0.2,     // Stärke pro Button-Klick (20%)
+            limitX: [-1500, 1500], limitY: [-1500, 1500]
+        };
+
+        let viewBox = { ...INITIAL_VB };
+        let isPanning = false;
+        let startPoint = { x: 0, y: 0 };
+        let zoomFactor = 1;
+
+        const clamp = (val, range) => Math.max(range[0], Math.min(range[1], val));
+
+        function getSVGPoint(e) {
+            const p = svg.createSVGPoint();
+            p.x = e.clientX; p.y = e.clientY;
+            return p.matrixTransform(svg.getScreenCTM().inverse());
+        }
+
+        function updateViewBox() {
+            svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+        }
+
+        // Gemeinsame Zoom-Logik
+        function performZoom(delta, centerX, centerY) {
+            const newWidth = viewBox.w * delta;
+            if (newWidth > CONFIG.minWidth && newWidth < CONFIG.maxWidth) {
+                viewBox.w = newWidth;
+                viewBox.h = newWidth * (INITIAL_VB.h / INITIAL_VB.w);
+                viewBox.x = clamp(centerX - (centerX - viewBox.x) * delta, CONFIG.limitX);
+                viewBox.y = clamp(centerY - (centerY - viewBox.y) * delta, CONFIG.limitY);
+                updateViewBox();
+
+                hideSmallDisplays();
+            }
+        }
+
+
+
+        // BUTTON EVENTS
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            // Zoom zur Mitte der aktuellen ViewBox
+            performZoom(1 - CONFIG.stepSize, viewBox.x + viewBox.w / 2, viewBox.y + viewBox.h / 2);
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            performZoom(1 + CONFIG.stepSize, viewBox.x + viewBox.w / 2, viewBox.y + viewBox.h / 2);
+        });
+
+        // MAUSRAD ZOOM
+        svg.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const mousePos = getSVGPoint(e);
+            const delta = e.deltaY > 0 ? (1 + CONFIG.sensitivity) : (1 - CONFIG.sensitivity);
+            performZoom(delta, mousePos.x, mousePos.y);
+        }, { passive: false });
+
+        // PANNING (Ziehen)
+        svg.addEventListener('pointerdown', (e) => {
+            isPanning = true;
+            startPoint = getSVGPoint(e);
+            svg.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (!isPanning) return;
+            const currentPoint = getSVGPoint(e);
+            viewBox.x = clamp(viewBox.x - (currentPoint.x - startPoint.x), CONFIG.limitX);
+            viewBox.y = clamp(viewBox.y - (currentPoint.y - startPoint.y), CONFIG.limitY);
+            updateViewBox();
+        });
+
+        window.addEventListener('pointerup', () => {
+            isPanning = false;
+            svg.style.cursor = 'grab';
+        });
+
+        // RESET (Stabile Version ohne <animate>-Konflikt)
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            // 1. Interne Daten zurücksetzen
+            viewBox = { ...INITIAL_VB };
+
+            // 2. ViewBox direkt setzen
+            updateViewBox();
+
+            // Optional: Falls du die Animation behalten willst,
+            // müsstest du das <animate>-Element nach Ablauf entfernen.
+            // Einfacher ist es jedoch, direkt zuzuweisen.
+        });
+
+
+        function hideSmallDisplays() {
+            const el = document.querySelectorAll('.wertanzeige');
+
+            for (let i = 0; i < el.length; i++) {
+                const { width } = el[i].getBoundingClientRect();
+                //console.info(el[i].getBoundingClientRect());
+
+                if (width < 50) {
+                    el[i].style.visibility = "hidden";
+                } else {
+                    el[i].style.visibility = "initial";
+                }
+            }
+        }
+
+    </script>
+</body>
+</html>
