@@ -6,8 +6,8 @@
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='stylesheet' href='../css/style.css'>
-    <!--<script type='module' src='../js/script.js'></script>
-        -->
+    <script type='module' src='../js/script.js'></script>
+        
     <style>
         @property --pageBgColor {
             syntax: "<color>";
@@ -102,10 +102,10 @@
             <!-- <use id="meineVorlage" xlink:href="extern.svg#icon" /> -->
 
             <g id="istwert">
-                <rect width="80" height="20" fill="black" />
-                <text text-anchor="end" font-family="sans-serif" font-size="14">
-                    <tspan y="15" x="60" fill="white" content-value="param(val)">0,0</tspan>
-                    <tspan y="15" x="75" fill="white" content-value="param(unit)">°C</tspan>
+                <rect width="80" height="18" fill="black" />
+                <text font-family="sans-serif" font-size="12">
+                    <tspan y="14" x="58" fill="white" class="iv" text-anchor="end">0,0</tspan>
+                    <tspan y="14" x="58" fill="white" class="iu">°C</tspan>
                 </text>
             </g>
 
@@ -144,14 +144,19 @@
 
         <use x="1200" y="400" href="#vessel" data-name="A01_DB10_DBW4" />
 
-        <use class="wertanzeige" x="620" y="410" href="#istwert" data-name="A01_DB10_DBW6" />
-
-        <use class="wertanzeige" x="1220" y="410" href="#istwert" data-name="A01_DB10_DBW4" />
 
         <use x="1300" y="550" href="#pumpe" data-name="A01_DB10_DBW4" />
         <use x="1400" y="550" href="#pumpe" data-name="A01_DB10_DBW4" />
 
+        <!--  
+            <use class="wertanzeige" x="620" y="410" href="#istwert" data-name="A01_DB10_DBW6" />
 
+      <use class="wertanzeige" x="1220" y="410" href="#istwert" data-name="A01_DB10_DBW4" />
+
+        -->
+        <g class="wertanzeige" x="1220" y="430" data-name='A01_DB10_DBW6' data-unit='s'></g>
+        <g class="wertanzeige" x="1220" y="450" data-name='A01_DB10_DBW4' data-unit='min'></g>
+        <g class="wertanzeige" x="1220" y="470" data-name='A01_DB10_DBW2' data-unit='bar'></g>
 
     </svg>
 

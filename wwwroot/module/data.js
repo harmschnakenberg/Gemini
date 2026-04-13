@@ -12,19 +12,30 @@ function JsonTag(name, value, time) {
     this.T = time;
 }
 
-function initUnits() {
-    //Form
-    const inputs = document.getElementsByTagName('input');
-
-    for (let i = 0; i < inputs.length; i++) {
-        if (inputs[i].hasAttribute('data-unit')) {
-            const tagUnit = inputs[i].getAttribute('data-unit');
+function initUnits() {  
+    //const inputs = document.getElementsByTagName('input');
+    const unitElms = document.querySelectorAll('[data-unit]')
+    for (let i = 0; i < unitElms.length; i++) {
+        if (unitElms[i].tagName == 'INPUT') {
+            const tagUnit = unitElms[i].getAttribute('data-unit');
             const para = document.createElement("span");
             const node = document.createTextNode(tagUnit);
             para.appendChild(node);
 
-            inputs[i].parentNode.insertBefore(para, inputs[i].nextSibling);
+            unitElms[i].parentNode.insertBefore(para, unitElms[i].nextSibling);
         }
+        else if (unitElms[i].classList.contains('wertanzeige')) {
+            // SVG Wertanzeige erstellen
+            console.info(unitElms[i]);
+            const x = unitElms[i].getAttribute('x');;
+            const y = unitElms[i].getAttribute('y');;            
+            const tagUnit = unitElms[i].getAttribute('data-unit');
+            const tagName = unitElms[i].getAttribute('data-name');
+            createTextInstance(x, y, tagName, tagUnit);
+            unitElms[i].remove();            
+        }
+        else
+            console.warn(`Unbekanntes Element mit data-unit: ${unitElms[i].tagName} ${unitElms[i].classList}`);
     }
 }
 
@@ -52,7 +63,7 @@ function initTags() {
             });
         }
 
-        if (!inputs[i].disabled) {
+        if (inputs[i].tagName == 'INPUT' && !inputs[i].disabled) {
             //Script zum Schreiben in die SPS anfügen
             inputs[i].onfocus = function () {
                 lastValOnFocus = this.value;
@@ -63,7 +74,7 @@ function initTags() {
 
     }
 
-    //console.log(`${tagNames.length} Tags angefragt.`)
+    console.log(`${tagNames.length} Tags angefragt.`)
     return tagNames.map(tagNameToObject);
 }
 
@@ -140,21 +151,47 @@ function drawTags(arr) {
     if (arr.length < 1)
         return;
 
-    const inputs = document.querySelectorAll('[data-name]')
-    for (let i = 0; i < inputs.length; i++) {
-        const tagName = inputs[i].getAttribute('data-name');
+    const tagElms = document.querySelectorAll('[data-name]')
+    for (let i = 0; i < tagElms.length; i++) {
+        const tagName = tagElms[i].getAttribute('data-name');
         let obj = arr.find(o => o.N === tagName);
         if (obj) {
-            if (inputs[i].nodeName == 'INPUT') {
-                if (inputs[i].classList.contains("checkbox")) 
-                    inputs[i].value = obj.V > 0 ? TICKEDBOX : UNTICKEDBOX;
+            if (tagElms[i].nodeName == 'INPUT') {
+                if (tagElms[i].classList.contains("checkbox"))
+                    tagElms[i].value = obj.V > 0 ? TICKEDBOX : UNTICKEDBOX;
                 else
-                    inputs[i].value = obj.V;
+                    tagElms[i].value = obj.V;
             }
-            else
-                inputs[i].innerHTML = obj.V;
+            else if (tagElms[i].nodeName == 'TSPAN') {     
+                tagElms[i].querySelector('.iv').textContent = obj.V;
+            }
+            else {
+                console.info(`Nicht erwarteter Werte-Tag ${tagElms[i].tagName}`);             
+                tagElms[i].innerHTML = obj.V;
+            }
         }
     }
+}
+
+function createTextInstance(x, y, name, unit) {
+    const svg = document.getElementById('svg-canvas');
+    const template = document.getElementById('istwert');
+
+    // 1. Echte Kopie erstellen (deep clone)
+    const instance = template.cloneNode(true);
+    instance.removeAttribute('id'); // ID entfernen, damit sie nicht mehrfach vorkommt
+
+    // 2. Individuelle Texte setzen
+    instance.querySelector('.iv').setAttribute('data-name', name);
+    instance.querySelector('.iv').textContent = 0.0;
+    instance.querySelector('.iu').textContent = unit;
+
+    // 3. Positionieren (via transform)
+    if (x && y) 
+    instance.setAttribute('transform', `translate(${x}, ${y})`);
+
+    // 4. In das SVG einfügen
+    svg.appendChild(instance);
 }
 
 async function updateTag(obj) {

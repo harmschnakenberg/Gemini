@@ -1,6 +1,6 @@
 ﻿
 export default async function loadSiteMenu(endpoint, path) {
-    const logo = "<svg id='logo'><style> svg { width:35px; height:35px; background-color: #ddd; position:absolute; right:2px; bottom:2px; margin:2px;}</style>" +
+    const logo = "<svg id='logo'><style> #logo { width:35px; height:35px; background-color: #ddd; position:absolute; right:2px; bottom:2px; margin:2px;}</style>" +
         "<line x1='0' y1='0' x2='0' y2='35' style='stroke:darkcyan;stroke-width:2'></line>" +
         "<polygon points='10,0 10,15 25,0' style='fill:#00004d;'></polygon>" +
         "<polygon points='10,20 10,35 25,35' style='fill:#00004d;'></polygon>" +
