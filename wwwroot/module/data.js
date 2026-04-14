@@ -1,6 +1,7 @@
 ﻿
 import fetchSecure from '../module/fetch.js';
 import * as alert from '../module/alert.js';
+import createSvgInstance from '../module/svg.js';
 
 const TICKEDBOX = '☒';
 const UNTICKEDBOX = '☐';   
@@ -23,55 +24,54 @@ function initUnits() {
             para.appendChild(node);
 
             unitElms[i].parentNode.insertBefore(para, unitElms[i].nextSibling);
-        }
-        else if (unitElms[i].classList.contains('wertanzeige')) {
-            // SVG Wertanzeige erstellen
-            console.info(unitElms[i]);
-            const x = unitElms[i].getAttribute('x');;
-            const y = unitElms[i].getAttribute('y');;            
-            const tagUnit = unitElms[i].getAttribute('data-unit');
-            const tagName = unitElms[i].getAttribute('data-name');
-            createTextInstance(x, y, tagName, tagUnit);
-            unitElms[i].remove();            
-        }
-        else
-            console.warn(`Unbekanntes Element mit data-unit: ${unitElms[i].tagName} ${unitElms[i].classList}`);
+        }      
     }
+}
+
+function initSvg() {
+    const objs = document.querySelectorAll('[data-svg]')
+
+    for (let i = 0; i < objs.length; i++) {        
+        createSvgInstance(objs[i])
+    }
+
 }
 
 function initTags() {
     
     const tagNames = [];
-    const inputs = document.querySelectorAll('[data-name]')
-    for (let i = 0; i < inputs.length; i++) {
-        const tagName = inputs[i].getAttribute('data-name');
+    const objs = document.querySelectorAll('[data-name]')
+    for (let i = 0; i < objs.length; i++) {
+        const tagName = objs[i].getAttribute('data-name');
         if (!tagNames.includes(tagName)) {
             tagNames.push(tagName);
         }
 
-        if (inputs[i].classList.contains("checkbox")) {
-            inputs[i].setAttribute("readonly", "true");
-            inputs[i].addEventListener("click", function () {
-                if (this.value == TICKEDBOX)
-                    this.value = UNTICKEDBOX;
-                else
-                    this.value = TICKEDBOX;
-            });
-            inputs[i].addEventListener("blur", function () {
+        if (objs[i].tagName == 'INPUT') {
+            if (objs[i].classList.contains("checkbox")) {
+                objs[i].setAttribute("readonly", "true");
+                objs[i].addEventListener("click", function () {
+                    if (this.value == TICKEDBOX)
+                        this.value = UNTICKEDBOX;
+                    else
+                        this.value = TICKEDBOX;
+                });
+                objs[i].addEventListener("blur", function () {
+                    //Script zum Schreiben in die SPS anfügen
+                    updInputEvent(this, lastValOnFocus);
+                });
+            }
+
+            if (!objs[i].disabled) {
                 //Script zum Schreiben in die SPS anfügen
-                updInputEvent(this, lastValOnFocus);
-            });
+                objs[i].onfocus = function () {
+                    lastValOnFocus = this.value;
+                    //alert.test(lastValOnFocus);
+                };
+                objs[i].onchange = function () { updInputEvent(this); };
+            }
         }
-
-        if (inputs[i].tagName == 'INPUT' && !inputs[i].disabled) {
-            //Script zum Schreiben in die SPS anfügen
-            inputs[i].onfocus = function () {
-                lastValOnFocus = this.value;
-                //alert.test(lastValOnFocus);
-            };
-            inputs[i].onchange = function () { updInputEvent(this); };
-        }
-
+       
     }
 
     console.log(`${tagNames.length} Tags angefragt.`)
@@ -162,38 +162,25 @@ function drawTags(arr) {
                 else
                     tagElms[i].value = obj.V;
             }
-            else if (tagElms[i].nodeName == 'TSPAN') {     
-                tagElms[i].querySelector('.iv').textContent = obj.V;
-            }
+            //else if (tagElms[i].classList.contains("valuedisplay")) {     
+            //    // tagElms[i].querySelector('.iv').textContent = obj.V;
+            //    tagElms[i].textContent = obj.V;
+            //}
+            //else if (tagElms[i].classList.contains("pumpe")) {
+            //    tagElms[i].style.fill = 'red';
+            //}
             else {
-                console.info(`Nicht erwarteter Werte-Tag ${tagElms[i].tagName}`);             
-                tagElms[i].innerHTML = obj.V;
+                tagElms[i].setAttribute('data-value', obj.V);
+
+                //console.info(`Nicht erwarteter Werte-Tag ${tagElms[i].tagName}`);             
+                //tagElms[i].innerHTML = obj.V;
             }
         }
     }
 }
 
-function createTextInstance(x, y, name, unit) {
-    const svg = document.getElementById('svg-canvas');
-    const template = document.getElementById('istwert');
 
-    // 1. Echte Kopie erstellen (deep clone)
-    const instance = template.cloneNode(true);
-    instance.removeAttribute('id'); // ID entfernen, damit sie nicht mehrfach vorkommt
-
-    // 2. Individuelle Texte setzen
-    instance.querySelector('.iv').setAttribute('data-name', name);
-    instance.querySelector('.iv').textContent = 0.0;
-    instance.querySelector('.iu').textContent = unit;
-
-    // 3. Positionieren (via transform)
-    if (x && y) 
-    instance.setAttribute('transform', `translate(${x}, ${y})`);
-
-    // 4. In das SVG einfügen
-    svg.appendChild(instance);
-}
-
+// Schreibe einen Wert in die SPS
 async function updateTag(obj) {
     const tagName = obj.parentNode.parentNode.children[0].children[0].value;
     const tagComm = obj.parentNode.parentNode.children[1].children[0].value;
@@ -237,5 +224,5 @@ async function getAlteredTags() {
 
 }
 
-export { JsonTag, drawTags, initTags, initUnits, initWebsocket, tagNameToObject, updateTag, getAlteredTags };
+export { JsonTag, drawTags, initSvg, initTags, initUnits, initWebsocket, tagNameToObject, updateTag, getAlteredTags };
                     

@@ -36,6 +36,7 @@ window.openTab = openTab;
 
 /* Initiale Aufrufe */
 user.checkLoginStatus();
+data.initSvg();
 data.initUnits();
 data.initWebsocket(data.initTags());
 loadSiteMenu('soll', '/html/soll/menu.json');

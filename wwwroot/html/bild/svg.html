@@ -104,20 +104,21 @@
             <g id="istwert">
                 <rect width="80" height="18" fill="black" />
                 <text font-family="sans-serif" font-size="12">
-                    <tspan y="14" x="58" fill="white" class="iv" text-anchor="end">0,0</tspan>
-                    <tspan y="14" x="58" fill="white" class="iu">°C</tspan>
+                    <tspan y="14" x="58" fill="white" class="valuedisplay" text-anchor="end">0,0</tspan>
+                    <tspan y="14" x="58" fill="white" class="unitdisplay">°C</tspan>
                 </text>
             </g>
 
             <g id="ventilator">
-                <circle r="20" fill="grey" style="stroke:var(--borderColorDark);stroke-width:1;" />
+                <circle r="20" class="valuedisplay" fill="grey" style="stroke:var(--borderColorDark);stroke-width:1;" />
                 <ellipse rx="9" ry="4" cx="-9" style="fill:var(--borderColorLight);stroke:var(--borderColorDark);" />
                 <ellipse rx="9" ry="4" cx="9" style="fill:var(--borderColorLight);stroke:var(--borderColorDark);" />
             </g>
 
             <g id="pumpe">
-                <circle r="20" fill="var(--passiveBgColor)" style="stroke:var(--borderColorLight);" />
+                <circle r="20" class="valuedisplay" fill="grey" style="stroke:var(--borderColorLight);" />
                 <path d="M-18 0 L0 17 L18 0" style="fill:none;stroke:var(--borderColorLight);stroke-width:2" />
+                <text></text>
             </g>
 
             <linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -130,39 +131,30 @@
         </defs>
 
 
-        <animate id="viewbox-anim" attributeName="viewBox" dur="0.25s" fill="freeze" />
-        <rect x="300" y="200" width="200" height="200" fill="dodgerblue" rx="10" />
-        <circle cx="100" cy="100" r="40" fill="tomato" />
-        <text x="400" y="550" text-anchor="middle" font-size="14">Nutze Buttons, Scrollen oder Ziehen</text>
+        <!--<animate id="viewbox-anim" attributeName="viewBox" dur="0.25s" fill="freeze" />
+    <rect x="300" y="200" width="200" height="200" fill="dodgerblue" rx="10" />
+    <circle cx="100" cy="100" r="40" fill="tomato" />
+    <text x="400" y="550" text-anchor="middle" font-size="14">Nutze Buttons, Scrollen oder Ziehen</text>-->
 
         <rect x="1300" y="100" width="120" height="150" fill="darkgrey" style="stroke:black;stroke-width:1;" />
+        <g x="1335" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_3'></g>
+        <g x="1385" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_2'></g>
 
-        <use x="1335" y="135" href="#ventilator" data-name="A01_DB10_DBW4" />
-        <use x="1385" y="135" href="#ventilator" data-name="A01_DB10_DBW4" />
+        <g x="600" y="400" data-svg='vessel' data-name='A01_DB10_DBW4'></g>
+        <g x="1200" y="400" data-svg='vessel' data-name='A01_DB10_DBW6'></g>
 
-        <use x="600" y="400" href="#vessel" data-name="A01_DB10_DBW4" />
+        <g x="1300" y="550" data-svg='pumpe' data-name='A01_DB10_DBX7_5'></g>
+        <g x="1400" y="550" data-svg='pumpe' data-name='A01_DB10_DBX7_4'></g>
 
-        <use x="1200" y="400" href="#vessel" data-name="A01_DB10_DBW4" />
-
-
-        <use x="1300" y="550" href="#pumpe" data-name="A01_DB10_DBW4" />
-        <use x="1400" y="550" href="#pumpe" data-name="A01_DB10_DBW4" />
-
-        <!--  
-            <use class="wertanzeige" x="620" y="410" href="#istwert" data-name="A01_DB10_DBW6" />
-
-      <use class="wertanzeige" x="1220" y="410" href="#istwert" data-name="A01_DB10_DBW4" />
-
-        -->
-        <g class="wertanzeige" x="1220" y="430" data-name='A01_DB10_DBW6' data-unit='s'></g>
-        <g class="wertanzeige" x="1220" y="450" data-name='A01_DB10_DBW4' data-unit='min'></g>
-        <g class="wertanzeige" x="1220" y="470" data-name='A01_DB10_DBW2' data-unit='bar'></g>
+        <g class="wertanzeige" x="1220" y="410" data-svg='istwert' data-name='A01_DB10_DBW6' data-unit='s'></g>
+        <g class="wertanzeige" x="1220" y="450" data-svg='istwert' data-name='A01_DB10_DBW4' data-unit='min'></g>
+        <g class="wertanzeige" x="1220" y="470" data-svg='istwert' data-name='A01_DB10_DBW2' data-unit='bar'></g>
 
     </svg>
 
     <script>
         const svg = document.getElementById('svg-canvas');
-        const anim = document.getElementById('viewbox-anim');
+        //const anim = document.getElementById('viewbox-anim');
         const INITIAL_VB = { x: 0, y: 0, w: 1920, h: 1080 };
 
         const CONFIG = {
@@ -259,7 +251,7 @@
 
         function hideSmallDisplays() {
             const el = document.querySelectorAll('.wertanzeige');
-
+            //console.info(`${el.length} Wertanzeigen gefunden`);
             for (let i = 0; i < el.length; i++) {
                 const { width } = el[i].getBoundingClientRect();
                 //console.info(el[i].getBoundingClientRect());
