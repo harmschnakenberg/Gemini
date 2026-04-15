@@ -17,62 +17,78 @@
 
     // 1. Echte Kopie erstellen (deep clone)
     const instance = template.cloneNode(true);
+    instance.setAttribute('data-svg', template.id);    
     instance.removeAttribute('id'); // ID entfernen, damit sie nicht mehrfach vorkommt
+    instance.setAttribute('data-name', tagName);
     instance.classList = obj.classList;
 
-    // 2. Individuelle Texte setzen
-    if (tagName) {
-        let obj = instance.querySelector('.valuedisplay');
-        if (obj) {
-            obj.setAttribute('data-name', tagName);
-            obj.setAttribute('data-value', 0);
-            svgAnimate(obj);
-        }
+    // 2. Einmalige Änderungen vor der Animation
+    switch(svgName){
+        case 'vessel':
+            const gradId = 'grad' + Math.floor(Math.random() * (999 - 99 + 1) + 99);
+            instance.querySelector('linearGradient').id = gradId;
+            instance.querySelector('rect').setAttribute("fill", 'url(#' + gradId + ')');
+            break;
+        case 'istwert':
+            if (tagUnit)
+                instance.querySelector('.unitdisplay').textContent = tagUnit;
+            break;
     }
 
-    if (tagUnit)
-        instance.querySelector('.unitdisplay').textContent = tagUnit;
+	// 3. Animation hinzufügen
+    svgAnimate(instance);
 
-    // 3. Positionieren (via transform)
+    // 4. Positionieren (via transform)
     if (x && y)
         instance.setAttribute('transform', `translate(${x}, ${y})`);
 
-    // 4. In das SVG einfügen
+    // 5. In das SVG einfügen
     svg.appendChild(instance);
     obj.remove();
 }
 
-function svgAnimate(obj) {
+function svgAnimate(svgObj) {
     //Auf Wertänderungen
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-            // Prüfen, ob genau unser Daten-Attribut geändert wurde
-            if (mutation.attributeName === 'data-value') {
-                let val = obj.getAttribute('data-value');               
-                //console.info(`data-value ${val} ${typeof (val)}`);
+            // Prüfen, ob genau unser Daten-Attribut geändert wurde            
+                let val = svgObj.getAttribute('data-value');   
+                let svgName = svgObj.getAttribute('data-svg');    
+                //console.info(`data-svg  ${svgName}, data-value ${val} `);
 
-                if (obj.tagName == 'text' || obj.tagName == 'tspan')
-                    obj.textContent = val;
-
-                if (obj.tagName == 'circle')
-                    if (val == 'true')
-                        obj.style.fill = 'var(--activeBgColor)';
-                    else
-                        obj.style.fill = 'var(--passiveBgColor)';
-
-                //const boolValue = isNaN(newValue) && (newValue.toLowerCase() === 'true');
-                //// Logik für den Farbumschlag
-                //if (boolValue) {
-                //    obj.style.fill = 'green';    // Kritisch
-                //} else {
-                //    obj.style.fill = 'red';  // OK
-                //}
-
-                // console.log(`Wert geändert auf: ${newValue}`);
-            }
+                switch (svgName) {
+                    case 'istwert':
+						animateIstwert(svgObj, val);                        
+                        break;
+                    case 'pumpe':
+                    case 'ventilator':
+                        animatePumpe(svgObj, val)               
+                        break;
+                    case 'vessel':                        
+						animateVessel(svgObj, val)
+						break;
+                }            
         });
     });
 
     // 3. Den Observer starten (wir beobachten nur Attributänderungen)
-    observer.observe(obj, { attributes: true });
+    observer.observe(svgObj, { attributeFilter: ["data-value"] });
+}
+
+function animateIstwert(svgObj, val) {
+	svgObj.querySelector('.valuedisplay').textContent = val;
+}
+
+function animatePumpe(svgObj, val) {
+    if (val == 'true')
+        svgObj.querySelector('.valuedisplay').style.fill = 'var(--activeBgColor)';
+    else
+        svgObj.querySelector('.valuedisplay').style.fill = 'var(--passiveBgColor)';
+}
+
+function animateVessel(svgObj, val) {
+    val = 1 - val / 100;
+    svgObj.querySelectorAll('stop').forEach(function (stop) {
+        stop.setAttribute("offset", val);
+    });
 }

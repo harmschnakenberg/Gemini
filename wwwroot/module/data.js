@@ -162,23 +162,12 @@ function drawTags(arr) {
                 else
                     tagElms[i].value = obj.V;
             }
-            //else if (tagElms[i].classList.contains("valuedisplay")) {     
-            //    // tagElms[i].querySelector('.iv').textContent = obj.V;
-            //    tagElms[i].textContent = obj.V;
-            //}
-            //else if (tagElms[i].classList.contains("pumpe")) {
-            //    tagElms[i].style.fill = 'red';
-            //}
             else {
                 tagElms[i].setAttribute('data-value', obj.V);
-
-                //console.info(`Nicht erwarteter Werte-Tag ${tagElms[i].tagName}`);             
-                //tagElms[i].innerHTML = obj.V;
             }
         }
     }
 }
-
 
 // Schreibe einen Wert in die SPS
 async function updateTag(obj) {
@@ -192,7 +181,6 @@ async function updateTag(obj) {
         body: new URLSearchParams({ tagName: tagName, tagComm: tagComm, tagChck: tagChck })
     });
 }
-
 
 async function getAlteredTags() {
     const start = document.getElementById('start').value;

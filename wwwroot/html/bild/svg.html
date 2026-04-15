@@ -121,12 +121,13 @@
                 <text></text>
             </g>
 
-            <linearGradient id="grad2" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="70%" style="stop-color:grey;stop-opacity:1" />
-                <stop offset="70%" style="stop-color:rgb(0,255,0);stop-opacity:1" />
-            </linearGradient>
-
-            <rect id="vessel" rx="25" ry="50" width="300" height="100" style="stroke:var(--borderColorLight);" fill="url(#grad2)" />
+            <g id="vessel">
+                <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop class="valuedisplay" offset="70%" style="stop-color:grey;stop-opacity:1" />
+                    <stop class="valuedisplay" offset="70%" style="stop-color:rgb(0,255,0);stop-opacity:1" />
+                </linearGradient>
+                <rect rx="25" ry="50" width="300" height="100" style="stroke:var(--borderColorLight);" fill="url(#grad)" />
+            </g>
 
         </defs>
 
