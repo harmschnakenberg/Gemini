@@ -137,7 +137,10 @@ namespace Gemini.DynContent
         internal static string ListAllDatabases()
         {
             var dbFiles = Directory.GetFiles(Path.Combine(AppFolder, "db"), "*.db").Select(f => new FileInfo(f)).ToList().OrderByDescending(f => f.Name);
-
+            long dbSizeOnDiscMB = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
+            float dbSizeOnDiscGB = (float)dbSizeOnDiscMB / 1024;
+            float avgDbSizeMB = (float)dbSizeOnDiscMB / (float)dbFileCount;
+           
             StringBuilder sb = new();
 
             sb.Append(@"<!DOCTYPE html>
@@ -156,7 +159,8 @@ namespace Gemini.DynContent
             sb.AppendLine("<a href='/tag/all' class='menuitem'>Gelesene Daten</a>");
             sb.AppendLine("<a href='/source' class='menuitem'>Datenquellen</a>");
             sb.AppendLine("<a href='/tag/failures' class='menuitem'>Letzte Lesefehler</a>");
-            sb.Append($"<p class='controls'>{dbFiles.Count()} lokal gespeicherte Datenbanken.</p>");
+           // sb.Append($"<p class='controls'>{dbFiles.Count()} lokal gespeicherte Datenbanken.</p>");
+            sb.AppendLine($"<p class='controls'>{dbFileCount} lokal gespeicherte Datenbanken mit insgesamt {dbSizeOnDiscMB} MB ({dbSizeOnDiscGB.ToString("F2")} GB, ca. {avgDbSizeMB.ToString("F2")} MB pro Tag)<p>");
 
             sb.Append("<table class='datatable'>");
             sb.Append("<tr><th>Dateiname</th><th>Größe</th><th>Letzte Änderung</th><th>Letzter Zugriff</th></tr>");

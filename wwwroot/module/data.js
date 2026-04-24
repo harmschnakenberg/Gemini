@@ -1,7 +1,7 @@
 ﻿
 import fetchSecure from '../module/fetch.js';
 import * as alert from '../module/alert.js';
-import createSvgInstance from '../module/svg.js';
+import { createSvgInstance } from '../module/svg.js';
 
 const TICKEDBOX = '☒';
 const UNTICKEDBOX = '☐';   
@@ -26,15 +26,6 @@ function initUnits() {
             unitElms[i].parentNode.insertBefore(para, unitElms[i].nextSibling);
         }      
     }
-}
-
-function initSvg() {
-    const objs = document.querySelectorAll('[data-svg]')
-
-    for (let i = 0; i < objs.length; i++) {        
-        createSvgInstance(objs[i])
-    }
-
 }
 
 function initTags() {
@@ -212,5 +203,5 @@ async function getAlteredTags() {
 
 }
 
-export { JsonTag, drawTags, initSvg, initTags, initUnits, initWebsocket, tagNameToObject, updateTag, getAlteredTags };
+export { JsonTag, drawTags, initTags, initUnits, initWebsocket, tagNameToObject, updateTag, getAlteredTags };
                     

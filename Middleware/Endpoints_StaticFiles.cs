@@ -36,48 +36,15 @@
                 ".html" => "text/html",
                 ".css" => "text/css",
                 ".js" => "application/javascript",
-                ".png" => "image/png",
-                ".jpg" => "image/jpeg",
-                ".jpeg" => "image/jpeg",
-                ".gif" => "image/gif",
+                ".svg" => "image/svg+xml",
+                //".png" => "image/png",
+                //".jpg" => "image/jpeg",
+                //".jpeg" => "image/jpeg",
+                //".gif" => "image/gif",
                 ".ico" => "image/x-icon",
-                ".pem" => "application/x-pem-file",
+                //".pem" => "application/x-pem-file",
                 _ => "application/octet-stream",
             };
         }
-
-        /*
-        private static IResult Favicon()
-        {
-            return ServeStaticFile("wwwroot/favicon.ico");            
-        }
-
-        private static IResult JavaScriptFile(string filename)
-        {
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "text/javascript";
-            //var file = File.ReadAllText($"wwwroot/js/{filename}", Encoding.UTF8);
-            //await ctx.Response.WriteAsync(file);
-            //await ctx.Response.CompleteAsync();
-
-            var file = File.ReadAllText($"wwwroot/js/{filename}");
-            return Results.Content(file, "text/javascript");
-        }
-
-        private static IResult StylesheetFile(string filename)
-        {
-            //ctx.Response.StatusCode = 200;
-            //ctx.Response.ContentType = "text/css";
-            //var file = File.ReadAllText($"wwwroot/css/{filename}", Encoding.UTF8);
-            //await ctx.Response.WriteAsync(file);
-            //await ctx.Response.CompleteAsync();
-
-            var file = File.ReadAllText($"wwwroot/css/{filename}");
-            return Results.Content(file, "text/css");
-        }
-
-        //*/
-      
-
     }
 }

@@ -1,6 +1,11 @@
 {
   "Sollwerte": [
     {
+      "Id": 0,
+      "Name": "Magazin",
+      "Link": "magazin.svg"
+    },
+    {
       "Id": 1,
       "Name": "Testbild",
       "Link": "svg.html"

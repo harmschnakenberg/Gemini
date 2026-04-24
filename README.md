@@ -78,3 +78,6 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Auslesen über mehrere Datenbankdateien
 	- gleichzeitigen Zugriff auf die Datenbank verhindern (lock / gepuffertes Schreiben) 
 	- WAL (Write Ahead Log) Modus für bessere Performance/weniger Dateikonflikte
+
+- Betriebssystem
+  - ToDo: 'unattended-upgrades, die über armbian-config (System -> Updates) - installiert er wirklich automatisch? Bisher bei manuellem Ausführen immer Updates gefunden.

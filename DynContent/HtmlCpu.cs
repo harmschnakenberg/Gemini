@@ -141,8 +141,8 @@ namespace Gemini.DynContent
                 "<th>Bezeichnung</th>" +
                 "<th>Art</th>" +
                 "<th>Format</th>" +
-                "<th>Speicher gesamt</th>" +
-                "<th>Speicher frei</th>" +
+               // "<th>Speicher gesamt</th>" +
+                "<th>Speicher frei / von</th>" +
                 "<th>Belegung</th>" +
                 "</tr>");
 
@@ -197,8 +197,8 @@ namespace Gemini.DynContent
                     sb.AppendLine($"<td>{volLabel}</td>");
                     sb.AppendLine($"<td>{driveType}</td>");
                     sb.AppendLine($"<td>{driveFormat}</td>");
-                    sb.AppendLine($"<td>{totalSize}&nbsp;GB</td>");
-                    sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
+                    sb.AppendLine($"<td>{freeSpace}&nbsp;GB / {totalSize}&nbsp;GB</td>");
+                    //sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
                     if (totalSize > 0)
                         sb.AppendLine($"<td><meter high='0.8' value='{1-(float)freeSpace/totalSize}'>{100*(1 - (float)freeSpace / totalSize)}%</meter></td>");
                     sb.AppendLine("</tr>");

@@ -4,14 +4,8 @@ using Gemini.Models;
 using Gemini.Services;
 using Microsoft.AspNetCore.Mvc;
 using S7.Net;
-using System.Diagnostics;
-using System.IO.Compression;
-using System.Net.Mime;
 using System.Security.Claims;
 using System.Text;
-using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Gemini.Middleware
 {
