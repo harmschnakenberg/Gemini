@@ -13,15 +13,16 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Log vom Server auf Weboberfläche
 	- Liste der vorhandenen Datenbanken
 	- Liste der Lesefehler aus der SPS-Kommunikation
-    - Disclaimer und Cookie-Hinweis im Webinterface anzeigen 
-	 - NiceToHave: Logging mit Source Generated Logging für bessere Performance	 
-	 - ToDo: Dynamisch erstelle HTML-Seiten alle auf statische Seiten mit Platzhaltern basieren lassen (=> Editierbar für Kunden-Admin)
-	 - ToDo: WebUi-Anzeige Größe Datenbanken von '/source' nach '/db/list' verschieben	
-		
+    - Disclaimer und Cookie-Hinweis im Webinterface anzeigen  
+	- Dynamisch erstelle HTML-Seiten alle auf statische Seiten mit Platzhaltern basieren lassen (=> Editierbar für Kunden-Admin) - nur SVG-Bilder, Sollwertbilder
+	- WebUi-Anzeige Größe Datenbanken von '/source' nach '/db/list' verschieben	
+	 - NiceToHave: Logging mit Source Generated Logging für bessere Performance	
+			 
 	- Sicherheit
 	  - HTTPS Support über Rechnernamen | avahi-daemon notwendig
 	  - Zertifikat Download über Webinterface? -> braucht man nicht, da Zertifikate in der Regel auf dem Server installiert werden und nicht vom Client heruntergeladen werden müssen.
 	  - JWT vs. Cookie Authentifizierung => Cookie Authentifizierung 
+	   - ToDo: kopierte URL (GET) führt auch ohne Anmeldung zur Seite? (Wenn man sich in einem zweiten Browser-Tab mit anderer Rolle anmeldet)
 	
 	- Benutzerverwaltung
 	  - Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)

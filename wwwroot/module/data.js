@@ -39,7 +39,7 @@ function initTags() {
         }
 
         if (objs[i].tagName == 'INPUT') {
-            if (objs[i].classList.contains("checkbox")) {
+            if (objs[i].classList.contains("checkbox") && !objs[i].classList.contains("readonly")) {
                 objs[i].setAttribute("readonly", "true");
                 objs[i].addEventListener("click", function () {
                     if (this.value == TICKEDBOX)

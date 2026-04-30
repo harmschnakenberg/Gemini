@@ -308,11 +308,14 @@ input[type=number] {
         box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
     }
 
+/*    .sollwerte a:read-only {
+        background-color: darkgrey;
+    }*/
 
-.sollwerte div {
-    background-color: lightgrey;
-    grid-column: span 2;
-}
+    .sollwerte div {
+        background-color: lightgrey;
+        grid-column: span 2;
+    }
 
 .sollwerte label {
     background-color: lightgrey;
@@ -334,29 +337,52 @@ input[type=number] {
     border: 0px;
 }
 
-    .sollwerte input:not([disabled]) {
-        cursor: pointer;
-    }
-
+    .sollwerte input,
     .sollwerte input + span {
+        cursor: pointer;
         background-color: white;
         color: black;
     }
 
-    .sollwerte input:disabled + span {
+        .sollwerte input:disabled,
+        .sollwerte input:disabled + span {
+            background-color: black;
+            color: white;
+        }
+
+        /*    input:not(input[type="checkbox"])
+            .sollwerte input:enabled:read-only {
+        background-color: darkgrey;
+    }*/
+        .sollwerte input.readonly, /* für Checkboxen */
+        .sollwerte input.readonly + span,
+        .sollwerte input[type="number"]:read-only,
+        .sollwerte input[type="number"]:read-only + span {
+            background-color: darkgrey;
+            color: black;
+        }
+
+/*    .sollwerte input:disabled + span {
         background-color: black;
         color: white;
     }
+*/
 
-    .sollwerte input:disabled {
-        background-color: black;
-        color: white;
-    }
+/*        .sollwerte input:disabled .readonly,
+        .readonly + span,
+        :read-only,
+        :enabled:read-only + span {
+            background-color: darkgrey;
+            color: black;
+        }*/
 
-    .sollwerte input:enabled {
+
+
+
+/*    .sollwerte input:enabled {
         background-color: white;
         color: black;
-    }
+    }*/
 
         .sollwerte input:enabled:hover {
             box-shadow: 0 8px 16px 0 rgba(0,0,0,0.6)
@@ -365,6 +391,8 @@ input[type=number] {
         .sollwerte input:enabled:focus-visible {
             border: 1px solid var(--active-bg-color);
         }
+
+
 
 @media (max-width: 1000px) {
     .sollwerte {
@@ -619,6 +647,49 @@ input.checkbox {
 .activeItem {
     background-color: orange;
 }
+
+/* Modal*/
+
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    padding-top: 100px; /* Location of the box */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+    background-color: rgb(60,60,60,0.9);
+    margin: auto;
+    padding: 1rem;
+    border: 1px solid #888;
+    width: 80%;
+}
+
+/* The Close Button */
+.close {
+    color: #bbb;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+    .close:hover,
+    .close:focus {
+        color: #000;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
 
 /* Bild Pfeilfarben */
 .sole {

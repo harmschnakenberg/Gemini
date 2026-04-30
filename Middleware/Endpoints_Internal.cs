@@ -1,5 +1,6 @@
 ﻿using Gemini.Models;
 using System.Diagnostics;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 
@@ -57,7 +58,8 @@ namespace Gemini.Middleware
             }
             ;
 
-            //Console.WriteLine(json);
+            bool canEdit = ctx.User.IsInRole(Db.Role.User.ToString()) || ctx.User.IsInRole(Db.Role.Admin.ToString());
+            
             string link = "wwwroot/html/menu.html";
 
             Dictionary<string, MenuLink[]>? menuTree = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.DictionaryStringMenuLinkArray);
@@ -72,6 +74,16 @@ namespace Gemini.Middleware
             if (link.EndsWith(".html"))
             {   //statische HTML-Datei ausliefern   
                 var file = File.ReadAllText(link, Encoding.UTF8);
+
+                if (!canEdit)
+                {
+                    // Zugriff auf Input-Felder verweigern, wenn der Benutzer keine Bearbeitungsrechte hat
+                    file = file.Replace("<input", "<input readonly")
+                        .Replace("class=\"checkbox\"", "class=\"checkbox readonly\"")             
+                        .Replace("<select", "<select readonly");
+
+                }
+
                 return Results.Content(file, "text/html", Encoding.UTF8);
             }
             else if (link.EndsWith(".svg")) //ToDo: SVG Implementieren

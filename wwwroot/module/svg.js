@@ -1,4 +1,5 @@
 ﻿import fetchSecure from '../module/fetch.js';
+import openModal from './modal.js';
 
 async function initSvg() {
     const objs = document.querySelectorAll('[data-svg]')
@@ -30,14 +31,13 @@ async function initSvg() {
 }
 
 const svg = document.getElementById('svg-canvas');
-//const anim = document.getElementById('viewbox-anim');
 const INITIAL_VB = { x: 0, y: 0, w: 1920, h: 1080 };
 
 const CONFIG = {
     minWidth: 200, maxWidth: 4000,
     sensitivity: 0.15, // Stärke für Mausrad
     stepSize: 0.2,     // Stärke pro Button-Klick (20%)
-    limitX: [-INITIAL_VB.w , INITIAL_VB.w ], limitY: [-INITIAL_VB.h / 2, INITIAL_VB.h / 2]
+    limitX: [-INITIAL_VB.w , INITIAL_VB.w ], limitY: [-INITIAL_VB.h, INITIAL_VB.h]
 };
 
 let viewBox = { ...INITIAL_VB };
@@ -170,14 +170,18 @@ function enterFullscreen() {
 /*  ENDE Zoom */
 
 function createSvgInstance(obj) {
-    //  <g class="wertanzeige" x="1220" y="410" data-svg='' data-name='A01_DB10_DBW6' data-unit='s'></g>
+    // Beispiel: <g class="wertanzeige" x="1220" y="410" data-svg='' data-name='A01_DB10_DBW6' data-unit='s'></g>
+
+    // 1. <g>-Hilfselement aus Original-SVG auslesen
     const x = obj.getAttribute('x');
     const y = obj.getAttribute('y');
     const svgName = obj.getAttribute('data-svg');
     const tagUnit = obj.getAttribute('data-unit');
     const tagName = obj.getAttribute('data-name');
     const svgRotate = obj.getAttribute('data-rotate');
+    const link = obj.getAttribute('href');
     const svg = document.getElementById('svg-canvas');
+
     const template = document.getElementById(svgName);
 
     if (!template) {
@@ -187,14 +191,14 @@ function createSvgInstance(obj) {
 
     // console.info(`Erzeuge Instanz ${svgName} mit ${tagName} ${tagUnit}`);
 
-    // 1. Echte Kopie erstellen (deep clone)
+    // 2. Echte Kopie erstellen (deep clone)
     const instance = template.cloneNode(true);
     instance.setAttribute('data-svg', template.id);    
     instance.removeAttribute('id'); // ID entfernen, damit sie nicht mehrfach vorkommt
     instance.setAttribute('data-name', tagName);    
     instance.classList = obj.classList;
 
-    // 2. Einmalige Änderungen vor der Animation
+    // 3. Einmalige Änderungen vor der Animation
     switch(svgName){
         case 'vessel':
             const gradId = 'grad' + Math.floor(Math.random() * (999 - 99 + 1) + 99);
@@ -207,10 +211,16 @@ function createSvgInstance(obj) {
             break;
     }
 
-	// 3. Animation hinzufügen
+    // 4. Link zu Modal (Sollwertfenster) setzen
+    if (link) {
+        instance.style.cursor = 'help';
+        openModal(instance, link);
+    }
+
+	// 5. Animation hinzufügen
     svgAnimate(instance);
 
-    // 4. Positionieren (via transform)
+    // 6. Drehen und Positionieren
     let rotate = '';
     if (svgRotate)
         rotate = `rotate(${svgRotate})`;
@@ -218,8 +228,10 @@ function createSvgInstance(obj) {
     if (x && y)
         instance.setAttribute('transform', `translate(${x}, ${y}) ${rotate}`);
         
-    // 5. In das SVG einfügen
+    // 7. In das SVG einfügen
     svg.appendChild(instance);
+
+    // 8. Parametrierungs-Hilfselement entfernen
     obj.remove();
 }
 

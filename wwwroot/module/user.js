@@ -101,10 +101,8 @@ function checkLoginStatus() {
     }
 }
 
-
 function getUserDataFromTableRow(row)
 {
-
     const username = row.children[0].children[0].value;
     const userrole = row.children[1].children[0].value;
     const userid = row.children[2].children[0].value;
