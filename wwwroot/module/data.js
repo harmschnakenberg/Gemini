@@ -14,8 +14,8 @@ function JsonTag(name, value, time) {
 }
 
 function initUnits() {  
-    //const inputs = document.getElementsByTagName('input');
     const unitElms = document.querySelectorAll('[data-unit]')
+    //console.log(`${unitElms.length} Elemente mit EngUnit gefunden.`);
     for (let i = 0; i < unitElms.length; i++) {
         if (unitElms[i].tagName == 'INPUT') {
             const tagUnit = unitElms[i].getAttribute('data-unit');

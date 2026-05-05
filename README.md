@@ -27,7 +27,7 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Benutzerverwaltung
 	  - Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
 	  - Liste der verbundenen Clients im Webinterface anzeigen	
-       - ToDo: Bei Login als Gast in Sollwertfenstern/allgemein Eingabefelder readonly + hellgrauer Hintergrund	  
+      - Bei Login als Gast in Sollwertfenstern/allgemein Eingabefelder readonly + hellgrauer Hintergrund	  
 		
 	- Sollwerte
 	  - Statische Sollwert-Bilder
@@ -64,7 +64,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
         - ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	
     - Graphische Darstellung
-	 - ToDo: SVG Support für Bilder		
+	 - SVG Support für Bilder	
+		- ToDo: Graphischer Editor-Modus, um (als Admin) Elemente im Bild zu verschieben.
 		
 - S700/1200/1500/300/400 PLC Communication Library
 	- TCP/IP Communication mit mehreren SPSen gleichzeitig
@@ -72,6 +73,7 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	- Meldung nur bei geänderten Werten (Polling)
 	- keine doppelten Abfragen bei mehreren Clients
 	  - ToDo: Unterstützung für OpcUa Kommunikation
+	  - Todo: OpcUa Verschlüsselung -> NIS2
 	  - NiceToHave: VPN, wenn zwei Netzwerkkarten verbaut sind / nur zum testen?
 			
 - SQLite Database

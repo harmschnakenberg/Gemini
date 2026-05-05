@@ -1,50 +1,39 @@
-﻿/*
-:root {
-    --primary-bg-color: rgb(60, 60, 60);
-    --primary-color: #eeeeee;
-    --hover-bg-color: #999;
-    --active-bg-color: cornflowerblue;
-    --border-color: #666;
-} 
-*/
+﻿
+    @property --primary-bg-color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: rgb(60, 60, 60);
+    }
 
-@property --primary-bg-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: rgb(60, 60, 60);
-}
+    @property --primary-color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: #eeeeee;
+    }
 
-@property --primary-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: #eeeeee;
-}
+    @property --hover-bg-color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: #999;
+    }
 
-@property --hover-bg-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: #999;
-}
+    @property --active-bg-color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: cornflowerblue;
+    }
 
-@property --active-bg-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: cornflowerblue;
-}
+    @property --border-color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: #666;
+    }
 
-@property --border-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: #666;
-}
-
-@property --active-device-gb-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: rgb(0, 255,0);
-}
-
-
+    @property --active-device-gb-color {
+        syntax: "<color>";
+        inherits: false;
+        initial-value: rgb(0, 255,0);
+    }
 
 body {
     background-color: var(--primary-bg-color);
@@ -108,16 +97,15 @@ ul {
     padding: 10px;
     z-index: 1000;
     height: 95vh;
-    opacity: 0.96;
-    background-color: var(--primary-bg-color);
+    opacity: 0.96;    
 }
 
-    #sidemenu:hover {      
+    #sidemenu:hover {
         border-bottom-right-radius: 10px;
         border-right: 1px solid var(--border-color);
         border-bottom: 1px solid var(--border-color);
-        transform: translate(430px, 91vh)
-        
+        transform: translate(430px, 91vh);
+        background-color: var(--primary-bg-color);
     }
 
 #loginMessage{
@@ -397,7 +385,7 @@ input[type=number] {
 @media (max-width: 1000px) {
     .sollwerte {
         display: grid;
-        grid-template-columns: auto 7rem max-content 7rem max-content;
+        grid-template-columns: minmax(10rem,auto) 7rem max-content 7rem max-content;
     }
 }
 
@@ -672,8 +660,15 @@ input.checkbox {
     margin: auto;
     padding: 1rem;
     border: 1px solid #888;
-    width: 80%;
+    width: 60rem;
 }
+
+@media (max-width: 1000px) {
+    .modal-content {        
+        width: 100%;
+    }
+}
+
 
 /* The Close Button */
 .close {
