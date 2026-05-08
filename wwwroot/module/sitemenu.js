@@ -19,10 +19,11 @@ export default async function loadSiteMenu(endpoint, path) {
 
     const li = document.createElement("li");
     const a = createLink('/', 'Hauptmenü');
+    li.style.marginTop = "1rem";
     document.getElementById("sidemenu").appendChild(li).appendChild(a);
 
     //console.info(`Menü JSON: ${json.Sollwerte}`);
-    for (var item of json.Sollwerte) {
+    for (var item of json.Bilder) {
         //console.info(`${item}, ${item.Id}`)
         const li = document.createElement("li");
         const a = createLink(`/${endpoint}/${item.Id}`, item.Name)           

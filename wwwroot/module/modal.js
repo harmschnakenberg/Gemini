@@ -18,18 +18,50 @@ export default async function openModal(btnObj, link) {
     modal.id = modalId;
     modal.className = "modal";
     modal.classList.add("modal-empty");
+    modal.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // Rechtsklick-Menü deaktivieren
+    });
 
     const modalContent = document.createElement("div");
     modalContent.className = "modal-content";
     
     const closeSpan = document.createElement("span");
     closeSpan.className = "close";
-    closeSpan.innerHTML = "&times;";
+    closeSpan.innerHTML = "&#10761;";
     closeSpan.onclick = function () {
         modal.style.display = "none";
     }
 
+    const rightClickSpan = document.createElement("span");
+    rightClickSpan.id = "popupPan";
+    rightClickSpan.className = "close";
+    rightClickSpan.innerHTML = "&target;";
+
+    modalContent.addEventListener('mousedown', (e) => { 
+        // RECHTE Maustaste (button 2) oder Verschiebe-Symbol im Popup
+        if (e.button !== 2 && e.target.id !== "popupPan") return;
+
+        // Verhindert, dass der Text im Element markiert wird
+        e.preventDefault();
+        const offsetX = e.clientX - modalContent.getBoundingClientRect().left;
+        const offsetY = e.clientY - modalContent.getBoundingClientRect().top;
+        modalContent.style.position = 'absolute'; //setzt Element auf x:0 y:0
+        move(e); 
+
+        function move(e) {
+            modalContent.style.left = (e.clientX - offsetX) + 'px';
+            modalContent.style.top = (e.clientY - offsetY) + 'px';
+        }
+
+        document.addEventListener('mousemove', move);
+
+        document.addEventListener('mouseup', () => {
+            document.removeEventListener('mousemove', move);
+        }, { once: true });
+    });
+
     modalContent.appendChild(closeSpan);
+    modalContent.appendChild(rightClickSpan);
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
@@ -95,4 +127,5 @@ async function populateModal(modalId, link) {
         .appendChild(p);
 
     data.initUnits();
+    data.initWebsocket(data.initTags());
 }

@@ -8,10 +8,25 @@ using System.Text.Json;
 
 namespace Gemini.Middleware
 {
+    /// <summary>
+    /// Middleware, die alle eingehenden Websocket-Verbindungsanfragen abfängt, authentifiziert und autorisiert, und dann die Kommunikation mit dem Client verwaltet.
+    /// </summary>
+    /// <param name="next"></param>
     public class WebSocketMiddleware(RequestDelegate next)
     {
         private readonly RequestDelegate _next = next;
 
+        /// <summary>
+        /// Processes an HTTP request and handles WebSocket upgrade requests at the "/ws" endpoint, enforcing
+        /// authentication and origin validation.
+        /// </summary>
+        /// <remarks>If the request targets the "/ws" path and is a valid WebSocket upgrade request, the
+        /// method checks for user authentication and validates the Origin header against allowed origins. If these
+        /// checks fail, the method sets the appropriate HTTP status code and terminates the request. For all other
+        /// requests, processing is delegated to the next middleware component in the pipeline.</remarks>
+        /// <param name="context">The HTTP context for the current request. Provides access to request and response information, user
+        /// identity, and connection details.</param>
+        /// <returns>A task that represents the asynchronous operation of processing the HTTP request.</returns>
         public async Task InvokeAsync(HttpContext context)
         {         
             if (context.Request.Path == "/ws")
@@ -19,8 +34,28 @@ namespace Gemini.Middleware
 #if DEBUG
                 Console.WriteLine("WebSocket connection attempt from " + context.Connection.RemoteIpAddress);
 #endif
+
                 if (context.WebSockets.IsWebSocketRequest)
                 {
+                    // prüfen, ob authentifiziert
+                    if (!context.User?.Identity?.IsAuthenticated ?? true)
+                    {
+                        Console.WriteLine(context.User?.Identity?.Name + " ist nicht identifiziert!");
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        return;
+                    }
+
+                    // Origin-Header validieren (falls vorhanden)
+                    if (context.Request.Headers.TryGetValue("Origin", out var origin))
+                    {                        
+                        if (!ApiSettings.AllowedOrigins.Contains(origin.ToString(), StringComparer.OrdinalIgnoreCase))
+                        {
+                            Console.WriteLine(origin + " ist kein zulässiger Anfrageort!");
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                            return;
+                        }
+                    }
+
                     using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
 
                     IPAddress? ip = context.Connection.RemoteIpAddress;
@@ -233,7 +268,9 @@ namespace Gemini.Middleware
                 return;
             }
 
+#if DEBUG
             Console.WriteLine("Initialnachricht: " + jsonString);
+#endif
             JsonTag[]? clientData = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray);
 
             if (clientData is null || clientData?.Length == 0)

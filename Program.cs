@@ -1,9 +1,11 @@
-﻿using static Gemini.Db.Db;
-using Gemini.Middleware;
+﻿using Gemini.Middleware;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Identity;
+using static Gemini.Db.Db;
+
+
 
 
 #region Datenbank aufräumen und vorbereiten
@@ -74,12 +76,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy => policy
         //.AllowAnyOrigin() //mit https nicht möglich
-        .WithOrigins(
-        "https://harm.local",
-        "https://kreuwebapp.local",
-        "http://127.0.0.1",        
-        "https://localhost"
-        ) // Deine Client-URL explizit nennen!
+        .WithOrigins(ApiSettings.AllowedOrigins) // Client-URL explizit nennen!
         .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials()// <-- Zwingend erforderlich für Cookies
@@ -115,6 +112,14 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
+app.UseMiddleware<GlobalAntiforgeryMiddleware>(); // Globales CSRF-Middleware hinzufügen
+app.UseStatusCodePages(async context =>
+{
+    if (context.HttpContext.Response.StatusCode == 404)
+    {
+        await context.HttpContext.Response.WriteAsync("<h1>404 - Seite nicht gefunden</h1><a href='/'>Hauptmenü</a>");
+    }
+});
 app.UseWebSockets();
 app.UseMiddleware<WebSocketMiddleware>();
 app.MapEndpoints();
@@ -144,3 +149,15 @@ while (!Endpoints.PleaseStop)
     logger.LogInformation("Webserver beendet.");
 }
 
+//# Direkt Vulnerable-Pakete für die Lösung prüfen
+//dotnet list "G:\VisualStudio\Projekte\ASP.NETCore_SinalR\Gemini2\Gemini.sln" package --vulnerable
+
+static class ApiSettings
+{
+    internal static string[] AllowedOrigins { get; } = [       
+        "https://harm.local",
+        "https://kreuwebapp.local",
+        "http://127.0.0.1",
+        "https://localhost"
+    ];
+}

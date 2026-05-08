@@ -13,8 +13,8 @@ namespace Gemini.Middleware
 {
     public static partial class Endpoints
     {
-        private static IResult UserCreate(HttpContext ctx)
-        {
+        private static IResult UserCreate(HttpContext ctx, IAntiforgery antiforgery)
+        {      
             var user = ctx.User;
             bool isAdmin = user.IsInRole(Role.Admin.ToString());
             if (!isAdmin) // Nur Admins können Benutzer erstellen
@@ -27,7 +27,7 @@ namespace Gemini.Middleware
             string role = ctx.Request.Form["role"].ToString() ?? string.Empty;
             string pwd = ctx.Request.Form["pwd"].ToString() ?? string.Empty;
 
-            Console.WriteLine($"Änderung für name: {name}, role: {role}, pwd:{pwd} von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
+            //Console.WriteLine($"Änderung für name: {name}, role: {role}, pwd:{pwd} von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");
 
             int result = Db.Db.CreateUser(name, pwd, Enum.Parse<Role>(role));
             //Console.WriteLine($"UserCreate DatenbankQuery Result = " + result);

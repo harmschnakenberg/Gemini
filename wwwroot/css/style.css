@@ -38,7 +38,7 @@
 body {
     background-color: var(--primary-bg-color);
     color: var(--primary-color);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;   
 }
 
 h1, h2, h3 {
@@ -57,8 +57,14 @@ ul {
     list-style-type: none;    
 }
 
-#logincard {
+footer {
     position: absolute;
+    right:10px;
+    bottom: 10px;
+}
+
+#logincard {
+    position: fixed;
     right: 11rem;
     top: 3rem;
     width: 15rem;
@@ -636,85 +642,68 @@ input.checkbox {
     background-color: orange;
 }
 
-/* Modal*/
+/* SVG Darstellung */
 
-
-/* The Modal (background) */
-.modal {
-    display: none; /* Hidden by default */
-    position: fixed; /* Stay in place */
-    z-index: 1; /* Sit on top */
-    padding-top: 100px; /* Location of the box */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
-    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+#svgcontrols {
+    position: absolute;
+    top: 70px;
+    left: 1px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
 }
 
-/* Modal Content */
-.modal-content {
-    background-color: rgb(60,60,60,0.9);
-    margin: auto;
-    padding: 1rem;
-    border: 1px solid #888;
-    width: 60rem;
-}
-
-@media (max-width: 1000px) {
-    .modal-content {        
-        width: 100%;
+/*    #svgcontrols:hover {        
     }
-}
-
-
-/* The Close Button */
-.close {
-    color: #bbb;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-    .close:hover,
-    .close:focus {
-        color: #000;
-        text-decoration: none;
+*/
+    #svgcontrols > button {
+        padding: 10px;
         cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        background: white;
+        font-weight: bold;
+        font-size: 1.1rem;
+        min-width: 22px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
+        #svgcontrols > button:hover {
+            background: #f8f8f8;
+        }
 
-/* Bild Pfeilfarben */
-.sole {
-    fill: magenta;
-}
+        #svgcontrols > button:active {
+            background: #eee;
+            transform: translateY(1px);
+        }
+    /* Modal*/
+    /* The Modal (background) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        padding-top: 100px; /* Location of the box */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0,0,0); /* Fallback color */
+        background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+    /* Modal Content */
+    .modal-content {
+        background-color: rgb(60,60,60,0.9);
+        margin: auto;
+        padding: 1rem;
+        border: 1px solid #888;
+        width: 60rem;
+    }
 
-.heissgas-md {
-    fill: maroon;
-}
-
-.heissgas-nd {
-    fill: red;
-}
-
-.fluessig-md {
-    fill: limegreen;
-}
-
-.fluessig-hd {
-    fill: yellow;
-}
-
-.wasser {
-    fill: green;
-}
-
-.saug-nd {
-    fill: blue;
-}
-
-.saug-md {
-    fill: aquamarine;
-}
+    @media (max-width: 1000px) {
+        .modal-content {
+            width: 90%;
+        }
+    }
+    

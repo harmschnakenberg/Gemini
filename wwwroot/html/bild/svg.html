@@ -6,97 +6,28 @@
     <link rel='icon' type='image/x-icon' href='/favicon.ico'>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='stylesheet' href='../css/style.css'>
+    <link rel='stylesheet' href='../css/svg.css'>
     <script type='module' src='../js/script.js'></script>
-        
+
     <style>
-        @property --pageBgColor {
-            syntax: "<color>";
-            inherits: true;
-            initial-value: rgb(60, 60, 60);
-        }
-
-        @property --passiveBgColor {
-            syntax: "<color>";
-            inherits: true;
-            initial-value: rgb(128,128,128);
-        }
-
-        @property --activeBgColor {
-            syntax: "<color>";
-            inherits: true;
-            initial-value: rgb(0,255,0);
-        }
-
-        @property --borderColorLight {
-            syntax: "<color>";
-            inherits: true;
-            initial-value: rgb(169, 169, 169);
-        }
-
-        @property --borderColorDark {
-            syntax: "<color>";
-            inherits: true;
-            initial-value: rgb(80, 80, 80);
-        }
-
-
-
-        body {
+       body {
             margin: 0;
             overflow: hidden;
-            font-family: sans-serif;
+           /* font-family: sans-serif;*/
             color: white;
-        }
-
-        #controls {
-            position: absolute;
-            top: 60px;
-            right: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            z-index: 10;
-        }
-
-        button {
-            padding: 12px;
-            cursor: pointer;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: white;
-            font-weight: bold;
-            font-size: 1.2rem;
-            min-width: 45px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-            button:hover {
-                background: #f8f8f8;
-            }
-
-            button:active {
-                background: #eee;
-                transform: translateY(1px);
-            }
-
-        svg {
-            width: 100vw;
-            height: 100vh;
-            cursor: grab;
-            background: #fafafa;
         }
     </style>
 </head>
 <body>
 
-    <div id="controls">
+    <div id="svgcontrols">
         <button id="fullscreen" title="FullScreen">⛶</button>
         <button id="zoom-in" title="Vergrößern">+</button>
         <button id="zoom-out" title="Verkleinern">−</button>
         <button id="reset-btn" title="Ansicht zurücksetzen">⟲</button>
     </div>
 
-    <svg id="svg-canvas" viewBox="0 0 1920 1080" style="background-color: var(--pageBgColor);">
+    <svg id="svg-canvas" viewBox="0 0 1920 1080" style="background-color: var(--pageBgColor); ">
 
         <!-- Landmarken -->
         <circle cx="0" cy="0" r="5" fill="teal" />
@@ -105,7 +36,7 @@
         <circle cx="1920" cy="1080" r="5" fill="teal" />
 
         <!-- Kondensator -->
-        <rect x="1300" y="100" width="120" height="150" fill="darkgrey" style="stroke:grey;stroke-width:1;" />
+        <rect x="1300" y="100" width="120" height="150" fill="darkgrey" style="stroke:grey;stroke-width:1;" href="/soll/1" />
         <defs>
             <pattern id="patt1" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
                 <polyline points="0,0 0,10 10,10" style="fill:grey;stroke:lightgrey;stroke-width:1" />
@@ -113,13 +44,13 @@
         </defs>
 
         <rect width="100" height="80" x="1310" y="160" stroke="grey" fill="url(#patt1)" />
-        <g x="1335" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_3'></g>
+        <g x="1335" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_3' href="/soll/2"></g>
         <g x="1385" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_2'></g>
 
         <!-- Demo-Ventil-->
         <line x1="1360" y1="250" x2="1360" y2="400" style="stroke:grey;stroke-width:2" />
         <g x="1360" y="330" data-svg='ventil' data-name='A01_DB10_DBX7_3' data-rotate="90"></g>
-        <g x="1360" y="330" data-svg='antrieb' data-name='A01_DB10_DBX7_2' data-rotate="90"></g>
+        <g x="1360" y="330" data-svg='antrieb-r' data-name='A01_DB10_DBX7_2'></g>
 
         <g x="1360" y="370" data-svg='mv' data-name='A01_DB10_DBX7_0' data-rotate="270"></g>
 
@@ -159,17 +90,6 @@
 
 
     </svg>
-
-    <!-- The Modal -->
-    <div id="myModal" class="modal">
-
-        <!-- Modal content -->
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <p>Some text in the Modal..</p>
-        </div>
-
-    </div>
 
 </body>
 </html>

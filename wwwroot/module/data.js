@@ -112,22 +112,29 @@ function tagNameToObject(name) {
     return new JsonTag(name, null, new Date());
 }
 
+function tickBox2Int(val) {
+    if (val == TICKEDBOX) return 1;
+    if (val == UNTICKEDBOX) return 0;
+    return val;
+}
+
 async function updInputEvent(obj) {
     const t = obj.getAttribute('data-name');
-    let v = obj.value;
+    let valNew = tickBox2Int(obj.value);
+    let valOld = tickBox2Int(lastValOnFocus);
 
-    console.info(`Trigger Änderung ${t} von ${lastValOnFocus} auf ${v}`);
-    if (v == TICKEDBOX) v = 1;
-    if (v == UNTICKEDBOX) v = 0;
-    
-    const tag = new JsonTag(t, v, new Date());
+    console.info(`Trigger Änderung ${t} von ${lastValOnFocus} auf ${obj.value}`);
+
     const link = `/tag/write`;
     const res = await fetchSecure(link, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({tagName: t, tagVal: v, oldVal: lastValOnFocus })
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'credentials': 'include'
+        },
+        body: new URLSearchParams({tagName: t, tagVal: valNew, oldVal: valOld })
     });
-    console.info(new URLSearchParams({ tagName: t, tagVal: v, oldVal: lastValOnFocus }));
+    console.info(new URLSearchParams({ tagName: t, tagVal: valNew, oldVal: valOld }));
 
     if (res.ok) {
         const result = await res.json();

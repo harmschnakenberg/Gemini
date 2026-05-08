@@ -16,13 +16,13 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
     - Disclaimer und Cookie-Hinweis im Webinterface anzeigen  
 	- Dynamisch erstelle HTML-Seiten alle auf statische Seiten mit Platzhaltern basieren lassen (=> Editierbar für Kunden-Admin) - nur SVG-Bilder, Sollwertbilder
 	- WebUi-Anzeige Größe Datenbanken von '/source' nach '/db/list' verschieben	
-	 - NiceToHave: Logging mit Source Generated Logging für bessere Performance	
+	 - NiceToHave: Logging mit Source Generated Logging für bessere Performance	oder Logging in Produktion auf ein Minimum begrenzen
 			 
 	- Sicherheit
 	  - HTTPS Support über Rechnernamen | avahi-daemon notwendig
 	  - Zertifikat Download über Webinterface? -> braucht man nicht, da Zertifikate in der Regel auf dem Server installiert werden und nicht vom Client heruntergeladen werden müssen.
 	  - JWT vs. Cookie Authentifizierung => Cookie Authentifizierung 
-	   - ToDo: kopierte URL (GET) führt auch ohne Anmeldung zur Seite? (Wenn man sich in einem zweiten Browser-Tab mit anderer Rolle anmeldet)
+	  - Username am Client von seesionStorage in den localStorage verschoben -> Angemeldeter Benutzer erscheint, wenn ein neuer/zusätzlicher Browser-Tab geöffnet wird
 	
 	- Benutzerverwaltung
 	  - Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)
@@ -64,7 +64,9 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
         - ToDo: Alarmierung (E-Mail, SMS, Push-Benachrichtigung)
 	
     - Graphische Darstellung
-	 - SVG Support für Bilder	
+	 - SVG Support für Bilder
+	 - SVG Pan, Zoom, Vollbild
+	 - Klickbare Grafikelemente mit Link zu Sollwertfenstern
 		- ToDo: Graphischer Editor-Modus, um (als Admin) Elemente im Bild zu verschieben.
 		
 - S700/1200/1500/300/400 PLC Communication Library

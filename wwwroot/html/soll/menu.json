@@ -1,5 +1,5 @@
 {
-  "Sollwerte": [
+  "Bilder": [
     {
       "Id": 1,
       "Name": "Test Sollwerte",
@@ -16,4 +16,4 @@
       "Link": "Kuehlung_Fisch.html"
     }
   ]
-  }
+}

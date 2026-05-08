@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using System.Reflection;
 
 namespace Gemini.Middleware
 {
@@ -160,8 +161,10 @@ namespace Gemini.Middleware
         }
 
         private static IResult MainMenu()
-        {        
+        {
+            string? version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();            
             var file = File.ReadAllText("wwwroot/html/menu.html");
+            file += $"<footer><p>Version: {version}</p></footer>";
             return Results.Content(file, "text/html");
         }
 

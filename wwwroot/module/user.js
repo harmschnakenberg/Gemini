@@ -24,7 +24,7 @@ async function login() {
             const data = await response.json();         
             const csrfToken = data.userToken;
             sessionStorage.setItem(TOKEN_NAME, csrfToken);
-            sessionStorage.setItem(LOGGED_USER, userName);
+            localStorage.setItem(LOGGED_USER, userName);
             el.textContent = userName;
             el.style.color = 'green';
         } else {
@@ -42,7 +42,7 @@ async function logout() {
     const el = document.getElementById('loginMessage');
     el.textContent = 'Logge aus...';
     body.style.cursor = 'wait';
-    const userName = sessionStorage.getItem(LOGGED_USER);
+    const userName = localStorage.getItem(LOGGED_USER);
     const userToken = 'FantasieToken';
     const response = await fetchSecure(`${API_URL}/logout`, {
         method: "POST",
@@ -55,7 +55,7 @@ async function logout() {
             el.textContent = userName + ' ausgeloggt';
             el.style.color = 'red';
             sessionStorage.removeItem(TOKEN_NAME);
-            sessionStorage.removeItem(LOGGED_USER);
+            localStorage.removeItem(LOGGED_USER);
         }
     }
     else {
@@ -90,7 +90,7 @@ function checkLoginStatus() {
         console.log("SessionStorage bereinigt.");
     }
 
-    const loggedUser = sessionStorage.getItem(LOGGED_USER);
+    const loggedUser = localStorage.getItem(LOGGED_USER);
     if (loggedUser) {
         span.innerHTML = loggedUser;
         span.style.backgroundcolor = 'lawngreen';

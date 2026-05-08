@@ -5,11 +5,29 @@ using S7.Net;
 
 namespace Gemini.Db
 {
+    /// <summary>
+    /// Benutzerrollen
+    /// </summary>
     public enum Role
     {
+        /// <summary>
+        /// Unbekannt - Standardwert, wenn keine Rolle zugeordnet ist.
+        /// </summary>
         Unbekannt,
-        Admin,        
+
+        /// <summary>
+        /// Administrator mit vollen Rechten.
+        /// </summary>
+        Admin,
+
+        /// <summary>
+        /// Registrierter Benutzer.
+        /// </summary>
         User,
+
+        /// <summary>
+        /// Gastbenutzer mit eingeschränkten Rechten.
+        /// </summary>
         Guest
     }
 
@@ -145,10 +163,10 @@ namespace Gemini.Db
                 @"
                     INSERT INTO User (Name, Hash, RoleId) 
                     VALUES (@Name, @Hash, @RoleId); ";
-                command.Parameters.AddWithValue("@Name", name);
+                command.Parameters.Add("@Name", SqliteType.Text).Value = name;
                 string passwordHash = Gemini.Middleware.PasswordHasher.HashPassword(password);
-                command.Parameters.AddWithValue("@Hash", passwordHash);
-                command.Parameters.AddWithValue("@RoleId", (int)role);
+                command.Parameters.Add("@Hash", SqliteType.Text).Value = passwordHash;
+                command.Parameters.Add("@RoleId", SqliteType.Integer).Value = (int)role;
                 return command.ExecuteNonQuery();
             }
         }
@@ -161,9 +179,9 @@ namespace Gemini.Db
                 connection.Open();
                 var command = connection.CreateCommand();
 
-                command.Parameters.AddWithValue("@UserId", id);
-                command.Parameters.AddWithValue("@Name", name);
-                command.Parameters.AddWithValue("@RoleId", (int)role);
+                command.Parameters.Add("@UserId", SqliteType.Integer).Value = id;
+                command.Parameters.Add("@Name", SqliteType.Text).Value = name;
+                command.Parameters.Add("@RoleId", SqliteType.Integer).Value = (int)role;
 
                 if (password.IsWhiteSpace())
                 {
@@ -182,7 +200,7 @@ namespace Gemini.Db
                     WHERE Id = @UserId; ";
 
                     string passwordHash = Gemini.Middleware.PasswordHasher.HashPassword(password);
-                    command.Parameters.AddWithValue("@Hash", passwordHash);
+                    command.Parameters.Add("@Hash", SqliteType.Text).Value = passwordHash;
                 }
 
                 return command.ExecuteNonQuery();
@@ -202,8 +220,8 @@ namespace Gemini.Db
                       RoleId != @AdminRoleId OR
                       (SELECT COUNT(RoleId) FROM User WHERE RoleId = @AdminRoleId) > 1
                     ); "; // ein Admin muss immer übrig bleiben
-                command.Parameters.AddWithValue("@Name", name);
-                command.Parameters.AddWithValue("@AdminRoleId", (int)Role.Admin);
+                command.Parameters.Add("@Name", SqliteType.Text).Value = name;
+                command.Parameters.Add("@AdminRoleId", SqliteType.Integer).Value = (int)Role.Admin;
                 return command.ExecuteNonQuery();
             }
         }
@@ -223,7 +241,7 @@ namespace Gemini.Db
                 connection.Open();
                 var command = connection.CreateCommand();
 
-                command.Parameters.AddWithValue("@Limit", limit);
+                command.Parameters.Add("@Limit", SqliteType.Integer).Value = limit;
                 command.CommandText =
                 @" DELETE FROM Log WHERE Id NOT IN (SELECT Id FROM Log ORDER BY Id DESC LIMIT @Limit); ";
 
@@ -245,8 +263,8 @@ namespace Gemini.Db
                 command.CommandText =
                     @"INSERT INTO Log (Category, Message) VALUES (@Category, @Message); ";
 
-                command.Parameters.AddWithValue("@Category", category);
-                command.Parameters.AddWithValue("@Message", message);
+                command.Parameters.Add("@Category", SqliteType.Text).Value = category;
+                command.Parameters.Add("@Message", SqliteType.Text).Value = message;
                 await command.ExecuteNonQueryAsync();
             }
             catch (Exception ex)
@@ -295,10 +313,10 @@ namespace Gemini.Db
                 connection.Open();
                 var command = connection.CreateCommand();
 
-                command.Parameters.AddWithValue("@Ip", plcIp);
-                command.Parameters.AddWithValue("@Db", db);
-                command.Parameters.AddWithValue("@StartByte", startByte);
-                command.Parameters.AddWithValue("@Length", length);
+                command.Parameters.Add("@Ip", SqliteType.Text).Value = plcIp;
+                command.Parameters.Add("@Db", SqliteType.Integer).Value = db;
+                command.Parameters.Add("@StartByte", SqliteType.Integer).Value = startByte;
+                command.Parameters.Add("@Length", SqliteType.Integer).Value = length;
 
                 command.CommandText = @" UPDATE ReadFailure SET Time = CURRENT_TIMESTAMP WHERE Ip = @Ip AND Db = @Db AND StartByte = @StartByte AND Length = @Length; ";
                 int result = command.ExecuteNonQuery();
@@ -322,7 +340,7 @@ namespace Gemini.Db
                 var command = connection.CreateCommand();
                 var query = @"SELECT Time, Category, Message FROM Log ORDER BY Id DESC LIMIT @Limit;";
                 command.CommandText = query;
-                command.Parameters.AddWithValue("@Limit", limit);
+                command.Parameters.Add("@Limit", SqliteType.Integer).Value = limit;
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
@@ -490,13 +508,13 @@ namespace Gemini.Db
                 @"
                     INSERT INTO Source (Name, CpuType, Ip, Rack, Slot, IsActive, Comment) 
                     VALUES (@Name, @CpuType, @Ip, @Rack, @Slot, @IsActive, @Comment); ";
-                command.Parameters.AddWithValue("@Name", plc.Name);
-                command.Parameters.AddWithValue("@CpuType", plc.CpuType.ToString());
-                command.Parameters.AddWithValue("@Ip", plc.Ip);
-                command.Parameters.AddWithValue("@Rack", plc.Rack);
-                command.Parameters.AddWithValue("@Slot", plc.Slot);
-                command.Parameters.AddWithValue("@IsActive", plc.IsActive ? 1 : 0);
-                command.Parameters.AddWithValue("@Comment", plc.Comment);
+                command.Parameters.Add("@Name", SqliteType.Text).Value = plc.Name;
+                command.Parameters.Add("@CpuType", SqliteType.Text).Value = plc.CpuType.ToString();
+                command.Parameters.Add("@Ip", SqliteType.Text).Value = plc.Ip;
+                command.Parameters.Add("@Rack", SqliteType.Integer).Value = plc.Rack;
+                command.Parameters.Add("@Slot", SqliteType.Integer).Value = plc.Slot;
+                command.Parameters.Add("@IsActive", SqliteType.Integer).Value = plc.IsActive ? 1 : 0;
+                command.Parameters.Add("@Comment", SqliteType.Text).Value = plc.Comment;
                 return command.ExecuteNonQuery();
             }
         }
@@ -519,14 +537,14 @@ namespace Gemini.Db
                 connection.Open();
                 var command = connection.CreateCommand();
 
-                command.Parameters.AddWithValue("@Id", plc.Id);
-                command.Parameters.AddWithValue("@Name", plc.Name);
-                command.Parameters.AddWithValue("@CpuType", plc.CpuType.ToString());
-                command.Parameters.AddWithValue("@Ip", plc.Ip);
-                command.Parameters.AddWithValue("@Rack", plc.Rack);
-                command.Parameters.AddWithValue("@Slot", plc.Slot);
-                command.Parameters.AddWithValue("@IsActive", plc.IsActive ? 1 : 0);
-                command.Parameters.AddWithValue("@Comment", plc.Comment);
+                command.Parameters.Add("@Id", SqliteType.Integer).Value = plc.Id;
+                command.Parameters.Add("@Name", SqliteType.Text).Value = plc.Name;
+                command.Parameters.Add("@CpuType", SqliteType.Text).Value = plc.CpuType.ToString();
+                command.Parameters.Add("@Ip", SqliteType.Text).Value = plc.Ip;
+                command.Parameters.Add("@Rack", SqliteType.Integer).Value = plc.Rack;
+                command.Parameters.Add("@Slot", SqliteType.Integer).Value = plc.Slot;
+                command.Parameters.Add("@IsActive", SqliteType.Integer).Value = plc.IsActive ? 1 : 0;
+                command.Parameters.Add("@Comment", SqliteType.Text).Value = plc.Comment;
 
                     //Console.WriteLine("Benutzer geändert mit Passwortänderung.");
                 command.CommandText =
@@ -552,7 +570,7 @@ namespace Gemini.Db
                 using var connection = new SqliteConnection(MasterDbSource);
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.Parameters.AddWithValue("@Id", plcId);
+                command.Parameters.Add("@Id", SqliteType.Integer).Value = plcId;
       
                 command.CommandText =
                 @"  DELETE FROM Source                    
@@ -618,7 +636,7 @@ namespace Gemini.Db
             connection.Open();
             var command = connection.CreateCommand();
             var query = @"SELECT Id, Name, Author, Start, End, Interval, Tags FROM ChartConfig WHERE Id = @Id;";
-            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.Add("@Id", SqliteType.Integer).Value = id;
             command.CommandText = query;
             using var reader = command.ExecuteReader();
             while (reader.Read())
@@ -630,9 +648,9 @@ namespace Gemini.Db
                 string intervalStr = reader.GetString(5);
                 string tags = reader.GetString(6);
                 // tags = tags.Split("\"value\":")[1].TrimEnd('}');
-
+#if DEBUG
                 Console.WriteLine($"Übergebene Tags: {tags}");
-
+#endif
                 //Tag[] tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.TagArray) ?? [];
 
                 ChartConfig? tagArray = System.Text.Json.JsonSerializer.Deserialize(tags, AppJsonSerializerContext.Default.ChartConfig);
@@ -686,12 +704,12 @@ namespace Gemini.Db
                 command.CommandText =
                 @" INSERT INTO ChartConfig (Name, Author, Start, End, Interval, Tags) 
                    VALUES (@Name, @Author, @Start, @End, @Interval, @Tags); ";
-                command.Parameters.AddWithValue("@Name", chartName);
-                command.Parameters.AddWithValue("@Author", author);
-                command.Parameters.AddWithValue("@Start", start.ToString("yyyy-MM-dd HH:mm:ss"));
-                command.Parameters.AddWithValue("@End", end.ToString("yyyy-MM-dd HH:mm:ss"));
-                command.Parameters.AddWithValue("@Interval", interval.ToString());
-                command.Parameters.AddWithValue("@Tags", tagsJson);                
+                command.Parameters.Add("@Name", SqliteType.Text).Value = chartName;
+                command.Parameters.Add("@Author", SqliteType.Text).Value = author;
+                command.Parameters.Add("@Start", SqliteType.Text).Value = start.ToString("yyyy-MM-dd HH:mm:ss");
+                command.Parameters.Add("@End", SqliteType.Text).Value = end.ToString("yyyy-MM-dd HH:mm:ss");
+                command.Parameters.Add("@Interval", SqliteType.Text).Value = interval.ToString();
+                command.Parameters.Add("@Tags", SqliteType.Text).Value = tagsJson;                
                 return command.ExecuteNonQuery();
             }
 

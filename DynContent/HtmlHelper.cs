@@ -1,8 +1,15 @@
 ﻿using Gemini.Models;
 using System.Text;
+using System.Text.Encodings.Web;
 
 namespace Gemini.DynContent
 {
+    /// <summary>
+    /// Provides helper methods for generating HTML content and encoding user input for safe output in web applications.
+    /// </summary>
+    /// <remarks>The HtmlHelper class includes methods for dynamically creating HTML pages with interactive
+    /// charts and for encoding strings to prevent cross-site scripting (XSS) vulnerabilities. These methods are
+    /// intended to support web application scenarios where dynamic HTML generation and security are required.</remarks>
     public static partial class HtmlHelper
     {
         #region Hilfs-Methoden
@@ -20,11 +27,6 @@ namespace Gemini.DynContent
         /// and interacting with the charts (such as zooming and panning). The tag dictionaries determine which data
         /// series are shown in each chart. This method is intended for internal use to dynamically create chart pages
         /// based on runtime data.</remarks>
-        /// <param name="caption">The title to display at the top of the generated chart page.</param>
-        /// <param name="chart1Tags">A dictionary containing key-value pairs that define the data tags for the first chart. Each entry represents
-        /// a data series or metric to be visualized.</param>
-        /// <param name="chart2Tags">A dictionary containing key-value pairs that define the data tags for the second chart. Each entry
-        /// represents a data series or metric to be visualized.</param>
         /// <returns>A string containing the full HTML markup for a web page that renders two dynamic charts and associated
         /// controls.</returns>
         internal static string DynChart(ChartConfig chartConfig, System.DateTime start, System.DateTime end)
@@ -63,13 +65,20 @@ namespace Gemini.DynContent
                 { "const tags2 = new Map();", tags2.ToString() },
             };
 
-            StringBuilder sb = new(File.ReadAllText("wwwroot/html/chart.html"));
+            StringBuilder sb = new(File.ReadAllText("wwwroot/html/chart/chart.html"));
         
             foreach (var key in changeMap.Keys)
-                sb.Replace(key, changeMap[key]);
+                sb.Replace(key, Escape(changeMap[key]));
             
             return sb.ToString();
         }
+
+        /// <summary>
+        /// XSS: Alle Benutzereingaben beim HTML-Output encoden
+        /// </summary>
+        /// <param name="s">The string to encode for HTML output.</param>
+        /// <returns>The HTML-encoded string.</returns>
+        public static string Escape(string s) => s is null ? string.Empty : HtmlEncoder.Default.Encode(s);
 
     }
 }

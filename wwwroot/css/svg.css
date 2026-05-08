@@ -1,0 +1,84 @@
+﻿@property --pageBgColor {
+    syntax: "<color> "; inherits: true;
+    initial-value: rgb(60, 60, 60);
+}
+
+@property --passiveBgColor {
+	syntax: "<color> ";
+	inherits: true;
+	initial-value: rgb(128,128,128);
+}
+
+@property --activeBgColor {
+	syntax: "<color> ";
+	inherits: true;
+	initial-value: rgb(0,255,0);
+}
+
+@property --borderColorLight {
+	syntax: "<color> ";
+	inherits: true;
+	initial-value: rgb(169, 169, 169);
+}
+
+@property --borderColorDark {
+	syntax: "<color> ";
+	inherits: true;
+	initial-value: rgb(80, 80, 80);
+}
+
+#svg-canvas {
+	width: 100vw;
+	height: 100vh;
+	cursor: grab;
+	background: #fafafa;
+}
+
+/* The Close Button */
+.close {
+	color: #bbb;
+	float: right;
+	font-size: 28px;
+	font-weight: bold;
+	margin-left: 0.3rem;
+}
+
+	.close:hover,
+	.close:focus {
+		color: var(--active-bg-color);
+		text-decoration: none;
+		cursor: pointer;
+	}
+
+/* Bild Pfeilfarben */
+.sole {
+	fill: magenta;
+}
+
+.heissgas-md {
+	fill: maroon;
+}
+
+.heissgas-nd {
+	fill: red;
+}
+
+.fluessig-md {
+	fill: limegreen;
+}
+
+.fluessig-hd {
+	fill: yellow;
+}
+
+.wasser {
+	fill: green;
+}
+
+.saug-nd {
+	fill: blue;
+}
+
+.saug-md {
+	fill: aquamarine;
+}

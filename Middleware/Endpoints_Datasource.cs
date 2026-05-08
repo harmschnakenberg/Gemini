@@ -120,7 +120,8 @@ namespace Gemini.Middleware
             int result = Db.Db.WriteTag(tagName, tagVal, oldVal, username);
 
             if (tagName.Contains('X'))
-            {   //object as int siehe https://stackoverflow.com/a/745204/22035462                       
+            {   //object as int siehe https://stackoverflow.com/a/745204/22035462
+                Console.WriteLine($"\r\n {tagName} '{oldVal}' > '{tagVal}'");
                 tagVal = Convert.ToInt32(tagVal) > 0 ? "☒" : "☐";
                 oldVal = Convert.ToInt32(oldVal) > 0 ? "☒" : "☐";
             }

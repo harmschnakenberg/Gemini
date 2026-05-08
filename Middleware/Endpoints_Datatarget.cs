@@ -16,7 +16,7 @@ namespace Gemini.Middleware
 
         private static IResult StaticChart()
         {            
-            var file = File.ReadAllText("wwwroot/html/chart.html");
+            var file = File.ReadAllText("wwwroot/html/chart/chart.html");
             return Results.Content(file, "text/html");
         }
 
@@ -26,7 +26,9 @@ namespace Gemini.Middleware
         /// <remarks>The method retrieves the chart ID from the route values and uses it to fetch relevant
         /// tag data, which is then used to create a customized chart page. If the chart ID is not valid, a default
         /// chart configuration is used.</remarks>
-        /// <param name="context">The HTTP context containing the request information, including route values used to retrieve the chart ID.</param>
+        /// <param name="chartId">Eindeutige Kurvennummer von JSON-Datei</param>
+        /// <param name="startStr">Zeit Start Kurve</param>
+        /// <param name="endStr">Zeit Ende Kurve</param>
         /// <returns>An IResult containing the generated HTML for the chart page, with a content type of 'text/html'.</returns>
         private static IResult DynChart(int chartId, [FromQuery(Name = "start")] string? startStr, [FromQuery(Name = "end")] string? endStr)
         {
@@ -40,8 +42,12 @@ namespace Gemini.Middleware
             Console.WriteLine($"DynChart {chartId} von {start} bis {end}");
 #endif
             string json;
+            string jsonPath = $"wwwroot/html/chart/chart{chartId}.json";
 
-            using (TextReader reader = new StreamReader($"wwwroot/html/chart/chart{chartId}.json"))
+            if (!File.Exists(jsonPath))
+                return Results.NotFound(new AlertMessage("error", "Kurvenkonfiguration nicht gefunden"));
+
+            using (TextReader reader = new StreamReader(jsonPath))
             {
                 json = reader.ReadToEndAsync().Result;
             };

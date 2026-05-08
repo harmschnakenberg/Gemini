@@ -88,7 +88,7 @@ namespace Gemini.DynContent
             sb.AppendLine("<label style='padding:0 1rem;' for='end'>Ende</label>");
             sb.AppendLine($"<input class='myButton' type='datetime-local' id='end' name='end' value='{endUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")}' onchange='data.getAlteredTags();'>");
             sb.AppendLine("<label style='padding:0 1rem;' for='filter'>Filter</label>");
-            sb.AppendLine($"<input class='myButton' type='text' id='filter' name='filter' value='{filter}' onchange='data.getAlteredTags();'>");
+            sb.AppendLine($"<input class='myButton' type='text' id='filter' name='filter' value='{HtmlHelper.Escape(filter)}' onchange='data.getAlteredTags();'>");
             //sb.Append("<button class='myButton' onclick='getAlteredTags()'>Filter anwenden</button>");
             sb.AppendLine("</div>");
 

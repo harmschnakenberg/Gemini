@@ -11,7 +11,7 @@
 
 	<OptimizationPreference>Speed</OptimizationPreference>
 	<Nullable>enable</Nullable>
-	<GenerateDocumentationFile>False</GenerateDocumentationFile>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	<Configurations>Debug;Release</Configurations>
 	<Platforms>AnyCPU;x64;ARM64</Platforms>
 	<PublishTrimmed>True</PublishTrimmed>
@@ -20,7 +20,7 @@
   </PropertyGroup>
   
   <PropertyGroup>
-    
+    <AssemblyTitle>KreuWebApp</AssemblyTitle>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -62,18 +62,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="MiniExcel" Version="1.42.0" />
+    <PackageReference Include="MiniExcel" Version="1.43.1" />
     <PackageReference Include="S7netplus" Version="0.20.0" />
   </ItemGroup>
 
   <ItemGroup>
     <Content Update="wwwroot\css\style.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\css\svg.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\favicon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -87,8 +90,8 @@
     <Content Update="wwwroot\html\bild\svg.html">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Update="wwwroot\html\chart.html">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Update="wwwroot\html\chart\chart.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\chart\chart1.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -97,10 +100,13 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\export.html">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\menu.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="wwwroot\html\soll\Kuehlung_Fisch.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Update="wwwroot\html\soll\schaltwarte.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

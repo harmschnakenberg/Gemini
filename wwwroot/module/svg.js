@@ -4,7 +4,9 @@ import openModal from './modal.js';
 async function initSvg() {
     const objs = document.querySelectorAll('[data-svg]')
     if (objs.length == 0)
-        return;
+        return false;
+
+    const svgObj = document.getElementById('svg-canvas');
 
     //Templates aus externer Datei laden
     await fetchSecure('/html/bild/magazin.svg', {
@@ -17,8 +19,7 @@ async function initSvg() {
             const parser = new DOMParser();
             const externalDoc = parser.parseFromString(svgText, "image/svg+xml");
             const newSvg = externalDoc.querySelector("svg");
-            const svgObj = document.getElementById('svg-canvas');
-
+           
             if (newSvg && svgObj)
                 svgObj.insertBefore(newSvg.children[0], svgObj.children[0]);
         });
@@ -28,6 +29,17 @@ async function initSvg() {
     }
 
     hideSmallDisplays(); // Initialer Check, falls Start-Zoom zu klein ist
+
+    //setze Links für Modal
+    const links = svgObj.querySelectorAll('[href]')
+
+    console.warn(`${links.length} Links gefunden`);
+    for (let i = 0; i < links.length; i++) {
+        prepareModal(links[i]);
+        console.info(`${links[i].tagName} ${links[i].getAttribute("href")}`);
+    }
+
+    return true;
 }
 
 const svg = document.getElementById('svg-canvas');
@@ -49,12 +61,18 @@ const clamp = (val, range) => Math.max(range[0], Math.min(range[1], val));
 
 function getSVGPoint(e) {
     const p = svg.createSVGPoint();
-    p.x = e.clientX; p.y = e.clientY;
+    console.log("Event: " + e.type);
+
+    if (!e.clientX) p.x = e.touches[0].clientX; else p.x = e.clientX;
+    if (!e.clientY) p.y = e.touches[0].clientY; else p.y = e.clientY;
+    
     return p.matrixTransform(svg.getScreenCTM().inverse());
 }
 
-function updateViewBox() {
+function updateViewBox(showhide = true) {
     svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
+    if (showhide)
+        hideSmallDisplays();
 }
 
 // Gemeinsame Zoom-Logik
@@ -65,9 +83,7 @@ function performZoom(delta, centerX, centerY) {
         viewBox.h = newWidth * (INITIAL_VB.h / INITIAL_VB.w);
         viewBox.x = clamp(centerX - (centerX - viewBox.x) * delta, CONFIG.limitX);
         viewBox.y = clamp(centerY - (centerY - viewBox.y) * delta, CONFIG.limitY);
-        updateViewBox();
-
-        hideSmallDisplays();
+        updateViewBox();       
     }
 }
 
@@ -99,46 +115,69 @@ if (svg) {
 
     // PANNING (Ziehen)
     svg.addEventListener('pointerdown', (e) => {
+        preparePan(e);
+    });
+
+    svg.addEventListener('touchstart', (e) => {
+        preparePan(e);
+    });
+
+    function preparePan(e) {
         isPanning = true;
         startPoint = getSVGPoint(e);
         svg.style.cursor = 'grabbing';
-    });
+    }
 
     window.addEventListener('pointermove', (e) => {
+        pan(e);
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        pan(e);
+    });
+
+    function pan(e) {
         if (!isPanning) return;
         const currentPoint = getSVGPoint(e);
         viewBox.x = clamp(viewBox.x - (currentPoint.x - startPoint.x), CONFIG.limitX);
         viewBox.y = clamp(viewBox.y - (currentPoint.y - startPoint.y), CONFIG.limitY);
-        updateViewBox();
-    });
+        updateViewBox(false);
+    }
+
 
     window.addEventListener('pointerup', () => {
-        isPanning = false;
-        svg.style.cursor = 'grab';
+        endPan();
     });
 
-    // RESET (Stabile Version ohne <animate>-Konflikt)
+    window.addEventListener('touchend', () => {
+        endPan();
+    });
+
+
+    function endPan() {
+        isPanning = false;
+        svg.style.cursor = 'grab';
+    }
+
+    // Reset Zoom und Pan
     document.getElementById('reset-btn').addEventListener('click', () => {
         // 1. Interne Daten zurücksetzen
         viewBox = { ...INITIAL_VB };
 
         // 2. ViewBox direkt setzen
         updateViewBox();
-
-        // Optional: Falls du die Animation behalten willst,
-        // müsstest du das <animate>-Element nach Ablauf entfernen.
-        // Einfacher ist es jedoch, direkt zuzuweisen.
     });
 }
 
+// zu kleine Wertanzeigen ausblenden
 function hideSmallDisplays() {
     const el = document.querySelectorAll('.wertanzeige');
-    //console.info(`${el.length} Wertanzeigen gefunden`);
+   // console.info(`${el.length} Wertanzeigen gefunden, Minimale Elementbreite ${window.innerWidth / 20} px.`);
     for (let i = 0; i < el.length; i++) {
         const { width } = el[i].getBoundingClientRect();
         //console.info(el[i].getBoundingClientRect());
 
-        if (width < 50) {
+        if (width < 50 ) { // px
             el[i].style.visibility = "hidden";
         } else {
             el[i].style.visibility = "initial";
@@ -146,6 +185,7 @@ function hideSmallDisplays() {
     }
 }
 
+//Vollbildmodus
 function enterFullscreen() {
     const button = document.getElementById('fullscreen')
     var doc = document.documentElement;
@@ -169,6 +209,19 @@ function enterFullscreen() {
 
 /*  ENDE Zoom */
 
+
+function prepareModal(obj) {
+    const link = obj.getAttribute('href');
+    console.warn(`${obj.tagName} => ${link}`);
+
+    //if (link) {
+    //    obj.style.cursor = 'help';
+    //    openModal(obj, link);
+    //}
+}
+
+
+//Aus <g>-Element SVG-Elemente von Magazin erstellen
 function createSvgInstance(obj) {
     // Beispiel: <g class="wertanzeige" x="1220" y="410" data-svg='' data-name='A01_DB10_DBW6' data-unit='s'></g>
 

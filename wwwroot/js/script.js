@@ -25,11 +25,16 @@ window.openTab = openTab;
 window.openModal = openModal;
 
 /* Initiale Aufrufe */
+// in Production Kommentar entfernen // window.addEventListener("contextmenu", (e) => { e.preventDefault() });
 user.checkLoginStatus();
-svg.initSvg();
+let isSvg = await svg.initSvg();
 data.initUnits();
 data.initWebsocket(data.initTags());
-loadSiteMenu('soll', '/html/soll/menu.json');
+
+if (isSvg)
+    loadSiteMenu('soll', '/html/soll/menu.json');
+else
+    loadSiteMenu('bild', '/html/bild/menu.json');
 
 document.addEventListener('DOMContentLoaded', (event) => {
     // Initialisierung der Drag-and-Drop-Funktionalität für vorhandene Elemente

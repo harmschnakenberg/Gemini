@@ -21,9 +21,9 @@ namespace Gemini.Middleware
             //app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien dynamisch ausliefern oder über wwwroot?
             app.MapGet("/{filePath:file}", ServeStaticFile).AllowAnonymous(); // Statische JS-Dateien dynamisch ausliefern | Offenbar statisch über wwwroot?
 
-            app.MapPost("/login", Login).AllowAnonymous();
-            app.MapPost("/logout", Logout).AllowAnonymous(); // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann) Anonym, um auf Nummer sicher zu gehen?
-            app.MapGet("/antiforgery/token", RefreshAntiForgeryToken).AllowAnonymous();
+            app.MapPost("/login", Login).AllowAnonymous().DisableAntiforgery(); ;
+            app.MapPost("/logout", Logout).AllowAnonymous().DisableAntiforgery(); ; // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann) Anonym, um auf Nummer sicher zu gehen?
+            app.MapGet("/antiforgery/token", RefreshAntiForgeryToken).AllowAnonymous().DisableAntiforgery(); ;
 
             app.MapGet("/user", SelectUsers).RequireAuthorization();
             app.MapPost("/user/create", UserCreate).RequireAuthorization();

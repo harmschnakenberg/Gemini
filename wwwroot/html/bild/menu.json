@@ -1,14 +1,9 @@
 {
-  "Sollwerte": [
-    {
-      "Id": 0,
-      "Name": "Magazin",
-      "Link": "magazin.svg"
-    },
+  "Bilder": [
     {
       "Id": 1,
       "Name": "Testbild",
       "Link": "svg.html"
     }
   ]
-  }
+}
