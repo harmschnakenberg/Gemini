@@ -36,7 +36,7 @@ namespace Gemini.DynContent
             
             if (chartConfig.Chart1Tags is not null)
                 foreach (var t in chartConfig.Chart1Tags)
-                   tags1.AppendLine($" ['{t.Key}', '{t.Value}'],");
+                   tags1.AppendLine($" ['{Escape(t.Key)}', '{Escape(t.Value)}'],");
 
             tags1.AppendLine("]);\r\n");
             #endregion
@@ -46,7 +46,7 @@ namespace Gemini.DynContent
 
             if (chartConfig.Chart2Tags is not null)
                 foreach (var t in chartConfig.Chart2Tags)
-                    tags2.AppendLine($" ['{t.Key}', '{t.Value}'],");
+                    tags2.AppendLine($" ['{Escape(t.Key)}', '{Escape(t.Value)}'],");
 
             tags2.AppendLine("]);\r\n");
             #endregion 
@@ -56,9 +56,9 @@ namespace Gemini.DynContent
 
             Dictionary<string, string> changeMap = new()
             {
-                { "<title>Demo Kurve</title>", $"<title>{chartConfig.Caption}</title>" },
-                { "<h1>Demo Kurvendarstellung</h1>", $"<h1>{chartConfig.Caption}</h1>" },
-                { "<p>Beispiel Kurve</p>", $"<p>{chartConfig.SubCaption}</p>" },
+                { "<title>Demo Kurve</title>", $"<title>{Escape(chartConfig.Caption)}</title>" },
+                { "<h1>Demo Kurvendarstellung</h1>", $"<h1>{Escape(chartConfig.Caption)}</h1>" },
+                { "<p>Beispiel Kurve</p>", $"<p>{Escape(chartConfig?.SubCaption ?? string.Empty)}</p>" },
                 { "id='start' name='start'", $"id='start' {startVal} name='start'"},
                 { "id='end' name='end'", $"id='end' {endVal} name='end'"},
                 { "const tags1 = new Map();", tags1.ToString() },
@@ -68,7 +68,7 @@ namespace Gemini.DynContent
             StringBuilder sb = new(File.ReadAllText("wwwroot/html/chart/chart.html"));
         
             foreach (var key in changeMap.Keys)
-                sb.Replace(key, Escape(changeMap[key]));
+                sb.Replace(key, changeMap[key]);
             
             return sb.ToString();
         }

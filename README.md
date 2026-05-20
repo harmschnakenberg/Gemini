@@ -22,7 +22,8 @@ Sie ermöglicht die gleichzeitige Kommunikation mit verschiedenen SPS-Modellen un
 	  - HTTPS Support über Rechnernamen | avahi-daemon notwendig
 	  - Zertifikat Download über Webinterface? -> braucht man nicht, da Zertifikate in der Regel auf dem Server installiert werden und nicht vom Client heruntergeladen werden müssen.
 	  - JWT vs. Cookie Authentifizierung => Cookie Authentifizierung 
-	  - Username am Client von seesionStorage in den localStorage verschoben -> Angemeldeter Benutzer erscheint, wenn ein neuer/zusätzlicher Browser-Tab geöffnet wird
+	  - Speicherort Username am Client seesionStorage: neuer Tab läuft unter angemeldeten User weiter, Name kann nicht angezeigt werden. 
+		Deshalb Username in localStorage verschoben und Timeout dazu -> Angemeldeter Benutzer erscheint, wenn ein neuer/zusätzlicher Browser-Tab geöffnet wird.
 	
 	- Benutzerverwaltung
 	  - Mehrbenutzerfähigkeit mit unterschiedlichen Rechten (Admin, User, etc.)

@@ -118,7 +118,7 @@ namespace Gemini.Middleware
                     new(ClaimTypes.Role, userRole.ToString())
                 };
                 var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
+                
                 await context.SignInAsync(new ClaimsPrincipal(claimsIdentity));
 
                 // B. AntiForgery Token generieren und CSRF-Cookie setzen
@@ -155,7 +155,7 @@ namespace Gemini.Middleware
 
     #region // Hilfsklassen für Login/Logout/CSRF Token Refresh
 
-    // --- AOT-freundliche Password Hashing Utility Klasse ---
+    /// --- AOT-freundliche Password Hashing Utility Klasse ---
     public class PasswordHasher
     {
         // Parameter gemäß aktuellen Sicherheitsstandards 2025

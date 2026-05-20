@@ -1,5 +1,6 @@
 ﻿using Gemini.Models;
 using Gemini.Services;
+using Microsoft.AspNetCore.Antiforgery;
 using System.Buffers;
 using System.Net;
 using System.Net.WebSockets;
@@ -9,66 +10,59 @@ using System.Text.Json;
 namespace Gemini.Middleware
 {
     /// <summary>
-    /// Middleware, die alle eingehenden Websocket-Verbindungsanfragen abfängt, authentifiziert und autorisiert, und dann die Kommunikation mit dem Client verwaltet.
+    /// 
     /// </summary>
-    /// <param name="next"></param>
-    public class WebSocketMiddleware(RequestDelegate next)
+    public class WebSocketMiddleware
     {
-        private readonly RequestDelegate _next = next;
+        private readonly RequestDelegate _next;
+        private readonly IAntiforgery _antiforgery;
 
         /// <summary>
-        /// Processes an HTTP request and handles WebSocket upgrade requests at the "/ws" endpoint, enforcing
-        /// authentication and origin validation.
+        /// 
         /// </summary>
-        /// <remarks>If the request targets the "/ws" path and is a valid WebSocket upgrade request, the
-        /// method checks for user authentication and validates the Origin header against allowed origins. If these
-        /// checks fail, the method sets the appropriate HTTP status code and terminates the request. For all other
-        /// requests, processing is delegated to the next middleware component in the pipeline.</remarks>
-        /// <param name="context">The HTTP context for the current request. Provides access to request and response information, user
-        /// identity, and connection details.</param>
-        /// <returns>A task that represents the asynchronous operation of processing the HTTP request.</returns>
-        public async Task InvokeAsync(HttpContext context)
-        {         
-            if (context.Request.Path == "/ws")
-            {
-#if DEBUG
-                Console.WriteLine("WebSocket connection attempt from " + context.Connection.RemoteIpAddress);
-#endif
-
-                if (context.WebSockets.IsWebSocketRequest)
-                {
-                    // prüfen, ob authentifiziert
-                    if (!context.User?.Identity?.IsAuthenticated ?? true)
-                    {
-                        Console.WriteLine(context.User?.Identity?.Name + " ist nicht identifiziert!");
-                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                        return;
-                    }
-
-                    // Origin-Header validieren (falls vorhanden)
-                    if (context.Request.Headers.TryGetValue("Origin", out var origin))
-                    {                        
-                        if (!ApiSettings.AllowedOrigins.Contains(origin.ToString(), StringComparer.OrdinalIgnoreCase))
-                        {
-                            Console.WriteLine(origin + " ist kein zulässiger Anfrageort!");
-                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                            return;
-                        }
-                    }
-
-                    using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-
-                    IPAddress? ip = context.Connection.RemoteIpAddress;
-                    try { await ReadTagsLoop(webSocket, context.Connection.RemoteIpAddress ?? new IPAddress([127, 0, 0, 1])); }
-                    catch (Exception ex) { Db.Db.DbLogWarn($"Error in WebSocket connection with client {ip}. Forcing disconnect.\r\n{ex}"); }
-                }
-                else                
-                    context.Response.StatusCode = StatusCodes.Status400BadRequest;                
-            }
-            else            
-                await _next(context);            
+        /// <param name="next"></param>
+        /// <param name="antiforgery"></param>
+        public WebSocketMiddleware(RequestDelegate next, IAntiforgery antiforgery)
+        {
+            _next = next;
+            _antiforgery = antiforgery;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public async Task InvokeAsync(HttpContext context)
+        {
+            if (context.Request.Path == "/ws" && context.WebSockets.IsWebSocketRequest && context.User?.Identity?.IsAuthenticated == true)
+            {
+                // Weil die globale Middleware bereits validiert hat, überspringen wir doppelte Validierung.
+                if (!context.Items.ContainsKey("AntiforgeryValidatedForWebSocket"))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return;
+                }
+
+                // Origin prüfen (falls noch nicht gemacht) und dann Upgrade erlauben
+                if (context.Request.Headers.TryGetValue("Origin", out var origin))
+                {
+                    if (!ApiSettings.AllowedOrigins.Contains(origin.ToString(), StringComparer.OrdinalIgnoreCase))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        return;
+                    }
+                }
+
+                using var ws = await context.WebSockets.AcceptWebSocketAsync();
+                await ReadTagsLoop(ws, context.Connection.RemoteIpAddress ?? IPAddress.Loopback);
+                return;
+            }
+
+            await _next(context);
+        }
+
+        
         /// <summary>
         /// Serialisiert die Tags und sendet sie über den WebSocket an den Client.
         /// Nutzt ArrayPool und eine Puffervergrößerungs-Schleife für optimale Performance.
@@ -176,23 +170,39 @@ namespace Gemini.Middleware
             Func<JsonTag[], Task> sendCallback,
             byte[] buffer)
         {
-            // Die 'try' des ursprünglichen Blocks beginnt hier.
+
+            const int MaxJsonSize = 1024 * 100; // 100 KB limit
+            const int MaxMessagesPerSecond = 100; // Rate-Limiting
+            var rateLimiter = new RateLimiter(MaxMessagesPerSecond);
+                    
             try
             {
                 while (webSocket.State == WebSocketState.Open)
                 {
+                    // Rate-Limiting prüfen
+                    if (!rateLimiter.AllowRequest())
+                    {
+                        Db.Db.DbLogWarn($"Anfrage-Limit überschritten für WebSocket client {clientId}");
+                        await webSocket.CloseAsync(WebSocketCloseStatus.PolicyViolation, "Rate limit exceeded", CancellationToken.None);
+                        break;
+                    }
+
                     var r = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
                     if (r.MessageType == WebSocketMessageType.Close)
-                    {
-#if DEBUG
-                        //Console.WriteLine($"Websocket von Client {clientId} geschlossen.");
-#endif
                         break;
-                    }
+                    
                     // Optional: Wenn Client neue Tag-Liste sendet -> re-register
                     else if (r.MessageType == WebSocketMessageType.Text && r.Count > 0)
                     {
+                        // Größenlimit prüfen
+                        if (r.Count > MaxJsonSize)
+                        {
+                            Db.Db.DbLogWarn($"JSON Datei zu groß von Client {clientId}: {r.Count} bytes");
+                            await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Gesendete Datei zu groß", CancellationToken.None);
+                            break;
+                        }
+
                         var incoming = Encoding.UTF8.GetString(buffer, 0, r.Count);
 
                         // Console.WriteLine($"Received from client {clientId}: \r\n" + incoming);
@@ -202,7 +212,7 @@ namespace Gemini.Middleware
                             // Verwende den AOT-freundlichen JsonSerializerContext
                             var newTags = JsonSerializer.Deserialize(incoming, AppJsonSerializerContext.Default.JsonTagArray);
 
-                            if (newTags != null)
+                            if (newTags is not null && newTags.Length <= 500) // Array-Größenlimit
                             {
 #if DEBUG
                                 Console.WriteLine($"Updating tags for client {clientId} on {ip}.");
@@ -210,6 +220,15 @@ namespace Gemini.Middleware
                                 // Registrierung mit dem GLEICHEN Callback und der NEUEN Tag-Liste
                                 PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, newTags, sendCallback);
                             }
+                            else
+                            {
+                                Db.Db.DbLogWarn($"Ungültige Tag-Anzahl von Client {clientId}: {newTags?.Length ?? 0}");
+                            }
+                        }
+                        catch (JsonException ex)
+                        {
+                            Db.Db.DbLogWarn($"Ungültiges JSON von Client {clientId} {ip}: {ex.Message}");
+                            // Nicht schließen, aber Nachricht ignorieren
                         }
                         catch
                         {
@@ -232,9 +251,9 @@ namespace Gemini.Middleware
             catch (Exception ex)
             {
 #if DEBUG
-                Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
+                Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n {ex.GetType().Name}: {ex.Message}");
 #endif
-                Db.Db.DbLogWarn($"Error processing client messages for {clientId}. Forcing disconnect.\r\n{ex}");
+                Db.Db.DbLogWarn($"Error processing client messages for {clientId}. Forcing disconnect.\r\n {ex.GetType().Name}: {ex.Message}");
                 // WICHTIG: Wenn der Loop abbricht, muss die Verbindung entfernt werden.
                 PlcTagManager.Instance.RemoveClient(clientId);
                 throw; // Wir werfen die Ausnahme weiter, damit sie im outer finally (ReadTagsLoop) behandelt wird.
@@ -243,6 +262,7 @@ namespace Gemini.Middleware
 
         private static async Task ReadTagsLoop(WebSocket webSocket, IPAddress ip)
         {
+            const int MaxInitialPayloadSize = 1024 * 100; // 100 KB
             // Empfang der initialen Tags (Code bleibt unverändert)
             var buffer = new byte[1024 * 8];
             // 1. Erster Empfang zur Ermittlung der Tags
@@ -254,6 +274,14 @@ namespace Gemini.Middleware
                 Console.WriteLine("Received invalid initial message from WebSocket client. Closing connection.");
 #endif
                 await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid initial message", CancellationToken.None);
+                return;
+            }
+
+            // Größenlimit prüfen
+            if (receiveResult.Count > MaxInitialPayloadSize)
+            {
+                Db.Db.DbLogWarn($"WebSocket Payload zu groß von {ip}: {receiveResult.Count} bytes");
+                await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Gesendete Datei zu groß", CancellationToken.None);
                 return;
             }
 
@@ -317,7 +345,36 @@ namespace Gemini.Middleware
             }
         }
 
-    
+
+        // Hilfeklasse für Rate-Limiting: Erlaubt nur eine bestimmte Anzahl von Anfragen pro Sekunde pro Client, um Missbrauch zu verhindern.
+        internal class RateLimiter(int maxRequestsPerSecond)
+        {
+            private readonly int _maxRequestsPerSecond = maxRequestsPerSecond;
+            private DateTime _windowStart = DateTime.UtcNow;
+            private int _requestCount = 0;
+            private readonly Lock _lock = new();
+
+            public bool AllowRequest()
+            {
+                lock (_lock)
+                {
+                    var now = DateTime.UtcNow;
+                    var elapsed = (now - _windowStart).TotalSeconds;
+
+                    if (elapsed >= 1.0)
+                    {
+                        _windowStart = now;
+                        _requestCount = 0;
+                    }
+
+                    if (_requestCount >= _maxRequestsPerSecond)
+                        return false;
+
+                    _requestCount++;
+                    return true;
+                }
+            }
+        }
 
         // Small IBufferWriter<byte> implementation that writes into a pre-rented byte[].
         // Throws ArgumentException when insufficient space is requested so caller can enlarge buffer.

@@ -94,8 +94,7 @@ namespace Gemini.Db
                 while (reader.Read())
                 {
                     userRole = (Role)reader.GetInt32(1);
-                    string storedHash = reader.GetString(0);
-                    //Console.WriteLine($"Vergleich {userpassword}\t{storedHash}  {Gemini.Middleware.PasswordHasher.HashPassword(userpassword)}");
+                    string storedHash = reader.GetString(0);                    
                     bool passwordMatch = Gemini.Middleware.PasswordHasher.VerifyPassword(userpassword, storedHash);                    
                     return passwordMatch;
                 }
@@ -250,7 +249,7 @@ namespace Gemini.Db
 
         }
 
-        private static async void DbLog(string category, string message)
+        private static async Task DbLogAsync(string category, string message)
         {
             //CreateMasterDatabaseAsync();
 
@@ -269,23 +268,38 @@ namespace Gemini.Db
             }
             catch (Exception ex)
             {
+                // Fallback zu Konsole oder System.Diagnostics.Debug
+                System.Diagnostics.Debug.WriteLine($"DbLog Fehler: {ex.Message}");
+                // Optional: Schreibe zu stderr als letzter Ausweg
+                Console.Error.WriteLine($"[{DateTime.UtcNow:O}] DbLog Fehler: {ex.Message}");
                 _logger?.LogError("Fehler beim Schreiben des Logs in die Datenbank: {ErrorMessage}", ex.Message);
             }
         }
 
-        internal static async void DbLogInfo(string message)
-        {            
-            DbLog("Info", message);
-            if (_logger?.IsEnabled(LogLevel.Information) == true)            
+        /// <summary>
+        /// Fire-and-forget Logging ohne Fehlerbehandlung für den Aufrufer.
+        /// Exceptions werden in DbLogAsync abgefangen und zu stderr geschrieben.
+        /// </summary>
+        private static void DbLogFireAndForget(string category, string message)
+        {
+            // Dokumentation: Diese Methode wirft keine Exceptions zurück
+            _ = Task.Run(async () => await DbLogAsync(category, message))
+                .ConfigureAwait(false);
+        }
+
+
+        internal static void DbLogInfo(string message)
+        {
+            DbLogFireAndForget("Info", message);
+            if (_logger?.IsEnabled(LogLevel.Information) == true)
             {
-                // CA1873: Vermeide teure Auswertung, wenn Logging deaktiviert ist
                 _logger.LogInformation("{Message}", message);
             }
         }
 
-        internal static async void DbLogWarn(string message)
+        internal static void DbLogWarn(string message)
         {
-            DbLog("Warn", message);
+            DbLogFireAndForget("Warn", message);
 
             if (_logger?.IsEnabled(LogLevel.Warning) == true)            
             {
@@ -294,9 +308,9 @@ namespace Gemini.Db
             }
         }
 
-        internal static async void DbLogError(string message)
+        internal static void DbLogError(string message)
         {
-            DbLog("Error", message);
+            DbLogFireAndForget("Error", message);
 
             if (_logger?.IsEnabled(LogLevel.Error) == true)            
             {

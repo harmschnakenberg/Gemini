@@ -14,6 +14,11 @@ namespace Gemini.Middleware
         internal static CancellationTokenSource cancelTokenSource = new();
         internal static string ChartConfigDir { get; } = Path.Combine(Db.Db.AppFolder, "wwwroot", "html", "chart");
 
+        /// <summary>
+        /// Alle Endpunkte der Webanwendung hier definieren und zuordnen. Alle Endpunkte sollten hier zentral gesammelt werden, damit
+        /// die Verwaltung und Wartung der Endpunkte einfacher wird.
+        /// </summary>
+        /// <param name="app"></param>
         public static void MapEndpoints(this IEndpointRouteBuilder app)
         {
             //app.MapGet("favicon.ico", Favicon) .AllowAnonymous();
@@ -37,8 +42,8 @@ namespace Gemini.Middleware
             app.MapPost("/source/ping", PlcPing).RequireAuthorization();
 
             app.MapGet("/tag/all", GetAllTagsConfig).RequireAuthorization(); // Alle Tags mit Kommentaren und Log-Flags als HTML-Tabelle ausliefern
-            app.MapGet("/tag/failures", TagReadFailes);
-            app.MapPost("/tag/comments", GetTagComments); // Tag-Kommentare abrufen
+            app.MapGet("/tag/failures", TagReadFailes).RequireAuthorization(); ;
+            app.MapPost("/tag/comments", GetTagComments).RequireAuthorization(); // Tag-Kommentare abrufen
             app.MapPost("/tag/update", TagConfigUpdate).RequireAuthorization(); // Tag-Kommentar und Log-Flag aktualisieren            
             app.MapPost("/tag/write", WriteTagValue).RequireAuthorization();
 
@@ -46,11 +51,11 @@ namespace Gemini.Middleware
             app.MapPost("/export", ExcelDownload).RequireAuthorization(); // Excel-Datei generieren und ausliefern
             
             app.MapPost("/export/config/delete", ExcelConfDelete).RequireAuthorization(); // Excel-Konfiguration löschen //nicht implementiert  
-            app.MapGet("/export/config/all", GetExportConf); // Alle Excel-Export-Konfigurationen aus Datenbank als JSON ausliefern.
+            app.MapGet("/export/config/all", GetExportConf).RequireAuthorization(); // Alle Excel-Export-Konfigurationen aus Datenbank als JSON ausliefern.
                                                              // Wirklich umsetzen?  ToDo: Implementieren oder entfernen?
 
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
-            app.MapPost("/db/download", DbDownload); // Datenbank-Dateien ausliefern   
+            app.MapPost("/db/download", DbDownload).RequireAuthorization(); ; // Datenbank-Dateien ausliefern   
             app.MapGet("/db/list", DbList).RequireAuthorization();
 
             app.MapGet("/soll", ShowSoll); //
@@ -65,17 +70,11 @@ namespace Gemini.Middleware
             app.Map("/chart/config/allnames", ChartConfigLoadNames).RequireAuthorization();
             app.MapPost("/chart/config/{configId:int}", ChartConfigImport).RequireAuthorization();
 
-            app.MapGet("/log", ShowLog); // Server Log
-
-            // app.MapGet("/cert/download", CertDownload); // SSL-Zertifikat herunterladen (für Windows, ToDo: Linux)
-
-            app.MapGet("/exit", ServerShutdown); // Server herunterfahren
-
+            app.MapGet("/log", ShowLog).RequireAuthorization(); // Server Log                     
+            app.MapGet("/exit", ServerShutdown).RequireAuthorization(); // Server herunterfahren
 
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
-
         }
-
- 
+         
     }
 }

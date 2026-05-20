@@ -199,11 +199,12 @@ namespace Gemini.Db
         }
 
         /// <summary>
-        /// Liest alle Tag-Namen aus der Tagesdatenbank mit dem Datum <date>. Wenn keine Tags gefunden werden, wird für max. <counter> Tage zurückgegangen, um Tag-Namen zu finden.
+        /// Liest alle Tag-Namen aus der Tagesdatenbank mit dem Datum 'date'. 
+        /// Wenn keine Tags gefunden werden, wird für max. 'counter' Tage zurückgegangen, um Tag-Namen zu finden.
         /// </summary>
         /// <param name="date"></param>
         /// <param name="lookBackDays"></param>
-        /// <returns>Dictionary <TagName, TagComment></returns>
+        /// <returns>Dictionary TagName, TagComment</returns>
         public static List<Tag> GetDbTagNames(DateTime date, int lookBackDays = 9)
         {
             if (lookBackDays < 0 || lookBackDays > 9)
@@ -223,10 +224,11 @@ namespace Gemini.Db
                     date = date.AddDays(-1);
 
                     if (!File.Exists(dbPath))
+                        continue;
+                    
+                    if (!ValidateDatabasePath(dbPath))
                     {
-#if DEBUG                        
-                        Db.DbLogInfo($"Tagestabelle: Datei {Path.GetFileName(dbPath)} nicht gefunden.");
-#endif
+                        Db.DbLogWarn($"Ungültiger Datenbankpfad ignoriert (Sicherheit): {dbPath}");
                         continue;
                     }
 #if DEBUG
@@ -236,7 +238,7 @@ namespace Gemini.Db
                         command.CommandText = @"SELECT Name, Comment, ChartFlag FROM Tag;";
                     else
                         command.CommandText = $@"
-                        ATTACH DATABASE '{dbPath}' AS old_db; 
+                        ATTACH DATABASE '{Path.GetFullPath(dbPath)}' AS old_db; 
                         SELECT Name, Comment, ChartFlag FROM Tag; 
                         DETACH DATABASE old_db; ";
 
@@ -304,7 +306,7 @@ namespace Gemini.Db
         /// </summary>
         /// <param name="startUtc">Start LocalTime</param>
         /// <param name="endUtc">End LacalTime</param>
-        /// <returns>Dictionary <DataBaseName, DataBasePath></returns>
+        /// <returns>Dictionary DataBaseName DataBasePath</returns>
         private static Dictionary<DateTime, string> GetDataBasePathsForQuery(System.DateTime startUtc, System.DateTime endUtc)
         {
             Dictionary<DateTime, string> dataBases = []; //Name, Pfad
@@ -436,7 +438,14 @@ namespace Gemini.Db
                             }
                             else
                             {
-                                attach.Add($"ATTACH DATABASE '{dbChunk[day]}' AS '{dbName}';");
+                                if (!ValidateDatabasePath(dbChunk[day]))
+                                {
+                                    Db.DbLogWarn($"Ungültiger Datenbankpfad ignoriert (Sicherheit): {dbChunk[day]}");
+                                    continue;
+                                    //throw new InvalidOperationException($"Ungültiger Datenbankpfad: {dbChunk[day]}");
+                                }
+
+                                attach.Add($"ATTACH DATABASE '{Path.GetFullPath(dbChunk[day])}' AS '{dbName}';");
                                 //if (roundSeconds > 1)
                                 //    query.Add($" SELECT datetime(((strftime('%s', Time) + @Round - 1) / @Round) * @Round, 'unixepoch') AS Time, TagValue FROM {dbName}.Data WHERE TagId = (SELECT Id FROM {dbName}.Tag WHERE Name = @TagName) AND Time BETWEEN @Start AND @End ");
                                 //else
@@ -460,7 +469,7 @@ namespace Gemini.Db
                         //    command.CommandText += "GROUP BY Time HAVING Time = MAX(Time) ORDER BY Time ";
 
 #if DEBUG
-                        Console.WriteLine(command.CommandText + "\r\n\r\n");
+                        //Console.WriteLine(command.CommandText + "\r\n\r\n");
 #endif
                         foreach (var tagName in tagNames)
                         {
@@ -860,6 +869,20 @@ namespace Gemini.Db
             }
 
             return alteredTags;
+        }
+
+        // SQLite ATTACH unterstützt leider keine Parameter direkt. Pfad validieren vor Verwendung
+        private static bool ValidateDatabasePath(string dbPath)
+        {
+            try
+            {
+                var fullPath = Path.GetFullPath(dbPath);
+                var expectedDir = Path.GetFullPath(Path.Combine(AppFolder, "db"));
+                // Sicherstellen, dass der Pfad innerhalb des erwarteten Verzeichnisses liegt
+                return fullPath.StartsWith(expectedDir, StringComparison.OrdinalIgnoreCase)
+                    && fullPath.EndsWith(".db", StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
         }
 
     }

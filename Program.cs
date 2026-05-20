@@ -1,11 +1,8 @@
 ﻿using Gemini.Middleware;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using static Gemini.Db.Db;
-
-
 
 
 #region Datenbank aufräumen und vorbereiten
@@ -52,8 +49,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur über HTTPS senden        
         options.Cookie.SameSite = SameSiteMode.Strict;
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60); //Ticket Lifetime
+        options.Cookie.MaxAge = options.ExpireTimeSpan; // Cookie Lifetime
         options.LoginPath = "/";
+        options.AccessDeniedPath = "/"; //Test
         options.Events.OnRedirectToLogin = context =>
         {
             var newRedirectUri = context.RedirectUri + (context.RedirectUri.Contains('?') ? "&" : "?") + "auth=failed";

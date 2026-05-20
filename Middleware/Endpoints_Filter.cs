@@ -1,36 +1,89 @@
-﻿using Microsoft.AspNetCore.Antiforgery;
-
-namespace Gemini.Middleware
+﻿namespace Gemini.Middleware
 {
     using Gemini.Models;
     using Microsoft.AspNetCore.Antiforgery;
+    using Microsoft.AspNetCore.Http;
+    using System;
+    using System.Linq;
 
     /// <summary>
-    /// Middleware zur globalen Validierung von Anti-Forgery-Tokens für unsichere HTTP-Methoden.
+    /// 
     /// </summary>
-    /// <param name="next">Der nächste RequestDelegate in der Pipeline.</param>
-    /// <param name="antiforgery">Der IAntiforgery-Dienst zur Validierung und Verwaltung von Anti-Forgery-Tokens.</param>
+    /// <param name="next"></param>
+    /// <param name="antiforgery"></param>
     public class GlobalAntiforgeryMiddleware(RequestDelegate next, IAntiforgery antiforgery)
     {
         private readonly RequestDelegate _next = next;
-        private readonly IAntiforgery _antiforgery = antiforgery;      
+        private readonly IAntiforgery _antiforgery = antiforgery;
         private static readonly PathString[] ExcludedPaths =
         [
-            new("/ws"),
+            // "/ws" entfernt, damit WebSocket-Upgrades ebenfalls geprüft werden
             new("/antiforgery/token"),
             new("/login"),
-            new("/logout")            
+            new("/logout")
         ];
 
         /// <summary>
-        /// Verarbeitet die eingehende HTTP-Anfrage und validiert für unsichere HTTP-Methoden (z. B. POST, PUT, DELETE)
-        /// das Anti-Forgery-Token. Bei fehlgeschlagener Validierung wird eine 400-Antwort mit einer AlertMessage
-        /// im JSON-Format zurückgegeben.
+        /// 
         /// </summary>
-        /// <param name="context">Der aktuelle HttpContext der eingehenden Anfrage.</param>
-        /// <returns>Ein Task, der die asynchrone Verarbeitung der Anfrage repräsentiert.</returns>
+        /// <param name="context"></param>
+        /// <returns></returns>
         public async Task InvokeAsync(HttpContext context)
         {
+            // Spezialfall: WebSocket-Upgrade (GET + Upgrade).
+            if (context.Request.Path.StartsWithSegments(new PathString("/ws"), StringComparison.OrdinalIgnoreCase)
+                && string.Equals(context.Request.Method, "CONNECT", StringComparison.OrdinalIgnoreCase))
+            {
+                var csrfToken = context.Request.Query["csrf"].FirstOrDefault();
+
+                if (string.IsNullOrEmpty(csrfToken)
+                    && context.Request.Headers.TryGetValue("Sec-WebSocket-Protocol", out var protocols))
+                {
+                    var items = protocols.ToString().Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var item in items)
+                    {
+                        if (item.StartsWith("csrf-", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var safe = item.Substring("csrf-".Length);
+                            csrfToken = Base64UrlDecodeToString(safe);
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrEmpty(csrfToken))
+                {
+                    context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    await context.Response.WriteAsJsonAsync(
+                        new AlertMessage("error", "CSRF Token fehlt für WebSocket-Upgrade."),
+                        AppJsonSerializerContext.Default.AlertMessage);
+                    return;
+                }
+
+                context.Request.Headers["X-CSRF-TOKEN"] = csrfToken;
+                context.Request.Headers["RequestVerificationToken"] = csrfToken;
+
+                try
+                {
+                    await _antiforgery.ValidateRequestAsync(context);
+                }
+                catch (AntiforgeryValidationException)
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    await context.Response.WriteAsJsonAsync(
+                        new AlertMessage("error", "CSRF Token validierung fehlgeschlagen."),
+                        AppJsonSerializerContext.Default.AlertMessage);
+                    return;
+                }
+
+                // Markiere, dass die AntiForgery-Validierung für dieses /ws-Upgrade bereits erfolgt ist.
+                context.Items["AntiforgeryValidatedForWebSocket"] = true;
+
+                // Erfolgreiche Validierung -> Pipeline fortsetzen; WebSocketMiddleware übernimmt das Upgrade.
+                await _next(context);
+                return;
+            }
+
             if (IsUnsafeMethod(context.Request.Method))
             {
                 if (!IsPathExcluded(context.Request.Path))
@@ -43,7 +96,6 @@ namespace Gemini.Middleware
                     {
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-                        // Korrekte Nutzung des Source Generators für AOT
                         await context.Response.WriteAsJsonAsync(
                             new AlertMessage("error", "CSRF Token validierung fehlgeschlagen."),
                             AppJsonSerializerContext.Default.AlertMessage);
@@ -55,10 +107,31 @@ namespace Gemini.Middleware
             await _next(context);
         }
 
-        // Extrahiert für bessere Testbarkeit und Inlining durch den JIT/AOT-Compiler
+        // Helper: base64url -> string
+        private static string? Base64UrlDecodeToString(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return null;
+            string s = input.Replace('-', '+').Replace('_', '/');
+            switch (s.Length % 4)
+            {
+                case 2: s += "=="; break;
+                case 3: s += "="; break;
+                case 0: break;
+                default: s += new string('=', 4 - (s.Length % 4)); break;
+            }
+            try
+            {
+                var bytes = Convert.FromBase64String(s);
+                return System.Text.Encoding.UTF8.GetString(bytes);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static bool IsPathExcluded(PathString path)
         {
-            // Nutze eine einfache Schleife oder LINQ - Any ist in modernen .NET Versionen AOT-sicher
             foreach (var excludedPath in ExcludedPaths)
             {
                 if (path.StartsWithSegments(excludedPath, StringComparison.OrdinalIgnoreCase))

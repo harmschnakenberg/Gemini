@@ -34,51 +34,120 @@
 	background: #fafafa;
 }
 
-/* The Close Button */
-.close {
-	color: #bbb;
-	float: right;
-	font-size: 28px;
-	font-weight: bold;
-	margin-left: 0.3rem;
-}
+	#svg-canvas .svglink {
+		cursor: help;
+	}
+		#svg-canvas .svglink:hover {
+			outline: 5px ridge rgb(255,255,255,0.9);
+		}
 
-	.close:hover,
-	.close:focus {
-		color: var(--active-bg-color);
-		text-decoration: none;
-		cursor: pointer;
+	/* The Close Button */
+	.close {
+		color: #bbb;
+		float: right;
+		font-size: 28px;
+		font-weight: bold;
+		margin-left: 0.3rem;
 	}
 
-/* Bild Pfeilfarben */
-.sole {
-	fill: magenta;
-}
+		.close:hover,
+		.close:focus {
+			color: var(--active-bg-color);
+			text-decoration: none;
+			cursor: pointer;
+		}
+	/* SVG Darstellung */
 
-.heissgas-md {
-	fill: maroon;
-}
+	#svgcontrols {
+		position: absolute;
+		top: 70px;
+		left: 1px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		z-index: 10;
+	}
+	/* Modal*/
+	/* The Modal (background) */
+	.modal {
+		display: none; /* Hidden by default */
+		position: fixed; /* Stay in place */
+		z-index: 1; /* Sit on top */
+		padding-top: 100px; /* Location of the box */
+		left: 0;
+		top: 0;
+		width: 100%; /* Full width */
+		height: 100%; /* Full height */
+		overflow: auto; /* Enable scroll if needed */
+		background-color: rgb(0,0,0); /* Fallback color */
+		background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+	}
+	/* Modal Content */
+	.modal-content {
+		background-color: rgb(60,60,60,0.9);
+		margin: auto;
+		padding: 1rem;
+		border: 1px solid #888;
+		width: 60rem;
+	}
 
-.heissgas-nd {
-	fill: red;
-}
+	@media (max-width: 1000px) {
+		.modal-content {
+			width: 90%;
+		}
+	}
+	/*    #svgcontrols:hover {        
+    }
+*/
+	#svgcontrols > button {
+		font-family: 'Material Icons';
+		padding: 3px;
+		margin: 1px;
+		cursor: pointer;
+		border-radius: 3px;
+		border: 1px solid #ccc;
+		background: white;
+		font-size: 1.8rem;
+		box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+	}
 
-.fluessig-md {
-	fill: limegreen;
-}
+		#svgcontrols > button:hover {
+			background: #f8f8f8;
+		}
 
-.fluessig-hd {
-	fill: yellow;
-}
+		#svgcontrols > button:active {
+			background: #eee;
+			transform: translateY(1px);
+		}
+	/* Bild Pfeilfarben */
+	.sole {
+		fill: magenta;
+	}
 
-.wasser {
-	fill: green;
-}
+	.heissgas-md {
+		fill: maroon;
+	}
 
-.saug-nd {
-	fill: blue;
-}
+	.heissgas-nd {
+		fill: red;
+	}
 
-.saug-md {
-	fill: aquamarine;
-}
+	.fluessig-md {
+		fill: limegreen;
+	}
+
+	.fluessig-hd {
+		fill: yellow;
+	}
+
+	.wasser {
+		fill: green;
+	}
+
+	.saug-nd {
+		fill: blue;
+	}
+
+	.saug-md {
+		fill: aquamarine;
+	}

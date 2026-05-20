@@ -29,17 +29,21 @@ async function initSvg() {
     }
 
     hideSmallDisplays(); // Initialer Check, falls Start-Zoom zu klein ist
-
-    //setze Links für Modal
-    const links = svgObj.querySelectorAll('[href]')
-
-    console.warn(`${links.length} Links gefunden`);
-    for (let i = 0; i < links.length; i++) {
-        prepareModal(links[i]);
-        console.info(`${links[i].tagName} ${links[i].getAttribute("href")}`);
-    }
+    setModalLinks(svgObj); //setze Links für Modal
 
     return true;
+}
+
+function setModalLinks(canvas) {
+    const links = canvas.querySelectorAll('[href]')
+    // console.warn(`${links.length} Links gefunden`);
+    for (let i = 0; i < links.length; i++) {
+        const link = links[i].getAttribute('href');
+        if (link) {
+            links[i].classList.add("svglink");
+            openModal(links[i], link);
+        }
+    }
 }
 
 const svg = document.getElementById('svg-canvas');
@@ -61,7 +65,7 @@ const clamp = (val, range) => Math.max(range[0], Math.min(range[1], val));
 
 function getSVGPoint(e) {
     const p = svg.createSVGPoint();
-    console.log("Event: " + e.type);
+    //console.log("Event: " + e.type);
 
     if (!e.clientX) p.x = e.touches[0].clientX; else p.x = e.clientX;
     if (!e.clientY) p.y = e.touches[0].clientY; else p.y = e.clientY;
@@ -196,7 +200,7 @@ function enterFullscreen() {
             doc.webkitRequestFullscreen(); // Für iOS/Safari
         }
 
-        button.innerHTML = '◱';
+        button.innerHTML = '<i class="material-icons">fullscreen_exit</i>'; //'◱';
     } else {
         // Vollbildmodus verlassen
         document.exitFullscreen();
@@ -208,17 +212,6 @@ function enterFullscreen() {
 
 
 /*  ENDE Zoom */
-
-
-function prepareModal(obj) {
-    const link = obj.getAttribute('href');
-    console.warn(`${obj.tagName} => ${link}`);
-
-    //if (link) {
-    //    obj.style.cursor = 'help';
-    //    openModal(obj, link);
-    //}
-}
 
 
 //Aus <g>-Element SVG-Elemente von Magazin erstellen
@@ -266,7 +259,8 @@ function createSvgInstance(obj) {
 
     // 4. Link zu Modal (Sollwertfenster) setzen
     if (link) {
-        instance.style.cursor = 'help';
+        //instance.style.cursor = 'help';
+        instance.classList.add('svglink');
         openModal(instance, link);
     }
 

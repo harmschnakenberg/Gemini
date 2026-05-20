@@ -4,6 +4,7 @@ using Gemini.Models;
 using Gemini.Services;
 using Microsoft.AspNetCore.Mvc;
 using S7.Net;
+using S7.Net.Types;
 using System.Security.Claims;
 using System.Text;
 
@@ -50,42 +51,67 @@ namespace Gemini.Middleware
                 return Results.Unauthorized();
         }
 
-        private static IResult DbQuery(HttpContext ctx, [FromQuery(Name = "tagnames")] string? tagNamesStr, [FromQuery(Name = "start")] string? startStr, [FromQuery(Name = "end")] string? endStr, [FromQuery(Name = "interval")] int interval = 0)
+        private static IResult DbQuery(HttpContext ctx,             
+           [FromQuery(Name = "tagnames")] string? tagNamesStr, 
+           [FromQuery(Name = "start")] string? startStr, 
+           [FromQuery(Name = "end")] string? endStr, 
+           [FromQuery(Name = "interval")] int interval = 0)
         {
+            const int MaxTagNames = 50;
+            const int MaxTagNameLength = 100;
+
             string[]? tagNames = [];
-            DateTime startUtc = DateTime.UtcNow.AddHours(-8);
-            DateTime endUtc = DateTime.UtcNow;
 
-            //Console.WriteLine($"DB Request received with query: {ctx.Request.QueryString}");
+            if (!string.IsNullOrEmpty(tagNamesStr))
+            {
+                tagNames = [.. tagNamesStr.Split(',')
+                    .Take(MaxTagNames)
+                    .Where(t => !string.IsNullOrWhiteSpace(t) 
+                    && t.Length <= MaxTagNameLength
+                    && t.All(c => char.IsLetterOrDigit(c) || c == '_' || c == '-' || c == '.')
+                    )
+                    .Select(t => t.Trim())];
+            }
 
-            //if (ctx.Request.Query.TryGetValue("tagnames", out var tagNamesStr))
-                tagNames = tagNamesStr?.ToString().Split(',');
+            if (tagNames.Length == 0)
+                return Results.BadRequest("Keine gültigen TagNames übergeben");
 
-            //if (ctx.Request.Query.TryGetValue("start", out startStr) && DateTime.TryParse(startStr, out DateTime s))
-            if(DateTime.TryParse(startStr, out DateTime s))
+            System.DateTime startUtc = System.DateTime.UtcNow.AddHours(-8);
+            System.DateTime endUtc = System.DateTime.UtcNow;
+
+            if(System.DateTime.TryParse(startStr, out System.DateTime s))
                 startUtc = s.ToUniversalTime(); //lokale Zeit in UTC
-            
-            //if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
-            if(DateTime.TryParse(endStr, out DateTime e))
+              
+            if(System.DateTime.TryParse(endStr, out System.DateTime e))
                 endUtc = e.ToUniversalTime();
-            
-            JsonTag[] obj = Db.Db.GetDataSet(tagNames!, startUtc, endUtc, (MiniExcel.Interval)interval).Result;
-#if DEBUG
-            //Console.WriteLine($"JsonTag Objekte zum Senden: {obj.Length}");
-#endif          
+
+            // Sicherheitsbereich erzwingen
+            const int MaxDayRange = 92;
+            if ((endUtc - startUtc).TotalDays > MaxDayRange)
+                return Results.BadRequest($"Maximaler Zeitraum von {MaxDayRange} Tage erlaubt");
+
+            if (startUtc > endUtc)
+                return Results.BadRequest("Start muss vor dem Ende liegen");
+
+            // Validiere Interval
+            if (interval < 0 || interval > 6)
+                return Results.BadRequest("Ungültiger Intervall");
+
+            JsonTag[] obj = Db.Db.GetDataSet(tagNames, startUtc, endUtc, (MiniExcel.Interval)interval).Result;
+     
             return Results.Json(obj, AppJsonSerializerContext.Default.JsonTagArray);
         }
 
         private static IResult GetTagComments()
         {
-            List<Tag> allTags = Db.Db.GetDbTagNames(DateTime.UtcNow, 3);
+            List<Tag> allTags = Db.Db.GetDbTagNames(System.DateTime.UtcNow, 3);
 
             List<JsonTag> result = [];
 
             foreach (var tag in allTags)
             {
                 // Console.WriteLine($"{tag.TagName} = {tag.TagValue}");
-                result.Add(new JsonTag(tag.TagName, tag.TagComment, DateTime.Now));
+                result.Add(new JsonTag(tag.TagName, tag.TagComment, System.DateTime.Now));
             }
 
             return Results.Json([.. result], AppJsonSerializerContext.Default.JsonTagArray);
@@ -93,23 +119,35 @@ namespace Gemini.Middleware
 
         private static IResult WriteTagValue(HttpContext ctx, ClaimsPrincipal user)
         {
+            const int MaxTagValueLength = 10000; // 10 KB max
+            const int MaxTagNameLength = 256;
+
             string username = user.Identity?.Name ?? "-unbekannt-";
             string tagName = ctx.Request.Form["tagName"].ToString() ?? string.Empty;
             string tagVal = ctx.Request.Form["tagVal"].ToString() ?? string.Empty;
             string oldVal = ctx.Request.Form["oldVal"].ToString() ?? string.Empty;
 
+            // Größenlimits prüfen
+            if (tagName.Length > MaxTagNameLength)
+                return Results.BadRequest($"Tag-Name zu lang (max {MaxTagNameLength} Zeichen)");
+
+            if (tagVal.Length > MaxTagValueLength)
+                return Results.BadRequest($"Tag-Wert zu lang (max {MaxTagValueLength} Zeichen)");
+
+
             if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
             {
 #if DEBUG
-                Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung {tagName} zu ändern.");
+                //Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung {tagName} zu ändern.");
 #endif
                 return Results.Unauthorized();
             }
             else
             {
 #if DEBUG
-                Console.WriteLine($"Benutzer {user.Identity?.Name} [{user.Claims.FirstOrDefault()?.Value}] - Versucht {tagName} auf '{tagVal}' zu ändern.");
+                Console.WriteLine($"Benutzer {user.Identity?.Name} [{user.Claims.FirstOrDefault()?.Value}] - Versucht tagName auf '{tagVal}' zu ändern.");
 #endif
+                Db.Db.DbLogInfo($"Tag-Änderung durch {user.Identity?.Name}: TagName={(tagName?.Length > 50 ? tagName[..50] + "..." : tagName ?? "?")}, Status=Success");
             }
 
                 if (string.IsNullOrEmpty(tagName) || string.IsNullOrEmpty(tagVal))
@@ -135,13 +173,13 @@ namespace Gemini.Middleware
 
         private static IResult GetAlterations(HttpContext ctx)
         {      
-            DateTime startUtc = DateTime.UtcNow.AddDays(-1);
-            DateTime endUtc = DateTime.UtcNow;
+            System.DateTime startUtc = System.DateTime.UtcNow.AddDays(-1);
+            System.DateTime endUtc = System.DateTime.UtcNow;
 
-            if (ctx.Request.Query.TryGetValue("start", out var startStr) && DateTime.TryParse(startStr, out DateTime s))            
+            if (ctx.Request.Query.TryGetValue("start", out var startStr) && System.DateTime.TryParse(startStr, out System.DateTime s))            
                 startUtc = s.ToUniversalTime(); 
             
-            if (ctx.Request.Query.TryGetValue("end", out var endStr) && DateTime.TryParse(endStr, out DateTime e))            
+            if (ctx.Request.Query.TryGetValue("end", out var endStr) && System.DateTime.TryParse(endStr, out System.DateTime e))            
                 endUtc = e.ToUniversalTime();
 
             string filter = string.Empty;
@@ -189,7 +227,7 @@ namespace Gemini.Middleware
             _ = bool.TryParse(plcIsActiveStr, out bool plcIsActive);
 
 
-            plcName += DateTime.Now.Millisecond; //Name ist UNIQUE
+            plcName += System.DateTime.Now.Millisecond; //Name ist UNIQUE
 
             PlcConf plc = new(0, plcName, plcType, plcIp, plcRack, plcSlot, plcIsActive, plcComm);
             Db.Db.DbLogInfo($"Neue SPS: {plc.Name}, Ip:{plc.Ip}, Type {plcType}, Rack {plc.Rack}, Slot {plc.Slot} {(plc.IsActive ? "Aktiv" : "Pausiert")}, '{plc.Comment}' von {user.Identity?.Name} [{user.Claims?.FirstOrDefault()?.Value}]");

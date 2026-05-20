@@ -1,5 +1,5 @@
 ﻿
-import fetchSecure from '../module/fetch.js';
+import { fetchSecure, secureWebSocketToken } from '../module/fetch.js';
 import * as alert from '../module/alert.js';
 import { createSvgInstance } from '../module/svg.js';
 
@@ -69,13 +69,19 @@ function initTags() {
     return tagNames.map(tagNameToObject);
 }
 
-function initWebsocket(tags) {
-    if (tags.length == 0)
+async function initWebsocket(tags) {
+    if (tags.length == 0 || tags.length > 200)
         return;
 
-    const socketUrl = 'wss://' + window.location.host + '/ws';
-    const websocket = new WebSocket(socketUrl);
-
+    const proto = await secureWebSocketToken();
+    if (!proto) {
+        console.error("Kein CSRF-Token verfügbar für WebSocket-Handshake.");
+        return;
+    }
+    
+    const websocket = new WebSocket('wss://' + window.location.host + '/ws', [proto]);
+    //const websocket = new WebSocket('wss://' + window.location.host + '/ws' + token);
+    
     websocket.onopen = () => {
         console.log('✅ WebSocket-Verbindung hergestellt.');
 

@@ -1,5 +1,5 @@
 ﻿
-let currentCsrfToken = null; // Hier speichern wir das Token global
+let currentCsrfToken = null; 
 
 // Hilfsfunktion: Header kompatibel setzen (Plain object oder Headers)
 function setHeader(headers, name, value) {
@@ -18,7 +18,7 @@ export default async function fetchSecure(url, options = {}) {
     options.credentials = options.credentials || 'include'; // WICHTIG: Cookies mitschicken
 
     // Sicherstellen, dass wir überhaupt ein Token haben (z.B. beim ersten Start)
-    if (!currentCsrfToken) {
+    if (!currentCsrfToken && isUnsafeMethod(options.method)) {
         const ok = await refreshCsrfToken();
         if (!ok) {
             // Kein Token verfügbar — optional: Request abbrechen oder ohne Token versuchen
@@ -102,3 +102,28 @@ async function refreshCsrfToken() {
     return false;
 }
 
+
+
+// base64url ohne Padding
+function base64UrlEncodeFromString(str) {
+    if (!str) return '';
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    let b64 = btoa(binary);
+    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/* Liefert einen token-safe Subprotocol-String wie "csrf=..." für Sec-WebSocket-Protocol */
+async function secureWebSocketToken() {
+    if (!currentCsrfToken) {
+        const ok = await refreshCsrfToken();
+        if (!ok) return '';
+    }
+    const safe = base64UrlEncodeFromString(currentCsrfToken);
+    return `csrf-${safe}`;
+}
+
+
+export { fetchSecure, secureWebSocketToken }

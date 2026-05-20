@@ -7,24 +7,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel='stylesheet' href='../css/style.css'>
     <link rel='stylesheet' href='../css/svg.css'>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     <script type='module' src='../js/script.js'></script>
 
-    <style>
-       body {
+    <!--<style>
+        body {
             margin: 0;
             overflow: hidden;
-           /* font-family: sans-serif;*/
             color: white;
         }
-    </style>
+    </style>-->
 </head>
 <body>
 
     <div id="svgcontrols">
-        <button id="fullscreen" title="FullScreen">⛶</button>
-        <button id="zoom-in" title="Vergrößern">+</button>
-        <button id="zoom-out" title="Verkleinern">−</button>
-        <button id="reset-btn" title="Ansicht zurücksetzen">⟲</button>
+        <button id="fullscreen" title="Vollbild umschalten">fullscreen</button>
+        <button id="zoom-in" title="Vergrößern">zoom_in</button>
+        <button id="zoom-out" title="Verkleinern">zoom_out</button>
+        <button id="reset-btn" title="Ansicht zurücksetzen">center_focus_weak</button>
     </div>
 
     <svg id="svg-canvas" viewBox="0 0 1920 1080" style="background-color: var(--pageBgColor); ">
@@ -36,14 +36,15 @@
         <circle cx="1920" cy="1080" r="5" fill="teal" />
 
         <!-- Kondensator -->
-        <rect x="1300" y="100" width="120" height="150" fill="darkgrey" style="stroke:grey;stroke-width:1;" href="/soll/1" />
-        <defs>
-            <pattern id="patt1" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
-                <polyline points="0,0 0,10 10,10" style="fill:grey;stroke:lightgrey;stroke-width:1" />
-            </pattern>
-        </defs>
-
-        <rect width="100" height="80" x="1310" y="160" stroke="grey" fill="url(#patt1)" />
+      
+            <rect x="1300" y="100" width="120" height="150" fill="darkgrey" style="stroke:grey;stroke-width:1;" href="/soll/3" />
+            <defs>
+                <pattern id="patt1" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                    <polyline points="0,0 0,10 10,10" style="fill:grey;stroke:lightgrey;stroke-width:1" />
+                </pattern>
+            </defs>
+            <rect width="100" height="80" x="1310" y="160" stroke="grey" fill="url(#patt1)" />
+       
         <g x="1335" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_3' href="/soll/2"></g>
         <g x="1385" y="135" data-svg='ventilator' data-name='A01_DB10_DBX7_2'></g>
 

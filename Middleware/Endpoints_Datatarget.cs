@@ -1,6 +1,7 @@
 ﻿using Gemini.Db;
 using Gemini.DynContent;
 using Gemini.Models;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
 using System.Security.Claims;
@@ -42,10 +43,17 @@ namespace Gemini.Middleware
             Console.WriteLine($"DynChart {chartId} von {start} bis {end}");
 #endif
             string json;
-            string jsonPath = $"wwwroot/html/chart/chart{chartId}.json";
+            string jsonPath = Path.Combine(ChartConfigDir, $"chart{chartId}.json");
 
             if (!File.Exists(jsonPath))
+            {
+#if DEBUG
+                Console.WriteLine("Mögliche Kurven-Dateien:");
+                foreach (var path in Directory.GetFiles(ChartConfigDir))
+                    Console.WriteLine(" - " + path);
+#endif
                 return Results.NotFound(new AlertMessage("error", "Kurvenkonfiguration nicht gefunden"));
+            }
 
             using (TextReader reader = new StreamReader(jsonPath))
             {
@@ -61,9 +69,30 @@ namespace Gemini.Middleware
         }
 
 
-        private static IResult ChartConfigCreate(HttpContext context, ChartConfig chartConfig)
+        private static IResult ChartConfigCreate(HttpContext context, IAntiforgery antiforgery, ChartConfig chartConfig)
         {
+            try //CSRF-Angriff verhindern: Überprüfen, ob das Antiforgery-Token gültig ist
+            {
+                antiforgery.ValidateRequestAsync(context).GetAwaiter().GetResult();
+            }
+            catch (AntiforgeryValidationException)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return Results.Unauthorized();
+            }
+
             ClaimsPrincipal user = context.User;
+
+            if (chartConfig == null)
+                return Results.BadRequest("ChartConfig nicht übergeben");
+
+            if (string.IsNullOrWhiteSpace(chartConfig.Caption))
+                return Results.BadRequest("Chart-Titel erforderlich");
+
+            if (chartConfig.Caption.Length > 256)
+                return Results.BadRequest("Chart-Titel zu lang (max 256 Zeichen)");
+
+
             string username = user.Identity?.Name ?? "-unbekannt-";
 
             if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
@@ -110,7 +139,7 @@ namespace Gemini.Middleware
         private static IResult ChartConfigLoadNames()
         {
 
-            List<JsonTag> chartConfigNames = new();
+            List<JsonTag> chartConfigNames = [];
             string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
             foreach (var path in chartConfigFiles)
             {
@@ -123,12 +152,16 @@ namespace Gemini.Middleware
                     ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
                     if (chartConfig != null)
                         chartConfigNames.Add(new JsonTag(chartConfig.Caption, chartConfig.Id, System.DateTime.Now));
-
+#if DEBUG
                     Console.WriteLine($"Überschrift: {chartConfig?.Caption}");
+#endif
                 }
                 catch (Exception ex)
                 {
+#if DEBUG
                     Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
+#endif
+                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}");
                 }
             }
 

@@ -1,8 +1,9 @@
 ﻿import fetchSecure from '../module/fetch.js';
 
 const API_URL = 'https://' + window.location.host;
-const LOGGED_USER = 'userName';
+const LAST_USER = 'lastUser';
 const TOKEN_NAME = 'RequestVerificationToken';
+let timer;
 
 async function login() {
     const body = document.getElementsByTagName('BODY')[0];
@@ -23,18 +24,26 @@ async function login() {
         if (response.ok) {
             const data = await response.json();         
             const csrfToken = data.userToken;
-            sessionStorage.setItem(TOKEN_NAME, csrfToken);
-            localStorage.setItem(LOGGED_USER, userName);
+            const userInfo = {
+                lastUser: userName,
+                expiry: new Date().getTime() + 60 * 60 * 1000, // Token läuft in 60 Min. ab
+            }
+
+            sessionStorage.setItem(TOKEN_NAME, csrfToken);            
+            localStorage.setItem(LAST_USER, JSON.stringify(userInfo));
             el.textContent = userName;
-            el.style.color = 'green';
+            el.style.color = 'green';     
+            clearTimer();   
+            setTimer(userInfo.expiry);
         } else {
             el.textContent = 'Login fehlgeschlagen. Überprüfe Anmeldedaten.';
-            el.style.color = 'red';
+            el.style.color = 'red';            
         }
     } catch (e) { console.error("Fehler beim Login: " + e); }
     finally {
-        body.style.cursor = 'auto';
+        body.style.cursor = 'auto';        
     }
+               
 }
 
 async function logout() {
@@ -42,8 +51,9 @@ async function logout() {
     const el = document.getElementById('loginMessage');
     el.textContent = 'Logge aus...';
     body.style.cursor = 'wait';
-    const userName = localStorage.getItem(LOGGED_USER);
-    const userToken = 'FantasieToken';
+
+    const userName = JSON.parse(localStorage.getItem(LAST_USER))?.lastUser;
+    const userToken = sessionStorage.getItem(TOKEN_NAME);
     const response = await fetchSecure(`${API_URL}/logout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,22 +62,22 @@ async function logout() {
 
     if (response.ok) {        
         if (userName) {            
+            deleteUserStorage(el);
             el.textContent = userName + ' ausgeloggt';
             el.style.color = 'red';
-            sessionStorage.removeItem(TOKEN_NAME);
-            localStorage.removeItem(LOGGED_USER);
         }
     }
     else {
         el.textContent = `'${userName}' ausloggen fehlgeschlagen. Status ${response.status}`;
         el.style.color = 'orange';
     }
-    
+
     body.style.cursor = 'auto';
 }
 
  // Funktion zum Überprüfen des Login-Status beim Laden der Seite
 function checkLoginStatus() {
+    let isLoggedIn = false;
     let span = document.getElementById('loginMessage');
 
     if (!span) {
@@ -76,29 +86,64 @@ function checkLoginStatus() {
         span.style.padding = '0.2rem 0.5rem';
         span.style.border = '1px solid grey';
         span.style.borderRadius = '0.5rem';
+        span.textContent = 'Kein Benutzer';
+
+        let t = document.createElement('span');
+        t.setAttribute('id', 'userTimeout');
 
         const a = document.createElement('a');
         a.setAttribute('href', '/');
         a.appendChild(span);
+        a.appendChild(t);
 
         document.body.appendChild(a);
     }
 
+    const lastUserInfo = JSON.parse(localStorage.getItem(LAST_USER));
+    const expiry = lastUserInfo?.expiry ?? null;
+    const userName = lastUserInfo?.lastUser ?? null;
     const urlParams = new URLSearchParams(window.location.search);
+
     if (urlParams.has('auth') || urlParams.get('auth') == 'failed') {
         logout();
         console.log("SessionStorage bereinigt.");
     }
 
-    const loggedUser = localStorage.getItem(LOGGED_USER);
-    if (loggedUser) {
-        span.innerHTML = loggedUser;
-        span.style.backgroundcolor = 'lawngreen';
-    } else {
-        span.textContent = 'Kein Benutzer';
-        span.style.color = 'grey';
-        sessionStorage.removeItem(TOKEN_NAME);
+    if (!expiry || expiry < new Date().getTime())
+        deleteUserStorage(span);
+    else {
+        span.textContent = lastUserInfo.lastUser;
+        setTimer(expiry);
     }
+}
+
+
+function deleteUserStorage(span) {
+    localStorage.removeItem(LAST_USER);
+    sessionStorage.removeItem(TOKEN_NAME);
+    span.textContent = 'Kein Benutzer';
+    span.style.color = 'grey';
+    if (timer) {
+        clearTimer();
+    }
+}
+
+function setTimer(expiry) {
+    if (!expiry) return;
+    let timeout = document.getElementById('userTimeout');
+    timer = window.setInterval(function () {
+        let time = new Date(expiry - new Date().getTime());
+        timeout.innerHTML = time.getMinutes() + ":" + ('0' + time.getSeconds()).slice(-2);
+        if (time < 1000)
+            clearTimer();
+    }, 1000);
+}
+  
+function clearTimer() {
+    clearInterval(timer);   
+    timer = null;
+    document.getElementById('userTimeout').innerHTML = '00:00';
+    checkLoginStatus();
 }
 
 function getUserDataFromTableRow(row)
