@@ -30,9 +30,12 @@
         /// <returns></returns>
         public async Task InvokeAsync(HttpContext context)
         {
-            // Spezialfall: WebSocket-Upgrade (GET + Upgrade).
-            if (context.Request.Path.StartsWithSegments(new PathString("/ws"), StringComparison.OrdinalIgnoreCase)
-                && string.Equals(context.Request.Method, "CONNECT", StringComparison.OrdinalIgnoreCase))
+            // Spezialfall: WebSocket-Upgrade (GET + Upgrade oder HTTP/2 CONNECT)
+            //if (context.Request.Path.StartsWithSegments(new PathString("/ws"), StringComparison.OrdinalIgnoreCase)
+            //    && (string.Equals(context.Request.Method, "GET", StringComparison.OrdinalIgnoreCase)
+            //        || string.Equals(context.Request.Method, "CONNECT", StringComparison.OrdinalIgnoreCase))
+            //    && (context.Request.Headers.ContainsKey("Upgrade") || context.Request.Headers.ContainsKey("Sec-WebSocket-Key")))
+            if (context.Request.Path.StartsWithSegments(new PathString("/ws"), StringComparison.OrdinalIgnoreCase))
             {
                 var csrfToken = context.Request.Query["csrf"].FirstOrDefault();
 

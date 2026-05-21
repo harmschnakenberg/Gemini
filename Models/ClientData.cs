@@ -6,25 +6,42 @@ using System.Text.Json.Serialization;
 
 namespace Gemini.Models
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="UserName"></param>
+    /// <param name="UserToken"></param>
     public record LoginRequest(string UserName, string UserToken);
-
-    //public record LoginResponse(string RequestToken);
-
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="Token">The CSRF token used for request validation.</param>
     public record CsrfTokenResponse(string Token);
 
+    /// <summary>
+    /// Represents a message intended to alert the user, including its type and display text.
+    /// </summary>
+    /// <param name="Type">The type of the alert message, such as "error", "warning", or "info". Determines how the message should be
+    /// interpreted or displayed.</param>
+    /// <param name="Text">The text content of the alert message to be shown to the user.</param>
     public record AlertMessage(string Type, string Text);
 
+    /// <summary>
+    /// Represents a JSON tag that associates a name with a value and a timestamp.
+    /// </summary>
+    /// <param name="N">The name of the tag. This value identifies the tag within the JSON structure.</param>
+    /// <param name="V">The value associated with the tag. Can be any object or null if the tag has no value.</param>
+    /// <param name="T">The timestamp indicating when the tag was created or last modified.</param>
     public record JsonTag(string N, object? V, DateTime T);
 
-    //public class JsonTag(string n, object? v, DateTime t)
-    //{        
-    //    public string N { get; set; } = n;
-    //    public object? V { get; set; } = v;
-    //    public DateTime T { get; set; } = t;
-
-    //}
-
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="tagName"></param>
+    /// <param name="tagComment"></param>
+    /// <param name="tagValue"></param>
+    /// <param name="chartFlag"></param>
     public class Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
     {
         public string TagName { get; set; } = tagName;
@@ -57,6 +74,16 @@ namespace Gemini.Models
         public string User { get; set; } = user;
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="Id"></param>
+    /// <param name="Name"></param>
+    /// <param name="Author"></param>
+    /// <param name="Start"></param>
+    /// <param name="End"></param>
+    /// <param name="Interval"></param>
+    /// <param name="ChartConfig"></param>
     public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, ChartConfig ChartConfig); //Tag[] Tags
 
     //Todo: ChartConfig könnte man auch in der Datenbank speichern, um die Zuordnung von Tags zu Charts dynamisch zu gestalten.    
@@ -65,6 +92,14 @@ namespace Gemini.Models
     //die Datenstruktur zu vereinfachen. Es könnte sinnvoll sein, eine einheitliche Klasse zu verwenden,
     //die sowohl die Tag-Informationen als auch die Chart-Konfiguration enthält, um die Handhabung der Daten zu erleichtern und Redundanzen zu vermeiden.
 
+    /// <summary>
+    /// Represents the configuration settings for a chart, including captions and the mapping of tags to two distinct
+    /// charts.
+    /// </summary>
+    /// <remarks>Use this class to define the metadata and tag associations required to render one or two
+    /// related charts. The configuration includes a main caption, an optional subcaption, and dictionaries that map tag
+    /// identifiers to their display names or values for each chart. The Chart1Tags property is required and must be
+    /// provided, while Chart2Tags is optional and may be null if only one chart is configured.</remarks>
     [JsonSourceGenerationOptions(WriteIndented = true)]
     public class ChartConfig
     {
@@ -75,7 +110,12 @@ namespace Gemini.Models
         public Dictionary<string, string>? Chart2Tags { get; set; }
     }
 
-
+    /// <summary>
+    /// Represents a navigation link item for a menu, including its identifier, display name, and target URL.
+    /// </summary>
+    /// <param name="id">The unique identifier for the menu link.</param>
+    /// <param name="name">The display name of the menu link as shown to users.</param>
+    /// <param name="link">The URL or path that the menu link points to.</param>
     public class MenuLink(int id, string name, string link)
     {
         public int Id { get; set; } = id;

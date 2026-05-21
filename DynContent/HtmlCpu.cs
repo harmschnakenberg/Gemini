@@ -10,6 +10,11 @@ namespace Gemini.DynContent
 {
     public static partial class HtmlHelper
     {
+        /// <summary>
+        /// Lese IPV4-Adresse(n) des lokalen Computers aus und gibt sie als formatierte Zeichenkette zurück. Die Ausgabe enthält den Hostnamen gefolgt von einer Liste aller zugeordneten IPv4-Adressen, getrennt durch Kommas. 
+        /// IPv6-Adressen werden ignoriert. Falls keine IPv4-Adresse gefunden wird, wird nur der Hostname zurückgegeben.
+        /// </summary>
+        /// <returns></returns>
         public static string GetIPV4()
         {
             // Ermittelt den Hostnamen des lokalen Computers

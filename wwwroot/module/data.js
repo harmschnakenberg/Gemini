@@ -70,9 +70,9 @@ function initTags() {
 }
 
 async function initWebsocket(tags) {
-    if (tags.length == 0 || tags.length > 200)
+    if (tags.length == 0 || tags.length > 200) 
         return;
-
+   
     const proto = await secureWebSocketToken();
     if (!proto) {
         console.error("Kein CSRF-Token verfügbar für WebSocket-Handshake.");
@@ -80,8 +80,7 @@ async function initWebsocket(tags) {
     }
     
     const websocket = new WebSocket('wss://' + window.location.host + '/ws', [proto]);
-    //const websocket = new WebSocket('wss://' + window.location.host + '/ws' + token);
-    
+  
     websocket.onopen = () => {
         console.log('✅ WebSocket-Verbindung hergestellt.');
 
@@ -105,7 +104,7 @@ async function initWebsocket(tags) {
         if (event.wasClean) {
             console.log(`❌ Verbindung sauber geschlossen, Code=${event.code} Grund=${event.reason}`);
         } else {
-            console.error('❌ Verbindung unerwartet unterbrochen. ' + event.error);
+            console.error(`❌ Verbindung unerwartet unterbrochen. Code=${event.code} Grund=${event.reason} Fehler=${event.error}`);
         }
     };
 

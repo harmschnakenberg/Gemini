@@ -1,16 +1,6 @@
 ﻿
 let currentCsrfToken = null; 
 
-// Hilfsfunktion: Header kompatibel setzen (Plain object oder Headers)
-function setHeader(headers, name, value) {
-    if (!headers) return;
-    if (headers instanceof Headers) {
-        headers.set(name, value);
-    } else {
-        headers[name] = value;
-    }
-}
-
 // Ein Wrapper um fetch, der CSRF automatisch handhabt
 export default async function fetchSecure(url, options = {}) {
     // Default options
@@ -62,6 +52,15 @@ export default async function fetchSecure(url, options = {}) {
     return response;
 }
 
+// Hilfsfunktion: Header kompatibel setzen (Plain object oder Headers)
+function setHeader(headers, name, value) {
+    if (!headers) return;
+    if (headers instanceof Headers) {
+        headers.set(name, value);
+    } else {
+        headers[name] = value;
+    }
+}
 
 function getHeader(headers, name) {
     if (!headers) return undefined;
@@ -115,7 +114,7 @@ function base64UrlEncodeFromString(str) {
     return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/* Liefert einen token-safe Subprotocol-String wie "csrf=..." für Sec-WebSocket-Protocol */
+/* Liefert einen token-safe Subprotocol-String wie "csrf-..." für Sec-WebSocket-Protocol */
 async function secureWebSocketToken() {
     if (!currentCsrfToken) {
         const ok = await refreshCsrfToken();

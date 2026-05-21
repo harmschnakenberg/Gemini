@@ -61,6 +61,9 @@ namespace Gemini.DynContent
         /// The structure includes a table summarizing tag changes by user and time.</remarks>
         /// <param name="aTags">A list of tuples containing tag alteration details. Each tuple includes the timestamp, user name, and
         /// associated tag information.</param>
+        /// <param name="startUtc"></param>
+        /// <param name="endUtc"></param>
+        /// <param name="filter"></param>
         /// <returns>A string containing the generated HTML markup representing the altered tags, or null if no tags are
         /// provided.</returns>
         internal static string? ListAlteredTags(List<TagAltered> aTags, System.DateTime startUtc, System.DateTime endUtc, string filter)

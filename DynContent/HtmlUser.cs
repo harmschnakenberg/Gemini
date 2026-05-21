@@ -9,13 +9,13 @@ namespace Gemini.DynContent
     public static partial class HtmlHelper
     {
         /// <summary>
-        /// Erzeugt ein HTML-`<option>`-Element für eine Rollen-Auswahl. Fügt das Attribut "selected" hinzu,
+        /// Erzeugt ein HTML-`option`-Element für eine Rollen-Auswahl. Fügt das Attribut "selected" hinzu,
         /// wenn die übergebene aktuelle Rolle mit der angegebenen Rollen-Option übereinstimmt.
         /// </summary>
         /// <param name="role">Die aktuell zugewiesene Rolle des Benutzers (Vergleichsbasis).</param>
         /// <param name="roleOption">Die darzustellende Rollen-Option (wird als Wert des `value`-Attributs verwendet).</param>
         /// <param name="roleName">Die für den Benutzer sichtbare Bezeichnung der Rolle.</param>
-        /// <returns>Ein `string`, der das vollständige `<option>`-HTML-Element enthält; ggf. mit dem Attribut `selected`.</returns>
+        /// <returns>Ein `string`, der das vollständige `option`-HTML-Element enthält; ggf. mit dem Attribut `selected`.</returns>
         private static string RoleOption(Role role, Role roleOption, string roleName)
         {
             return $"<option value='{roleOption}' {(role == roleOption ? "selected" : string.Empty)}>{roleName}</option>";

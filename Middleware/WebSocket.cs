@@ -62,7 +62,7 @@ namespace Gemini.Middleware
             await _next(context);
         }
 
-        
+
         /// <summary>
         /// Serialisiert die Tags und sendet sie über den WebSocket an den Client.
         /// Nutzt ArrayPool und eine Puffervergrößerungs-Schleife für optimale Performance.
@@ -174,7 +174,7 @@ namespace Gemini.Middleware
             const int MaxJsonSize = 1024 * 100; // 100 KB limit
             const int MaxMessagesPerSecond = 100; // Rate-Limiting
             var rateLimiter = new RateLimiter(MaxMessagesPerSecond);
-                    
+
             try
             {
                 while (webSocket.State == WebSocketState.Open)
@@ -191,7 +191,7 @@ namespace Gemini.Middleware
 
                     if (r.MessageType == WebSocketMessageType.Close)
                         break;
-                    
+
                     // Optional: Wenn Client neue Tag-Liste sendet -> re-register
                     else if (r.MessageType == WebSocketMessageType.Text && r.Count > 0)
                     {
@@ -309,7 +309,7 @@ namespace Gemini.Middleware
                 return;
             }
             var clientId = Guid.NewGuid();
-              
+
             // Callback sendet geänderte Werte an den Client
             async Task SendWebsocketCallback(Models.JsonTag[] tagsToSend)
             {
@@ -317,8 +317,8 @@ namespace Gemini.Middleware
             }
 
             if (clientData is not null)
-            // Registriere Client und seine Tags beim globalen Manager
-            PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, clientData, SendWebsocketCallback);
+                // Registriere Client und seine Tags beim globalen Manager
+                PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, clientData, SendWebsocketCallback);
 
             // 2. Starte den Haupt-Loop zum Warten auf eingehende Nachrichten
             try
@@ -333,7 +333,7 @@ namespace Gemini.Middleware
                 // Verbindung beendet -> entferne die Tags dieses Clients global
 #if DEBUG
                 Console.WriteLine($"WebSocket client {clientId} disconnected.");
-                 Db.Db.DbLogInfo($"WebSocket von Client {PlcTagManager.Instance.ClientInfo.GetValueOrDefault(clientId)} beendet.");
+                Db.Db.DbLogInfo($"WebSocket von Client {PlcTagManager.Instance.ClientInfo.GetValueOrDefault(clientId)} beendet.");
 #endif
                 PlcTagManager.Instance.RemoveClient(clientId);
 

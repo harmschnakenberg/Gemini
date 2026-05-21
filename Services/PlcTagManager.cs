@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 namespace Gemini.Services
 {
     /// <summary>
-    /// Singleton: verwaltet alle angemeldeten Clients & Tags, pollt SPSen periodisch und sendet Änderungen.
+    /// Singleton: verwaltet alle angemeldeten Clients + Tags, pollt SPSen periodisch und sendet Änderungen.
     /// Optimierungen:
     /// - persistente PLC-Verbindungen über PlcConnectionManager
     /// - block-bündeltes Lesen (Merge von Bereichen)
@@ -51,6 +51,11 @@ namespace Gemini.Services
         private const int MaxBlockBytes = 2000; // maximale Bytes pro Block-Read
         private const double ChangeThreshold = 0.1; // minimaler Unterschied, um als Wertänderung zu gelten
 
+        /// <summary>
+        /// Gets the singleton instance of the PlcTagManager class.
+        /// </summary>
+        /// <remarks>Use this property to access the global PlcTagManager instance. This instance is
+        /// thread-safe and intended for shared use throughout the application.</remarks>
         public static PlcTagManager Instance { get; } = new PlcTagManager();
 
         private PlcTagManager()
@@ -103,6 +108,13 @@ namespace Gemini.Services
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clientId"></param>
+        /// <param name="ip"></param>
+        /// <param name="tags">An array of JSON tags associated with the client.</param>
+        /// <param name="sendCallback">A callback function to send updated tags to the client.</param>
         public void AddOrUpdateClient(Guid clientId, IPAddress ip, JsonTag[] tags, Func<JsonTag[], Task> sendCallback)
         {
             tags ??= []; // Wenn Tags = null, leeres Array verwenden
@@ -129,6 +141,10 @@ namespace Gemini.Services
                 Db.Db.DbLogInfo($"Client an {ip.MapToIPv4()} mit {tags.Length} Tags hinzugefügt/aktualisiert.");
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clientId">The unique identifier of the client to be removed.</param>
         public void RemoveClient(Guid clientId)
         {            
             Db.Db.DbLogInfo($"Client an {ClientInfo.GetValueOrDefault(clientId)?.MapToIPv4()} entfernt.");
@@ -405,6 +421,12 @@ namespace Gemini.Services
             _plcConfigs.Remove(plcName, out _);
         }
 
+        /// <summary>
+        /// Releases all resources used by the current instance and cancels any ongoing operations.
+        /// </summary>
+        /// <remarks>Call this method when the instance is no longer needed to ensure that all associated
+        /// resources, such as background tasks and connections, are properly disposed. After calling this method, the
+        /// instance should not be used.</remarks>
         public void Dispose()
         {
             _cts.Cancel();

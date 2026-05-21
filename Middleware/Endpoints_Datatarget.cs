@@ -161,7 +161,7 @@ namespace Gemini.Middleware
 #if DEBUG
                     Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
 #endif
-                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}");
+                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}, {ex.Message}");
                 }
             }
 
@@ -193,6 +193,7 @@ namespace Gemini.Middleware
 #if DEBUG
                     Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
 #endif
+                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}, {ex.Message}");
                 }
             }
 

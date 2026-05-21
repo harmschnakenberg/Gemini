@@ -7,17 +7,52 @@ namespace Gemini.DynContent
 {
     public sealed class MiniExcel
     {
+        /// <summary>
+        /// Zeitintervalle, die beim Export in Excel verwendet werden können.
+        /// </summary>        
         public enum Interval
         {
+            /// <summary>
+            /// Auflösung: Sekunde (yyyy-MM-dd HH:mm:ss).
+            /// </summary>
             Sekunde,
+
+            /// <summary>
+            /// Auflösung: Minute (yyyy-MM-dd HH:mm).
+            /// </summary>
             Minute,
+
+            /// <summary>
+            /// Auflösung: Viertelstunde (yyyy-MM-dd HH:mm).
+            /// </summary>
             Viertelstunde,
+
+            /// <summary>
+            /// Auflösung: Stunde (Stundenrunde, z.B. yyyy-MM-dd HH:'00').
+            /// </summary>
             Stunde,
+
+            /// <summary>
+            /// Auflösung: Tag (yyyy-MM-dd).
+            /// </summary>
             Tag,
+
+            /// <summary>
+            /// Auflösung: Monat (yyyy-MM).
+            /// </summary>
             Monat,
+
+            /// <summary>
+            /// Auflösung: Jahr (yyyy).
+            /// </summary>
             Jahr
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="interval"></param>
+        /// <returns></returns>
         public static string GetTimeFormat(Interval interval)
         {
             return interval switch
@@ -33,6 +68,11 @@ namespace Gemini.DynContent
             };
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="interval"></param>
+        /// <returns></returns>
         public static Interval GetTimeFormat(string interval)
         {
             return interval switch
@@ -49,6 +89,13 @@ namespace Gemini.DynContent
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="interval"></param>
+        /// <param name="tagNamesAndComment"></param>
+        /// <param name="jsonTags"></param>
+        /// <returns></returns>
         public static MemoryStream DownloadExcel(Interval interval, Dictionary<string, string> tagNamesAndComment, JsonTag[] jsonTags)
         {
             string timeFormat = GetTimeFormat(interval);
