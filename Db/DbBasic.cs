@@ -118,7 +118,7 @@ namespace Gemini.Db
                           );
 
                     PRAGMA journal_mode = WAL;
-                    PRGAMA foreign_keys = ON;
+                    PRAGMA foreign_keys = ON;
                     PRAGMA synchronous = NORMAL;
                     ";
                 int result = command.ExecuteNonQuery();
@@ -144,7 +144,7 @@ namespace Gemini.Db
 
                 _ = command.ExecuteNonQuery();
             }
-            _ = Db.CreateUser("Admin", "Admin", Role.Admin);
+            _ = Db.CreateUser("Admin", DateTime.Now.Year.ToString(), Role.Admin);
         }
 
         private static void CreateDayDatabaseAsync()
@@ -227,8 +227,8 @@ namespace Gemini.Db
                     //Wenn die letzte Tages-DB keine TagNames hat, wird eine weitere gesucht, bis counter = 0 ist
                     while (result <= 0 && --counter > 0)
                     {
-                        date = date.AddDays(-1);
-                        string dbPath = GetDayDbPath(date);
+                        date = date.AddDays(-1);                        
+                        string dbPath = GetDayDbPath(date).Replace("'", "''"); // Verdoppelt eventuelle einfache Anführungszeichen im Pfad zur Sicherheit
 
                         if (!File.Exists(dbPath))
                         {
@@ -238,8 +238,18 @@ namespace Gemini.Db
                             continue;
                         }
 
+                        // Pfad absichern: nur DB-Dateien aus dem DB-Ordner zulassen
+                        string fullPath = Path.GetFullPath(dbPath);
+                        string allowedBase = Path.GetFullPath(Path.Combine(AppFolder, "db")) + Path.DirectorySeparatorChar;
+                        if (!fullPath.StartsWith(allowedBase, StringComparison.OrdinalIgnoreCase))
+                        {
+                            Db.DbLogWarn($"Anzuhängende Datenbank außerhalb des DB-Ordners wird ignoriert: {fullPath}");
+                            continue;
+                        }
+
                         //Console.WriteLine($"Tagestabelle: Datei {dbPath} gefunden.");
 
+                        //Parametrisierung von dbPath nicht möglich, da ATTACH kein Prepared Statement unterstützt. Deshalb Pfadabsicherung vorher.
                         command.CommandText =
                                 $"ATTACH DATABASE '{dbPath}' AS old_db; " +                                
                                 "INSERT OR IGNORE INTO Tag SELECT NULL, Name, Comment, ChartFlag, LogFlag FROM old_db.Tag " + //Id nicht übernehmen, weil die Id sonst immer weiter gezählt werden. IGNORE darf eigentlich nicht notwendig sein, ist es aber scheinbar?.

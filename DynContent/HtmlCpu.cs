@@ -15,12 +15,12 @@ namespace Gemini.DynContent
         /// IPv6-Adressen werden ignoriert. Falls keine IPv4-Adresse gefunden wird, wird nur der Hostname zurückgegeben.
         /// </summary>
         /// <returns></returns>
-        public static string GetIPV4()
+        public static List<string> GetIPV4()
         {
             // Ermittelt den Hostnamen des lokalen Computers
             string hostname = Dns.GetHostName();
-            List<string> ipAddresses = [];
-
+            List<string> ipAddresses = [hostname];
+            
             // Holt die IP-Adresse(n) für den Hostnamen
             IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
 
@@ -30,11 +30,11 @@ namespace Gemini.DynContent
                 // Prüft, ob es eine IPv4-Adresse ist
                 if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
                 {
-                    ipAddresses.Add(ipAddress.ToString());
+                    ipAddresses.Append(ipAddress.ToString());
                 }
             }
 
-            return $"{hostname}, {string.Join(", ", ipAddresses)}"; //, {IPAddress.Loopback}
+            return ipAddresses;
         }
 
 
@@ -131,9 +131,18 @@ namespace Gemini.DynContent
             #endregion
 
             #region Informationen zum Host
+           sb.AppendLine("<h2>Dieses Gerät</h2>");
 
-            sb.AppendLine("<h2>Dieses Gerät</h2>");
-            sb.AppendLine("<p>Serveradresse: " + GetIPV4() + "</p>");
+            sb.AppendLine("<p>Serveradresse: <ul>");
+            var ipAddresses = GetIPV4();
+            foreach (var address in ipAddresses)            
+                sb.AppendLine($"<li><a href='https://{address}' style='color={(ApiSettings.AllowedOrigins.Contains(address) ? "green" : "white")}'>{address}</a></li>");
+
+            foreach (var orig in ApiSettings.AllowedOrigins)            
+                sb.AppendLine($"<li><a href='{orig}'><i>{orig}</i></a></li>");
+
+            sb.AppendLine("</ul></p>");
+
             sb.AppendLine("<p>Serverzeit (lokal): " + System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</p>");
             long dbSizeOnDiscMB = Db.Db.GetAllDbSizesInMBytes(out int dbFileCount);
             float dbSizeOnDiscGB = (float)dbSizeOnDiscMB / 1024;
@@ -220,8 +229,8 @@ namespace Gemini.DynContent
                 sb.AppendLine($"<td>{root.VolumeLabel}</td>");
                 sb.AppendLine($"<td>{root.DriveType}</td>");
                 sb.AppendLine($"<td>{root.DriveFormat}</td>");
-                sb.AppendLine($"<td>{totalSize}&nbsp;GB</td>");
-                sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
+                sb.AppendLine($"<td>{freeSpace}&nbsp;GB / {totalSize}&nbsp;GB</td>");
+                // sb.AppendLine($"<td>{freeSpace}&nbsp;GB</td>");
                 if(totalSize > 0)
                     sb.AppendLine($"<td><meter high='0.8' value='{1 - (float)freeSpace / totalSize}'>{100*(1 - (float)freeSpace / totalSize)}%</meter></td>");
                 sb.AppendLine("</tr>");

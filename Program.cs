@@ -49,6 +49,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur über HTTPS senden        
         options.Cookie.SameSite = SameSiteMode.Strict;
+        //options.Cookie.SameSite = SameSiteMode.None;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60); //Ticket Lifetime
         options.Cookie.MaxAge = options.ExpireTimeSpan; // Cookie Lifetime
         options.LoginPath = "/";
@@ -72,17 +73,33 @@ builder.Services.AddAuthorization();
 // AllowCredentials ist notwendig für Cookies über verschiedene Ports/Domains!
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend",
-        policy => policy
-        //.AllowAnyOrigin() //mit https nicht möglich
-        .WithOrigins(ApiSettings.AllowedOrigins) // Client-URL explizit nennen!
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-        .AllowCredentials()// <-- Zwingend erforderlich für Cookies
-        );    
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        var allowed = ApiSettings.AllowedOrigins;// Client-URL explizit nennen!
+        if (false && !builder.Environment.IsDevelopment())
+        {
+            // Produktion: nur HTTPS-Origins akzeptieren
+            allowed = allowed.Where(u => u.StartsWith("https://", StringComparison.OrdinalIgnoreCase)).ToArray();
+        }
+
+        policy.WithOrigins(allowed)
+            //.AllowAnyOrigin() //mit https nicht möglich
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // <-- Zwingend erforderlich für Cookies
+    });
 });
 
 builder.Services.AddAntiforgery();
+//// Antiforgery: Cookie ebenfalls auf SameSite=None setzen und Headername festlegen
+//builder.Services.AddAntiforgery(options =>
+//{
+//    options.Cookie.Name = "XSRF-TOKEN";
+//    options.Cookie.HttpOnly = true; // Token-Cookie muss durch JS lesbar sein, falls Client es liest
+//    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+//    options.Cookie.SameSite = SameSiteMode.None; // <-- passend zu Auth-Cookie
+//    options.HeaderName = "X-CSRF-TOKEN";
+//});
 
 builder.Services.AddScoped<Gemini.Db.Db>();
 #endregion
@@ -101,7 +118,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 if (!app.Environment.IsDevelopment())
 {
     app.UseHsts();
-    //app.UseHttpsRedirection();
+    //app.UseHttpsRedirection(); //war auskommentiert?
 }
 
 app.UseForwardedHeaders();
@@ -117,6 +134,11 @@ app.UseStatusCodePages(async context =>
     if (context.HttpContext.Response.StatusCode == 404)
     {
         await context.HttpContext.Response.WriteAsync("<h1>404 - Seite nicht gefunden</h1><a href='/'>Hauptmenü</a>");
+    }
+
+    if (context.HttpContext.Response.StatusCode == 404)
+    {
+        await context.HttpContext.Response.WriteAsync("<h1>403 - Zugriff verweigert</h1><a href='/'>Hauptmenü</a>");
     }
 });
 app.UseWebSockets();
@@ -153,10 +175,12 @@ while (!Endpoints.PleaseStop)
 
 static class ApiSettings
 {
-    internal static string[] AllowedOrigins { get; } = [       
-        "https://harm.local",
-        "https://kreuwebapp.local",
-        "http://127.0.0.1",
-        "https://localhost"
-    ];
+    internal static string[] AllowedOrigins { get; } = [.. Gemini.DynContent.HtmlHelper.GetIPV4().Select(ip => $"https://{ip}")];
+    //internal static string[] AllowedOrigins { get; } = [
+    //    "https://harm.local",
+    //    "https://kreuwebapp.local",
+    //    "http://127.0.0.1",
+    //    "https://localhost",
+    //    "https://192.168.160.235",
+    //];
 }

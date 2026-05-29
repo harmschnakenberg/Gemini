@@ -40,15 +40,44 @@ namespace Gemini.Middleware
                 // Weil die globale Middleware bereits validiert hat, überspringen wir doppelte Validierung.
                 if (!context.Items.ContainsKey("AntiforgeryValidatedForWebSocket"))
                 {
+                    Db.Db.DbLogInfo($"WebSocket Verbindungsversuch ohne AntiForgeryToken wurde nicht zugelassen.");
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
                     return;
                 }
 
-                // Origin prüfen (falls noch nicht gemacht) und dann Upgrade erlauben
-                if (context.Request.Headers.TryGetValue("Origin", out var origin))
+                // Robuste Origin-Prüfung: vergleiche Scheme+Host(+Port)
+                if (context.Request.Headers.TryGetValue("Origin", out var originHeader))
                 {
-                    if (!ApiSettings.AllowedOrigins.Contains(origin.ToString(), StringComparer.OrdinalIgnoreCase))
+
+                   // Db.Db.DbLogInfo($"WebSocket Verbindungsversuch von Origin: {originHeader} von IP: {context.Connection.RemoteIpAddress}");
+
+                    if (!Uri.TryCreate(originHeader.ToString(), UriKind.Absolute, out var originUri))
                     {
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        return;
+                    }
+
+                    //bool allowed = ApiSettings.AllowedOrigins.Contains(originHeader.ToString(), StringComparer.OrdinalIgnoreCase);
+
+                    bool allowed = ApiSettings.AllowedOrigins.Any(allowedOrigin =>
+                    {
+                        if (!Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowedUri))
+                            return false;
+
+                        bool schemeMatch = string.Equals(allowedUri.Scheme, originUri.Scheme, StringComparison.OrdinalIgnoreCase);
+                        bool hostMatch = string.Equals(allowedUri.Host, originUri.Host, StringComparison.OrdinalIgnoreCase);
+                        bool portMatch = (allowedUri.IsDefaultPort && originUri.IsDefaultPort) || (allowedUri.Port == originUri.Port);
+
+                        return schemeMatch && hostMatch && portMatch;
+                    });
+
+                    if (!allowed)
+                    {
+                        string logText = $"WebSocket Verbindungsversuch von {originHeader} wurde nicht zugelassen.";                    
+#if DEBUG
+                        logText += $" Zulässig sind {string.Join(',', ApiSettings.AllowedOrigins)}";
+#endif
+                        Db.Db.DbLogInfo(logText);
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
                         return;
                     }
