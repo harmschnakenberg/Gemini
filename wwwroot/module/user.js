@@ -102,12 +102,12 @@ function checkLoginStatus() {
     const lastUserInfo = JSON.parse(localStorage.getItem(LAST_USER));
     const expiry = lastUserInfo?.expiry ?? null;
     const userName = lastUserInfo?.lastUser ?? null;
-    const urlParams = new URLSearchParams(window.location.search);
+    //const urlParams = new URLSearchParams(window.location.search);
 
-    if (urlParams.has('auth') || urlParams.get('auth') == 'failed') {
-        logout();
-        console.log("SessionStorage bereinigt.");
-    }
+    //if (urlParams.has('auth') || urlParams.get('auth') == 'failed') {
+    //    logout();
+    //    console.log("SessionStorage bereinigt.");
+    //}
 
     if (!expiry || expiry < new Date().getTime())
         deleteUserStorage(span);

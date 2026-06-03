@@ -1,9 +1,11 @@
-﻿/* Module laden */
+﻿/// <reference path="../module/export.js" />
+
+/* Module laden */
 import loadSiteMenu from '../module/sitemenu.js';
 import plcUpdate from '../module/plc.js';
 import fetchSecure from '../module/fetch.js';
 import openTab from '../module/tab.js';
-import openModal from '../module/modal.js';
+import createModal from '../module/modal.js';
 import * as user from '../module/user.js';
 import * as data from '../module/data.js';
 import * as alert from '../module/alert.js';
@@ -22,7 +24,7 @@ window.plcUpdate = plcUpdate;
 window.openTab = openTab;
 window.svg = svg;
 window.openTab = openTab;
-window.openModal = openModal;
+window.createModal = createModal;
 
 /* Initiale Aufrufe */
 // in Production Kommentar entfernen // window.addEventListener("contextmenu", (e) => { e.preventDefault() });

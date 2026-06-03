@@ -21,10 +21,7 @@ namespace Gemini.Middleware
         /// <param name="app"></param>
         public static void MapEndpoints(this IEndpointRouteBuilder app)
         {
-            //app.MapGet("favicon.ico", Favicon) .AllowAnonymous();
-            //app.MapGet("/js/{filename}", JavaScriptFile).AllowAnonymous(); // Statische JS-Dateien dynamisch ausliefern oder über wwwroot?
-            //app.MapGet("/css/{filename}", StylesheetFile).AllowAnonymous(); // Statische CSS-Dateien dynamisch ausliefern oder über wwwroot?
-            app.MapGet("/{filePath:file}", ServeStaticFile).AllowAnonymous(); // Statische JS-Dateien dynamisch ausliefern | Offenbar statisch über wwwroot?
+            app.MapGet("/{filePath:file}", ServeStaticFile).AllowAnonymous(); // Statische Dateien dynamisch ausliefern | Offenbar statisch über wwwroot?
 
             app.MapPost("/login", Login).AllowAnonymous().DisableAntiforgery(); ;
             app.MapPost("/logout", Logout).AllowAnonymous().DisableAntiforgery(); ; // Logout Endpunkt (Nötig, da Client HttpOnly Cookies nicht löschen kann) Anonym, um auf Nummer sicher zu gehen?
@@ -48,15 +45,13 @@ namespace Gemini.Middleware
             app.MapPost("/tag/write", WriteTagValue).RequireAuthorization();
 
             app.MapGet("/export", GetExportForm).RequireAuthorization(); // Excel-Export Formular ausliefern
-            app.MapPost("/export", ExcelDownload).RequireAuthorization(); // Excel-Datei generieren und ausliefern
-            
-            app.MapPost("/export/config/delete", ExcelConfDelete).RequireAuthorization(); // Excel-Konfiguration löschen //nicht implementiert  
-            app.MapGet("/export/config/all", GetExportConf).RequireAuthorization(); // Alle Excel-Export-Konfigurationen aus Datenbank als JSON ausliefern.
-                                                             // Wirklich umsetzen?  ToDo: Implementieren oder entfernen?
+            app.MapPost("/export/excel'", ExcelDownload).RequireAuthorization(); // Excel-Datei generieren und ausliefern
+
+            //app.MapPost("/export/config/create", ExportConfigCreate).RequireAuthorization();
 
             app.MapGet("/db", DbQuery).RequireAuthorization(); // Datenbankabfrage und Ausgabe als JSON            
             app.MapPost("/db/download", DbDownload).RequireAuthorization(); ; // Datenbank-Dateien ausliefern   
-            app.MapGet("/db/list", DbList).RequireAuthorization();
+            app.MapGet("/db/list", DbList).RequireAuthorization(); // Liste aller Datenbank-Dateien ausliefern
 
             app.MapGet("/soll", ShowSoll); //
             app.MapGet("/soll/history", GetAlterations).RequireAuthorization();
@@ -66,15 +61,18 @@ namespace Gemini.Middleware
 
             app.MapGet("/chart", StaticChart).RequireAuthorization(); // Chart HTML ausliefern (bisher statisch, ToDo: TagNames dynamisch übergeben)
             app.MapGet("/chart/{chartId:int}", DynChart).RequireAuthorization();
-            app.MapPost("/chart/config/create", ChartConfigCreate).RequireAuthorization();
+            //app.MapPost("/chart/config/create", ChartConfigCreate).RequireAuthorization();
             app.Map("/chart/config/allnames", ChartConfigLoadNames).RequireAuthorization();
-            app.MapPost("/chart/config/{configId:int}", ChartConfigImport).RequireAuthorization();
+            app.MapPost("/chart/config/{chartId:int}", ChartConfigImport).RequireAuthorization();
+            app.MapPost("/chart/config/update/{chartId:int}", ChartConfigUpdate).RequireAuthorization();
+            app.MapPost("/chart/config/delete/{chartId:int}", ChartConfigDelete).RequireAuthorization();
 
             app.MapGet("/log", ShowLog).RequireAuthorization(); // Server Log                     
             app.MapGet("/exit", ServerShutdown).RequireAuthorization(); // Server herunterfahren
 
             app.MapGet("/", MainMenu).AllowAnonymous(); // Hauptmenü HTML ausliefern
         }
-         
+
+       
     }
 }

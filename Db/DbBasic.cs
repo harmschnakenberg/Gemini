@@ -107,14 +107,11 @@ namespace Gemini.Db
                           Length INTEGER                      
                           );
                     CREATE TABLE IF NOT EXISTS ChartConfig ( 
-                          Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                          Name TEXT NOT NULL,                               
-                          Author TEXT NOT NULL,  
-                          Start TEXT,
-                          End TEXT,
-                          Interval TEXT,
-                          Tags1 TEXT,
-                          Tags2 TEXT
+                          Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,                          
+                          Caption TEXT NOT NULL, 
+                          SubCaption TEXT, 
+                          Chart1Tags TEXT NOT NULL,
+                          Chart2Tags TEXT               
                           );
 
                     PRAGMA journal_mode = WAL;
@@ -138,8 +135,9 @@ namespace Gemini.Db
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.User},'{Role.User}'); 
                     INSERT INTO Roles (Id, Role) VALUES ({(int)Role.Guest},'{Role.Guest}'); 
                     UPDATE SQLITE_SEQUENCE SET seq = 9999 WHERE name = 'ChartConfig';
-                    INSERT INTO ChartConfig (Name, Author, Start, End, Interval, Tags) VALUES ('Test', 'Admin', '{DateTime.Now.AddDays(-1):yyyy-MM-dd HH:mm:ss}','{DateTime.Now.AddDays(1):yyyy-MM-dd HH:mm:ss}', '{MiniExcel.Interval.Minute}', '{{""dataType"":""Map"",""value"":[[""A01_DB10_DBW2"",""Stunden""],[""A01_DB10_DBW4"",""Minuten""],[""A01_DB10_DBW6"",""Sekunden""]]}}');
-            ";
+                ";
+                 //   INSERT INTO ChartConfig (Name, Author, Start, End, Interval, Tags) VALUES ('Test', 'Admin', '{DateTime.Now.AddDays(-1):yyyy-MM-dd HH:mm:ss}','{DateTime.Now.AddDays(1):yyyy-MM-dd HH:mm:ss}', '{MiniExcel.Interval.Minute}', '{{""dataType"":""Map"",""value"":[[""A01_DB10_DBW2"",""Stunden""],[""A01_DB10_DBW4"",""Minuten""],[""A01_DB10_DBW6"",""Sekunden""]]}}');
+            
 
 
                 _ = command.ExecuteNonQuery();

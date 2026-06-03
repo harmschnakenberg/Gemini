@@ -1,5 +1,5 @@
 ﻿import fetchSecure from '../module/fetch.js';
-import openModal from './modal.js';
+import createModal from './modal.js';
 
 async function initSvg() {
     const objs = document.querySelectorAll('[data-svg]')
@@ -41,7 +41,7 @@ function setModalLinks(canvas) {
         const link = links[i].getAttribute('href');
         if (link) {
             links[i].classList.add("svglink");
-            openModal(links[i], link);
+            createModal(links[i], link);
         }
     }
 }
@@ -261,7 +261,7 @@ function createSvgInstance(obj) {
     if (link) {
         //instance.style.cursor = 'help';
         instance.classList.add('svglink');
-        openModal(instance, link);
+        createModal(instance, link);
     }
 
 	// 5. Animation hinzufügen

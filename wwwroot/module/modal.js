@@ -1,11 +1,14 @@
 ﻿import fetchSecure from '../module/fetch.js';
 
 /*
- * @param {any} btnObj           // btnObj: button that opens the modal
- * @param {any} link             // Link zum Sollwertfenster
+ * Ereugt ein neues, Modal im DOM.
+ * Inhalte werden über den link-parameter hinzugefügt.
+ * 
+ * @param {object} btnObj           // btnObj: button der das modal öffen
+ * @param {string} link             // Link zum Sollwertfenster
  */
 
-export default async function openModal(btnObj, link) {
+export default async function createModal(btnObj, link) {
     // Modal dynamisch im DOM erzeugen, aber Werte erst bai Aufruf vom Server abrufen
 
     // Get the modal

@@ -2,6 +2,7 @@
 using Gemini.DynContent;
 using Gemini.Models;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
 using System.Security.Claims;
@@ -69,8 +70,75 @@ namespace Gemini.Middleware
         }
 
 
+        private static IResult ChartConfigLoadNames()
+        {
+
+            List<JsonTag> chartConfigNames = [];
+            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
+            foreach (var path in chartConfigFiles)
+            {
+                if (!Path.GetFileName(path).StartsWith("chart") || !Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    string json = File.ReadAllText(path);
+                    ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
+                    if (chartConfig != null)
+                        chartConfigNames.Add(new JsonTag(chartConfig.Id.ToString(), chartConfig.Caption, System.DateTime.Now));
+#if DEBUG
+                    Console.WriteLine($"Überschrift: {chartConfig?.Caption}");
+#endif
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
+#endif
+                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}, {ex.Message}");
+                }
+            }
+
+            /*
+             Was, wenn zwei Konfigurationen den gleichen Namen haben? Aktuell werden beide Namen in die Liste aufgenommen, da die ID ja eindeutig ist.
+             */
+
+            return Results.Json([.. chartConfigNames], AppJsonSerializerContext.Default.JsonTagArray);
+
+        }
+
+        private static IResult ChartConfigImport(HttpContext context, int chartId)
+        {
+            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
+            foreach (var path in chartConfigFiles)
+            {
+                if (!Path.GetFileName(path).StartsWith("chart") || !Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                try
+                {
+                    string json = File.ReadAllText(path);
+                    ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
+                    if (chartConfig != null && chartConfig.Id == chartId)
+                        return Results.Json(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
+                }
+                catch (Exception ex)
+                {
+#if DEBUG
+                    Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
+#endif
+                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}, {ex.Message}");
+                }
+            }
+
+            return Results.NotFound($"Keine Kurvenkonfiguration mit der ID {chartId} gefunden.");
+
+
+        }
+
         private static IResult ChartConfigCreate(HttpContext context, IAntiforgery antiforgery, ChartConfig chartConfig)
         {
+            #region Sicherheitsüberprüfung
             try //CSRF-Angriff verhindern: Überprüfen, ob das Antiforgery-Token gültig ist
             {
                 antiforgery.ValidateRequestAsync(context).GetAwaiter().GetResult();
@@ -103,6 +171,8 @@ namespace Gemini.Middleware
                 return Results.LocalRedirect("/");
             }
 
+            #endregion
+
             #region größte ChartId finden
             int maxId = 0;
             string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
@@ -120,87 +190,156 @@ namespace Gemini.Middleware
 
             #endregion
 
-            chartConfig.Id = chartId;
+            try
+            {
+                chartConfig.Id = chartId;
+                string fileName = $"chart{chartId}.json";
+                string json = JsonSerializer.Serialize(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
+
+                //Wohl formatiert 'Pretty Print' für Menschen lesbar machen.
+                //json = json.Replace("{", "{" + Environment.NewLine).Replace("}", Environment.NewLine + "}").Replace(",", "," + Environment.NewLine);
+
+                json = JsonHelper.FormatJson(json);
+
+                File.WriteAllText(Path.Combine(ChartConfigDir, fileName), json);
+
+                Db.Db.DbLogInfo($"Benutzer {username} erstellt Kurvenkonfiguration {fileName} [{chartConfig.Caption}] mit {chartConfig.Chart1Tags.Count} Tags: {string.Join(',', chartConfig.Chart1Tags.Values)}");
+
+                return Results.Json(new AlertMessage(Type: "success", Text: $"Konfiguration als [{chartId}] '{chartConfig.Caption}' gespeichert."), AppJsonSerializerContext.Default.AlertMessage);
+            }
+            catch
+            {
+                return Results.Json(new AlertMessage(Type: "error", Text: $"Konfiguration '{chartConfig.Caption}' konnte nicht gespeichert werden."), AppJsonSerializerContext.Default.AlertMessage);
+            }
+
+        }
+
+        private static IResult ChartConfigUpdate(HttpContext context, IAntiforgery antiforgery, ChartConfig chartConfig)
+        {
+            #region Sicherheitsüberprüfung
+            try //CSRF-Angriff verhindern: Überprüfen, ob das Antiforgery-Token gültig ist
+            {
+                antiforgery.ValidateRequestAsync(context).GetAwaiter().GetResult();
+            }
+            catch (AntiforgeryValidationException)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return Results.Unauthorized();
+            }
+
+            ClaimsPrincipal user = context.User;
+
+            if (chartConfig == null)
+                return Results.BadRequest("ChartConfig nicht übergeben");
+
+            if (string.IsNullOrWhiteSpace(chartConfig.Caption))
+                return Results.BadRequest("Chart-Titel erforderlich");
+
+            if (chartConfig.Caption.Length > 256)
+                return Results.BadRequest("Chart-Titel zu lang (max 256 Zeichen)");
+
+
+            string username = user.Identity?.Name ?? "-unbekannt-";
+
+            if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
+            {
+#if DEBUG
+                Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung Kurvenkonfigurationen anzulegen oder zu ändern.");
+#endif
+                return Results.LocalRedirect("/");
+            }
+
+            #endregion
+
+            if (chartConfig.Id < 0)
+            {
+                #region größte ChartId finden
+                int maxId = 0;
+                string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
+
+                foreach (var path in chartConfigFiles)
+                {
+                    string idStr = Path.GetFileNameWithoutExtension(path);
+                    //Console.WriteLine(idStr);
+                    _ = int.TryParse(idStr.AsSpan(5), out int id);
+                    if (id > maxId)
+                        maxId = id;
+                }
+
+                chartConfig.Id = ++maxId;
+                #endregion
+            }
+
+
+            try
+            {                
+                string fileName = $"chart{chartConfig.Id}.json";
+                string json = JsonSerializer.Serialize(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
+                             
+                json = JsonHelper.FormatJson(json);
+
+                File.WriteAllText(Path.Combine(ChartConfigDir, fileName), json);
+
+                Db.Db.DbLogInfo($"Benutzer {username} erstellt/ändert Kurvenkonfiguration {fileName} [{chartConfig.Caption}] mit {chartConfig.Chart1Tags.Count} Tags: {string.Join(',', chartConfig.Chart1Tags.Values)}");
+
+                return Results.Json(new AlertMessage(Type: "success", Text: $"Konfiguration als [{chartConfig.Id}] '{chartConfig.Caption}' gespeichert."), AppJsonSerializerContext.Default.AlertMessage);
+            }
+            catch
+            {
+                return Results.Json(new AlertMessage(Type: "error", Text: $"Konfiguration '{chartConfig.Caption}' konnte nicht gespeichert werden."), AppJsonSerializerContext.Default.AlertMessage);
+            }
+
+        }
+
+        private static IResult ChartConfigDelete(HttpContext context, IAntiforgery antiforgery, int chartId)
+        {
+            #region Sicherheitsüberprüfung
+            try //CSRF-Angriff verhindern: Überprüfen, ob das Antiforgery-Token gültig ist
+            {
+                antiforgery.ValidateRequestAsync(context).GetAwaiter().GetResult();
+            }
+            catch (AntiforgeryValidationException)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                return Results.Unauthorized();
+            }
+
+            ClaimsPrincipal user = context.User;
+
+            if (chartId <= 0)
+                return Results.BadRequest("Ungültige ChartConfig ID");
+
+            string username = user.Identity?.Name ?? "-unbekannt-";
+
+            if (!user.IsInRole(Role.Admin.ToString()) && !user.IsInRole(Role.User.ToString()))
+            {
+#if DEBUG
+                Console.WriteLine($"Benutzer {user.Identity?.Name} ist [{user.Claims.FirstOrDefault()?.Value}] - keine Berechtigung Kurvenkonfigurationen zu löschen.");
+#endif
+                return Results.LocalRedirect("/");
+            }
+
+            #endregion
+
             string fileName = $"chart{chartId}.json";
-            string json = JsonSerializer.Serialize(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
+            string filePath = Path.Combine(ChartConfigDir, fileName);
+            string msg = $"Benutzer {username} löscht die Kurvenkonfiguration {fileName}.";
 
-            //Wohl formatiert 'Pretty Print' für Menschen lesbar machen.
-            json = json.Replace("{", "{" + Environment.NewLine).Replace("}", Environment.NewLine + "}").Replace(",", "," + Environment.NewLine);
+            try
+            {    
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
 
-            File.WriteAllText(Path.Combine(ChartConfigDir, fileName), json);
+                Db.Db.DbLogWarn(msg);
 
-            Db.Db.DbLogInfo($"Benutzer {username} erstellt Kurvenkonfiguration {fileName} [{chartConfig.Caption}] mit {chartConfig.Chart1Tags.Count} Tags: {string.Join(',', chartConfig.Chart1Tags.Values)}");
-
-            return Results.Ok();
-
-            //throw new NotImplementedException();
-        }
-
-        private static IResult ChartConfigLoadNames()
-        {
-
-            List<JsonTag> chartConfigNames = [];
-            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
-            foreach (var path in chartConfigFiles)
-            {
-                if (!Path.GetFileName(path).StartsWith("chart") || !Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                try
-                {
-                    string json = File.ReadAllText(path);
-                    ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
-                    if (chartConfig != null)
-                        chartConfigNames.Add(new JsonTag(chartConfig.Caption, chartConfig.Id, System.DateTime.Now));
-#if DEBUG
-                    Console.WriteLine($"Überschrift: {chartConfig?.Caption}");
-#endif
-                }
-                catch (Exception ex)
-                {
-#if DEBUG
-                    Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
-#endif
-                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}, {ex.Message}");
-                }
+                return Results.Json(new AlertMessage(Type: "success", Text: $"Konfiguration [{chartId}] '{filePath}' gelöscht."), AppJsonSerializerContext.Default.AlertMessage);
             }
-
-            /*
-             Was, wenn zwei Konfigurationen den gleichen Namen haben? Aktuell werden beide Namen in die Liste aufgenommen, da die ID ja eindeutig ist.
-             */
-
-            return Results.Json([.. chartConfigNames], AppJsonSerializerContext.Default.JsonTagArray);
-
-        }
-
-        private static IResult ChartConfigImport(HttpContext context, int configId)
-        {
-            string[] chartConfigFiles = [.. Directory.GetFiles(ChartConfigDir)];
-            foreach (var path in chartConfigFiles)
+            catch
             {
-                if (!Path.GetFileName(path).StartsWith("chart") || !Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase))
-                    continue;
-
-                try
-                {
-                    string json = File.ReadAllText(path);
-                    ChartConfig? chartConfig = JsonSerializer.Deserialize(json, AppJsonSerializerContext.Default.ChartConfig);
-                    if (chartConfig != null && chartConfig.Id == configId)
-                        return Results.Json(chartConfig, AppJsonSerializerContext.Default.ChartConfig);
-                }
-                catch (Exception ex)
-                {
-#if DEBUG
-                    Console.WriteLine($"Fehler beim Laden der Kurvenkonfiguration aus Datei {path}: {ex.Message}");
-#endif
-                    Db.Db.DbLogWarn($"Fehler beim Laden der Kurvenkonfiguration: {Path.GetFileName(path)}, {ex.Message}");
-                }
+                return Results.Json(new AlertMessage(Type: "error", Text: $"Konfiguration [{chartId}] '{filePath}' konnte nicht gelöscht werden."), AppJsonSerializerContext.Default.AlertMessage);
             }
-
-            return Results.NotFound($"Keine Kurvenkonfiguration mit der ID {configId} gefunden.");
-
-
         }
+
 
         #endregion
 
@@ -286,65 +425,79 @@ namespace Gemini.Middleware
 
         }
 
-        private static IResult GetExportConf(HttpContext context)
-        {
-            List<TagCollection> ChartCollections = Db.Db.GetTagCollections();
+        /// <summary>
+        /// Handles an HTTP request to retrieve and return a list of chart configurations from the database as a JSON response.
+        /// Die Umsetzung von Kurven-Konfigurationen als Dateien in einem Verzeichnis ist nicht optimal, da es zu Synchronisationsproblemen kommen kann
+        /// Die Umsetzung von Kurven-Konfigurationen in der Datenbank ist nicht optimal, da JSON-Dateinen leichter extern bearbeitet werden können. 
+        /// Aktuell werden die Kurven-Konfigurationen in der Datenbank gespeichert, um die Excel-Export-Funktionalität zu ermöglichen. 
+        /// Es wäre jedoch besser, wenn die Kurven-Konfigurationen ebenfalls als JSON-Dateien im Verzeichnis gespeichert würden, 
+        /// um eine konsistentere und flexiblere Handhabung zu ermöglichen. 
+        /// Eine mögliche Lösung wäre, die Kurven-Konfigurationen als JSON-Dateien im Verzeichnis zu speichern und bei Bedarf in die Datenbank zu importieren, 
+        /// wenn sie für den Excel-Export benötigt werden. 
+        /// Dadurch könnten Synchronisationsprobleme vermieden und gleichzeitig die Vorteile von JSON-Dateien genutzt werden.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        //private static IResult GetExportConf(HttpContext context)
+        //{
+        //    List<TagCollection> ChartCollections = Db.Db.GetTagCollections();
 
-            foreach (var item in ChartCollections)
-            {
-                //Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.Tags[0].TagName}");
-                Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.ChartConfig.Chart1Tags}");
-            }
+        //    foreach (var item in ChartCollections)
+        //    {
+        //        //Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.Tags[0].TagName}");
+        //        Console.WriteLine($"{item.Id} {item.Name} {item.Author} {item.ChartConfig.Chart1Tags}");
+        //    }
 
-            //HIER FEHLER
-            string json = JsonSerializer.Serialize([.. ChartCollections], AppJsonSerializerContext.Default.TagCollectionArray);
-            Console.WriteLine("JSON " + json);
+        //    //HIER FEHLER
+        //    string json = JsonSerializer.Serialize([.. ChartCollections], AppJsonSerializerContext.Default.TagCollectionArray);
+        //    Console.WriteLine("JSON " + json);
 
-            //return Results.Json(json, AppJsonSerializerContext.Default.TagCollectionArray);
-            return Results.Content(json, "application/json");
+        //    //return Results.Json(json, AppJsonSerializerContext.Default.TagCollectionArray);
+        //    return Results.Content(json, "application/json");
 
-        }
+        //}
 
-        private static IResult ExcelConfCreate(TagCollection x, HttpContext ctx, ClaimsPrincipal user)
-        {
-            bool isAuthorized = user.IsInRole(Role.User.ToString()) || user.IsInRole(Role.Admin.ToString());
-            if (!isAuthorized) //Nur Administratoren und User dürfen Konfigurationen speichern
-                return Results.Unauthorized();
+//        private static IResult ExcelConfCreate(TagCollection x, HttpContext ctx, ClaimsPrincipal user)
+//        {
+//            bool isAuthorized = user.IsInRole(Role.User.ToString()) || user.IsInRole(Role.Admin.ToString());
+//            if (!isAuthorized) //Nur Administratoren und User dürfen Konfigurationen speichern
+//                return Results.Unauthorized();
 
-            if (x is null)
-                return Results.NoContent();
+//            if (x is null)
+//                return Results.NoContent();
 
-            string author = user.Identity?.Name ?? "-unbekannt-";
-#if DEBUG
-            Console.WriteLine($"ExcelConfCreate()\r\n" +
-                $"name={x?.Name}\r\n" +
-                $"author={x?.Author}\r\n" +
-                $"startStr={x?.Start}\r\n" +
-                $"endStr= {x?.End}\r\n" +
-                $"intervalStr={x?.Interval}\r\n" +
-                //$"tagsStr={x?.Tags}\r\n");
-                $"tagsStr={x?.ChartConfig.Chart1Tags}\r\n");
-#endif
-            int result = Db.Db.CreateChartconfig(x!.Name, author, x.Start, x.End, (Gemini.DynContent.MiniExcel.Interval)x.Interval, x.ChartConfig);
+//            string author = user.Identity?.Name ?? "-unbekannt-";
+//#if DEBUG
+//            Console.WriteLine($"ExcelConfCreate()\r\n" +
+//                $"name={x?.Name}\r\n" +
+//                $"author={x?.Author}\r\n" +
+//                $"startStr={x?.Start}\r\n" +
+//                $"endStr= {x?.End}\r\n" +
+//                $"intervalStr={x?.Interval}\r\n" +
+//                //$"tagsStr={x?.Tags}\r\n");
+//                $"tagsStr={x?.ChartConfig.Chart1Tags}\r\n");
+//#endif
+//            int result = Db.Db.CreateChartconfig(x!.Name, author, x.Start, x.End, (Gemini.DynContent.MiniExcel.Interval)x.Interval, x.ChartConfig);
 
-            if (result > 0)
-                return Results.Ok();
-            else
-                return Results.Conflict();
-        }
+//            if (result > 0)
+//                return Results.Ok();
+//            else
+//                return Results.Conflict();
+//        }
 
-        private static IResult ExcelConfDelete(int id, HttpContext ctx, ClaimsPrincipal user)
-        {
-            bool isAdmin = user.IsInRole(Role.Admin.ToString());
-            if (!isAdmin) // Nur Admins können Konfigurationen löschen
-                return Results.Unauthorized();
 
-            int result = Db.Db.DeleteChartconfig(id);
-            if (result > 0)
-                return Results.Ok();
-            else
-                return Results.Conflict();
-        }
+        //private static IResult ExcelConfDelete(int chartId, HttpContext ctx, ClaimsPrincipal user)
+        //{
+        //    bool isAdmin = user.IsInRole(Role.Admin.ToString());
+        //    if (!isAdmin) // Nur Admins können Konfigurationen löschen
+        //        return Results.Unauthorized();
+
+        //    int result = Db.Db.DeleteChartconfig(id);
+        //    if (result > 0)
+        //        return Results.Ok();
+        //    else
+        //        return Results.Conflict();
+        //}
 
 
         #endregion
@@ -384,4 +537,74 @@ namespace Gemini.Middleware
 #endregion
 
     }
+
+    // Source - https://stackoverflow.com/a/6237866
+    // Posted by Peter Long, modified by community. See post 'Timeline' for change history
+    // Retrieved 2026-06-03, License - CC BY-SA 3.0
+
+    class JsonHelper
+    {
+        private const string INDENT_STRING = "  ";
+        public static string FormatJson(string str)
+        {
+            var indent = 0;
+            var quoted = false;
+            var sb = new StringBuilder();
+            for (var i = 0; i < str.Length; i++)
+            {
+                var ch = str[i];
+                switch (ch)
+                {
+                    case '{':
+                    case '[':
+                        sb.Append(ch);
+                        if (!quoted)
+                        {
+                            sb.AppendLine();
+                            foreach (var item in Enumerable.Range(0, ++indent))
+                                sb.Append(INDENT_STRING);
+                        }
+                        break;
+                    case '}':
+                    case ']':
+                        if (!quoted)
+                        {
+                            sb.AppendLine();
+                            foreach (var item in Enumerable.Range(0, --indent))
+                                sb.Append(INDENT_STRING);
+                        }
+                        sb.Append(ch);
+                        break;
+                    case '"':
+                        sb.Append(ch);
+                        bool escaped = false;
+                        var index = i;
+                        while (index > 0 && str[--index] == '\\')
+                            escaped = !escaped;
+                        if (!escaped)
+                            quoted = !quoted;
+                        break;
+                    case ',':
+                        sb.Append(ch);
+                        if (!quoted)
+                        {
+                            sb.AppendLine();
+                            foreach (var item in Enumerable.Range(0, indent))
+                                sb.Append(INDENT_STRING);
+                        }
+                        break;
+                    case ':':
+                        sb.Append(ch);
+                        if (!quoted)
+                            sb.Append(' ');
+                        break;
+                    default:
+                        sb.Append(ch);
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
+    }
+
 }

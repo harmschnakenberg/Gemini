@@ -69,6 +69,10 @@ function getDragAfterElement(container, y) {
 
 
 // --- Funktionen zum Hinzufügen und Löschen von Elementen ---
+
+/**
+ * Ereugt einen neuen Listeneintrag    
+ */
 function addItem() {
     const input = document.getElementById('newItemInput');
     const value = input.value.trim();
@@ -79,6 +83,18 @@ function addItem() {
     }
 }
 
+/**
+ * Lösche alle sortable-items (Listeneinträge)
+ */
+function deleteAllItems() {    
+    const listItems = document.querySelectorAll('.sortable-item');
+    listItems.forEach(li => { li.remove(); });
+    // oder item.parentNode.removeChild(item); for older browsers (Edge-)
+}
+
+/**
+ * Erzeugt eine drag and drop Listeneintag mit Löschen-Button
+ */
 function createListItem(text) {
     const li = document.createElement('li');
     li.classList.add('sortable-item');
@@ -126,4 +142,4 @@ function isValid(input) {
 }
 
 
-export { addItem, setupDragAndDrop }
+export { addItem, deleteAllItems, setupDragAndDrop }

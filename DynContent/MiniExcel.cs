@@ -5,6 +5,9 @@ using MiniExcelLibs.OpenXml;
 
 namespace Gemini.DynContent
 {
+    /// <summary>
+    /// Klasse zum Erstellen von Excel-Dateien.
+    /// </summary>
     public sealed class MiniExcel
     {
         /// <summary>

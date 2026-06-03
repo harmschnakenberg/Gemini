@@ -44,9 +44,21 @@ namespace Gemini.Models
     /// <param name="chartFlag"></param>
     public class Tag(string tagName, string tagComment, object? tagValue, bool chartFlag)
     {
+        /// <summary>
+        /// The name of the tag, which serves as an identifier for the tag within the system. This property is initialized with the provided tagName parameter and can be used to reference the tag in various operations, such as updates, retrievals, or display purposes.
+        /// </summary>
         public string TagName { get; set; } = tagName;
+        /// <summary>
+        /// A comment or description associated with the tag, providing additional context or information about the tag's purpose, usage, or any relevant details. This property is initialized with the provided tagComment parameter and can be used to enhance the understanding of the tag for users or developers interacting with it.
+        /// </summary>
         public string TagComment { get; set; } = tagComment;
+        /// <summary>
+        /// The value assigned to the tag, which can be of any type (object) or null if the tag has no value. This property is initialized with the provided tagValue parameter and represents the current state or data associated with the tag. It can be used for various purposes, such as storing configuration values, tracking state, or holding any relevant information that the tag is meant to represent.
+        /// </summary>
         public object? TagValue { get; set; } = tagValue;
+        /// <summary>
+        /// A boolean flag indicating whether the tag is associated with a chart or not. This property is initialized with the provided chartFlag parameter and can be used to determine if the tag should be included in chart-related operations, such as data visualization or chart configuration. A value of true indicates that the tag is relevant for charts, while false indicates that it is not.
+        /// </summary>
         public bool ChartFlag { get; set; } = chartFlag;
     }
 
@@ -66,50 +78,26 @@ namespace Gemini.Models
     /// <param name="user">The identifier of the user who performed the tag modification.</param>
     public class TagAltered(DateTime timestamp, string tagName, string tagComment, object? tagValue, object? oldValue, string user) : Tag(tagName, tagComment, tagValue, false)
     {
+        /// <summary>
+        /// The timestamp indicating when the tag was modified. This property is initialized with the provided timestamp parameter and serves as a record of the exact time when the alteration occurred. It can be used for auditing purposes, tracking changes over time, and associating modifications with specific events or user actions.
+        /// </summary>
         public DateTime Timestamp { get; set; } = timestamp;
-        //public string TagName { get; set; } = tagName;
-        //public string TagComment { get; set; } = tagComment;
+        
+        /// <summary>
+        /// The new value assigned to the tag after the modification. This property is initialized with the provided tagValue parameter and represents the current state of the tag following the alteration. It can be used to understand what the tag's value is after the change and can be compared with the OldValue property to see what was modified.
+        /// </summary>
         public object? NewValue { get; set; } = tagValue;
+        /// <summary>
+        /// The previous value of the tag before the modification. This property is initialized with the provided oldValue parameter and represents the state of the tag prior to the alteration. It can be null if the tag was newly created or had no prior value. This property is useful for auditing changes, understanding what was modified, and potentially reverting changes if necessary.
+        /// </summary>
         public object? OldValue { get; set; } = oldValue;
+        /// <summary>
+        /// The identifier of the user who performed the tag modification. This property is initialized with the provided user parameter and serves to associate the change with a specific user. It can be used for accountability, tracking user actions, and understanding who made specific changes to tags within the system.
+        /// </summary>
         public string User { get; set; } = user;
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="Id"></param>
-    /// <param name="Name"></param>
-    /// <param name="Author"></param>
-    /// <param name="Start"></param>
-    /// <param name="End"></param>
-    /// <param name="Interval"></param>
-    /// <param name="ChartConfig"></param>
-    public record TagCollection(int Id, string Name, string Author, DateTime Start, DateTime End, int Interval, ChartConfig ChartConfig); //Tag[] Tags
-
-    //Todo: ChartConfig könnte man auch in der Datenbank speichern, um die Zuordnung von Tags zu Charts dynamisch zu gestalten.    
-    //Die ChartConfig-Klasse definiert die Struktur für die Konfiguration von Diagrammen, einschließlich der Zuordnung von Tags zu zwei verschiedenen Diagrammen (Chart1 und Chart2).
-    //ToDo: Prüfen, ob JsonTag, Tag, TagCollection und ChartConfig zusammengefasst werden können, um die Anzahl der Klassen zu reduzieren und
-    //die Datenstruktur zu vereinfachen. Es könnte sinnvoll sein, eine einheitliche Klasse zu verwenden,
-    //die sowohl die Tag-Informationen als auch die Chart-Konfiguration enthält, um die Handhabung der Daten zu erleichtern und Redundanzen zu vermeiden.
-
-    /// <summary>
-    /// Represents the configuration settings for a chart, including captions and the mapping of tags to two distinct
-    /// charts.
-    /// </summary>
-    /// <remarks>Use this class to define the metadata and tag associations required to render one or two
-    /// related charts. The configuration includes a main caption, an optional subcaption, and dictionaries that map tag
-    /// identifiers to their display names or values for each chart. The Chart1Tags property is required and must be
-    /// provided, while Chart2Tags is optional and may be null if only one chart is configured.</remarks>
-    [JsonSourceGenerationOptions(WriteIndented = true)]
-    public class ChartConfig
-    {
-        public int Id { get; set; }
-        public required string Caption { get; set; } 
-        public string? SubCaption { get; set; }
-        public required Dictionary<string, string> Chart1Tags { get; set; }
-        public Dictionary<string, string>? Chart2Tags { get; set; }
-    }
-
+    
     /// <summary>
     /// Represents a navigation link item for a menu, including its identifier, display name, and target URL.
     /// </summary>
@@ -118,49 +106,21 @@ namespace Gemini.Models
     /// <param name="link">The URL or path that the menu link points to.</param>
     public class MenuLink(int id, string name, string link)
     {
+        /// <summary>
+        /// The unique identifier for the menu link. This property is initialized with the provided id parameter and serves as a reference for the menu item within the application's navigation structure. It can be used to identify and manage menu links programmatically, such as when generating menus dynamically or handling user interactions with specific links.
+        /// </summary>
         public int Id { get; set; } = id;
+        /// <summary>
+        /// The display name of the menu link as shown to users. This property is initialized with the provided name parameter and represents the text that will be visible in the user interface for this menu item. It can be used to provide a clear and descriptive label for the link, enhancing user experience and navigation within the application.
+        /// </summary>
         public string Name { get; set; } = name;
+        /// <summary>
+        /// The URL or path that the menu link points to. This property is initialized with the provided link parameter and defines the destination that users will be directed to when they click on the menu link. It can be an internal route within the application or an external URL, depending on the intended navigation behavior. This property is essential for enabling users to access different sections of the application or external resources through the menu system.
+        /// </summary>
         public string Link { get; set; } = link;
     }
 
-    /// <summary>
-    /// Represents a deserialized setpoint (Sollwert) object obtained from JSON data, including associated metadata such
-    /// as comments, hints, and PLT number.
-    /// </summary>
-    /// <remarks>This class is typically used to map setpoint information from JSON sources into strongly
-    /// typed objects for further processing or display. The properties provide descriptive and contextual information
-    /// related to the setpoint, such as user comments, display hints, and identification numbers. The nested structs
-    /// 'Ist' and 'Soll' encapsulate additional details about actual and target values, including units and value
-    /// constraints.</remarks>
-    public class SollwertFromJson
-    {
-        public string Comment { get; set; } = string.Empty; // Kommentar / Beschreibung zum Sollwert
-        public string Hint { get; set; } = string.Empty; // Rechtsbündig in grau im Kommentarfeld angezeigt
-        public string Plt { get; set; } = string.Empty; //PLT-Nummer rechtsbündig in gelbem Feld im Kommentarfeld angezeigt
-
-        public struct Ist(string tagname, string unit)
-        {
-            public string TagName { get; private set; } = tagname;
-            public string Unit { get; private set; } = unit;
-            public bool IsBoolean { get; private set; } = false;
-
-        }
-
-        public struct Soll(string tagname, string unit)
-        {
-            public string TagName { get; private set; } = tagname;
-            public string Unit { get; private set; } = unit;
-
-            public bool IsBoolean { get; private set; } = false;
-
-            public double StepValue { get; private set; } = 0.1;
-            public int MinValue { get; private set; } = -100000;
-            public int MaxValue { get; private set; } = 100000;
-
-        }
-
-
-    }
+    
 
 
    
@@ -180,8 +140,8 @@ namespace Gemini.Models
 [JsonSerializable(typeof(ChartConfig))]
 //[JsonSerializable(typeof(ChartConfig[]))]
 [JsonSerializable(typeof(Tag[]))]
-[JsonSerializable(typeof(TagCollection))]
-[JsonSerializable(typeof(TagCollection[]))]
+//[JsonSerializable(typeof(TagCollection))]
+//[JsonSerializable(typeof(TagCollection[]))]
 [JsonSerializable(typeof(JsonTag[]))]
 [JsonSerializable(typeof(AlertMessage))]
 [JsonSerializable(typeof(DateTime))]

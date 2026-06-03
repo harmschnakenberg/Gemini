@@ -326,6 +326,12 @@ namespace Gemini.Middleware
 
         #region Datenbank
 
+        /// <summary>
+        /// Listet alle Datenbanken auf, die in der Konfiguration definiert sind. 
+        /// Nützlich für die Fehlersuche bei Verbindungsproblemen oder um zu überprüfen, ob die Datenbankverbindung korrekt eingerichtet ist.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
         private static IResult DbList(HttpContext context)
         {
             return Results.Content(HtmlHelper.ListAllDatabases(), "text/html");
