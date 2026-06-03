@@ -98,10 +98,19 @@ async function loadDataListOptions(dataListId, locListName, link, setValue = tru
         return;
     }
 
-   // console.log(json);
+    // console.log(json);
+
+    /* region Vorhandenen Optionen entfernen */
+    let select_item = document.getElementById(dataListId);
+    let options = select_item.getElementsByTagName('option');
+
+    if (options.length > 0)
+        for (var i = options.length; i--;) {
+            select_item.removeChild(options[i]);
+        }
 
     const locList = new Map();
-
+    
     json.forEach((t) => {
         let key = t.N; //Name
         let val = t.V; //Freitext
@@ -113,10 +122,9 @@ async function loadDataListOptions(dataListId, locListName, link, setValue = tru
             const para = document.createElement("OPTION");
             if (setValue)
                 para.setAttribute("value", key);
-            //para.setAttribute("value", key);
-            
+           
             para.innerHTML = val.length > 0 ? val : key;
-            document.getElementById(dataListId).appendChild(para);
+            select_item.appendChild(para);
         }
     });
 
@@ -397,7 +405,8 @@ async function confImport(configId) {
 /* Reasoning: Liest Werte aus DOM und sendet JSON; keine Rückgabe. */
 async function confUpdate(configId = -1) {
  
-    const url = `/chart/config/update/${configId}`;
+    //    const url = `/chart/config/update/${configId}`;
+    const url = `/chart/config/update/`;
     const author = document.getElementById('loginMessage').innerHTML;
     const caption = document.getElementById('caption').value;
     if (!caption) return;
@@ -423,7 +432,9 @@ async function confUpdate(configId = -1) {
 
     if (res.ok) {
         alert.success(`Konfiguration ${caption} gespeichert`);
+
         //DropDown aktualisieren
+       
         loadDataListOptions('configs', 'allConfigs', `/chart/config/allnames`);
     } else {
         alert.error('Konfiguration speichern - Nicht erlaubte Operation - Status ' + res.status);

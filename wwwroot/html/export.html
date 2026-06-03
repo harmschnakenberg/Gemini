@@ -109,9 +109,6 @@
             </ol>
         </div>
 
-
-
-
     </fieldset>
 
 
@@ -151,12 +148,8 @@
                 <label for="configId">eindeutige Nummer</label>
                 <input type="number" id="configId" placeholder="Nr." style="grid-column: 1" readonly />
 
-
-
-
                 <label for="caption">Name / Kurvenüberschrift</label>
                 <input type="text" id="caption" placeholder="Konfigurationsname" />
-
 
                 <label for="subcaption">erklärender Text (optional)</label>
                 <input type="text" id="subcaption" placeholder="erklärender Text" />
@@ -170,6 +163,7 @@
                 <textarea id="chart2json"></textarea>
                 <button class="myButton" type="button" onclick="exp.itemSelectionToJson('chart2json');">&hookleftarrow; Aus Liste übernehmen</button>
                 <button class="myButton" type="button" onclick="exp.jsonToItemSelection('chart2json');">In Liste &hookrightarrow; übernehmen</button>
+
             </div>
             <button class="delete-btn" type="button" onclick="exp.confDelete(document.getElementById('configId').value);">Löschen</button>
             <button class="myButton" type="button" onclick="exp.confUpdate(-1);">Neu erstellen</button>
@@ -181,33 +175,8 @@
     <script type="module">
         exp.loadDataListOptions('comments', 'allTagComments', `/tag/comments`, false);
         exp.setDatesToStartOfMonth('start', 'end');
-
         exp.loadDataListOptions('configs', 'allConfigs', `/chart/config/allnames`);
-    </script>
-    <script>
-
-
-        //function showKeyFromMapValue(mapId, value) {
-        //    let mapKey = exp.getKeyFromMap(mapId, value)
-
-        //    if (mapKey === null)
-        //        mapKey = '';
-
-        //    return mapKey;
-        //}
-
-
-        //function showValueFromMapKey(mapId, key) {
-        //    let mapKey = exp.getKeyFromMap(mapId, value)
-
-        //    if (mapKey === null)
-        //        mapKey = '';
-
-        //    return mapKey;
-        //}
-
-
-    </script>
+    </script>   
     <style>
         table, th, td {
             border: 1px solid grey;

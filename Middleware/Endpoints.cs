@@ -64,7 +64,7 @@ namespace Gemini.Middleware
             //app.MapPost("/chart/config/create", ChartConfigCreate).RequireAuthorization();
             app.Map("/chart/config/allnames", ChartConfigLoadNames).RequireAuthorization();
             app.MapPost("/chart/config/{chartId:int}", ChartConfigImport).RequireAuthorization();
-            app.MapPost("/chart/config/update/{chartId:int}", ChartConfigUpdate).RequireAuthorization();
+            app.MapPost("/chart/config/update/", ChartConfigUpdate).RequireAuthorization();
             app.MapPost("/chart/config/delete/{chartId:int}", ChartConfigDelete).RequireAuthorization();
 
             app.MapGet("/log", ShowLog).RequireAuthorization(); // Server Log                     
