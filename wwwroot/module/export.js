@@ -70,10 +70,10 @@ const autoConvertMapToObject = (map) => {
 /**
  * lädt Optionen in ein datalist oder select Element
  *
- * @param {string} dataListId - Id des Ziel-Elements im DOM
+ * @param {string} dataListId - Id des Ziel-Elements im DOM datalist oder select
  * @param {string} locListName - Name unter dem die geladene Liste in `locLists` abgelegt wird
  * @param {string} link - URL für den Fetch-Request
- * @param {boolean} [setValue=true] - Ob das `value` Attribut der <option> gesetzt werden soll
+ * @param {boolean} [setValue=true] - Ob das `value` Attribut der <option>-Elemente gesetzt werden soll
  * @returns {Promise<void>}
  */
 /* Reasoning: DOM ids und URL sind Strings; setValue ist boolean; Funktion ist async und gibt nichts zurück. */
@@ -100,31 +100,30 @@ async function loadDataListOptions(dataListId, locListName, link, setValue = tru
 
     // console.log(json);
 
-    /* region Vorhandenen Optionen entfernen */
-    let select_item = document.getElementById(dataListId);
-    let options = select_item.getElementsByTagName('option');
+    /* Vorhandenen Optionen entfernen */
+    let selectItem = document.getElementById(dataListId);
+    let options = selectItem.getElementsByTagName('option');
 
     if (options.length > 0)
         for (var i = options.length; i--;) {
-            select_item.removeChild(options[i]);
+            selectItem.removeChild(options[i]);
         }
 
+    /* Optionen anhängen */
     const locList = new Map();
     
     json.forEach((t) => {
         let key = t.N; //Name
         let val = t.V; //Freitext
         if (t.N?.length > 0) {
-            //console.info(`ID ${key}: ${val}`)
-            //console.log(`${(t.V.length > 0 || Number.isInteger(t.V) ?  t.V : t.N)} = ${t.N}`)
+            //console.info(`ID ${key}: ${val}`)            
             locList.set((val.length > 0 || Number.isInteger(val)) ? val : key, key);
-
             const para = document.createElement("OPTION");
             if (setValue)
                 para.setAttribute("value", key);
            
             para.innerHTML = val.length > 0 ? val : key;
-            select_item.appendChild(para);
+            selectItem.appendChild(para);
         }
     });
 
@@ -385,7 +384,6 @@ async function confImport(configId) {
             addItem();
         };
 
-
         document.getElementById('configId').value = config.Id;
         document.getElementById('caption').value = config.Caption;
         document.getElementById('subcaption').value = config.SubCaption;
@@ -481,4 +479,4 @@ async function confDelete(configId) {
 }
 
 
-export { loadDataListOptions, itemSelectionToJson, jsonToItemSelection, setDatesToStartOfMonth, excelExport as export, getExcelFromForm, getDbFromForm, TagCollection, confUpdate, confImport, confDelete, getTagMapFromForm }
+export { loadDataListOptions, itemSelectionToJson, jsonToItemSelection, setDatesToStartOfMonth, excelExport as export, getExcelFromForm, getDbFromForm, TagCollection, confUpdate, confImport, confDelete, getTagMapFromForm, syntaxHighlight }

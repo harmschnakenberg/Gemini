@@ -6,28 +6,22 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using System.IO;
 
 namespace Gemini.Middleware
 {
     /// <summary>
-    /// 
+    /// Fängt WebSocket abfragen ab und verarbeitet sie.
     /// </summary>
-    public class WebSocketMiddleware
+    /// <remarks>
+    /// 
+    /// </remarks>
+    /// <param name="next"></param>
+    public class WebSocketMiddleware(RequestDelegate next)
     {
-        private readonly RequestDelegate _next;
-        private readonly IAntiforgery _antiforgery;
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="next"></param>
-        /// <param name="antiforgery"></param>
-        public WebSocketMiddleware(RequestDelegate next, IAntiforgery antiforgery)
-        {
-            _next = next;
-            _antiforgery = antiforgery;
-        }
-
+        private readonly RequestDelegate _next = next;
+        
+        
         /// <summary>
         /// 
         /// </summary>
@@ -37,6 +31,8 @@ namespace Gemini.Middleware
         {
             if (context.Request.Path == "/ws" && context.WebSockets.IsWebSocketRequest && context.User?.Identity?.IsAuthenticated == true)
             {
+                #region Sicherheitsüberprüfungen
+
                 // Weil die globale Middleware bereits validiert hat, überspringen wir doppelte Validierung.
                 if (!context.Items.ContainsKey("AntiforgeryValidatedForWebSocket"))
                 {
@@ -48,16 +44,15 @@ namespace Gemini.Middleware
                 // Robuste Origin-Prüfung: vergleiche Scheme+Host(+Port)
                 if (context.Request.Headers.TryGetValue("Origin", out var originHeader))
                 {
-
-                   // Db.Db.DbLogInfo($"WebSocket Verbindungsversuch von Origin: {originHeader} von IP: {context.Connection.RemoteIpAddress}");
-
+#if DEBUG
+                    Db.Db.DbLogInfo($"WebSocket handshake - Origin: {originHeader}; RemoteIP: {context.Connection.RemoteIpAddress}" + $" | AllowedOrigins: {string.Join(',', ApiSettings.AllowedOrigins)}");
+#endif
+                
                     if (!Uri.TryCreate(originHeader.ToString(), UriKind.Absolute, out var originUri))
                     {
                         context.Response.StatusCode = StatusCodes.Status400BadRequest;
                         return;
                     }
-
-                    //bool allowed = ApiSettings.AllowedOrigins.Contains(originHeader.ToString(), StringComparer.OrdinalIgnoreCase);
 
                     bool allowed = ApiSettings.AllowedOrigins.Any(allowedOrigin =>
                     {
@@ -83,7 +78,40 @@ namespace Gemini.Middleware
                     }
                 }
 
-                using var ws = await context.WebSockets.AcceptWebSocketAsync();
+                #endregion
+
+                #region Token zurück schicken an Browser (für Chrome/Edge)
+
+                // Falls der Client einen Subprotocol-String (csrf-...) sendet,
+                // muss der Server denselben Subprotocol im Accept-Handshake zurückgeben (erforderlich für Chrome, Edge).
+                string? selectedSubProtocol = null;
+                if (context.Request.Headers.TryGetValue("Sec-WebSocket-Protocol", out var protoHeader))
+                {
+                    // Mehrere Protokolle möglich, durch Komma getrennt
+                    var items = protoHeader.ToString()
+                        .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var item in items)
+                    {
+                        if (item.StartsWith("csrf-", StringComparison.OrdinalIgnoreCase))
+                        {
+                            selectedSubProtocol = item;
+                            break;
+                        }
+                    }
+#if DEBUG
+                    Db.Db.DbLogInfo($"WebSocket handshake - Sec-WebSocket-Protocol received: {protoHeader}; selected: {selectedSubProtocol}");
+#endif
+                }
+
+                WebSocket ws;
+                if (!string.IsNullOrEmpty(selectedSubProtocol))                
+                    ws = await context.WebSockets.AcceptWebSocketAsync(selectedSubProtocol);                
+                else                
+                    ws = await context.WebSockets.AcceptWebSocketAsync();
+                
+
+                #endregion
+
                 await ReadTagsLoop(ws, context.Connection.RemoteIpAddress ?? IPAddress.Loopback);
                 return;
             }
@@ -178,14 +206,13 @@ namespace Gemini.Middleware
             {
                 // Fehler beim Senden => Client entfernen (wie im Original-Code)
 #if DEBUG
-                Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
+                Console.WriteLine($"Error in sending to WebSocket client {clientId}. Removing client.\\r\\n{ex}");
 #endif
-                Db.Db.DbLogWarn($"Error in sending to WebSocket client {clientId}. Removing client.\r\n{ex}");
+                Db.Db.DbLogWarn($"Error in sending to WebSocket client {clientId}. Removing client.\\r\\n{ex}");
 
                 PlcTagManager.Instance.RemoveClient(clientId);
             }
         }
-
 
 
 
@@ -216,63 +243,116 @@ namespace Gemini.Middleware
                         break;
                     }
 
-                    var r = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    WebSocketReceiveResult r;
+                    try
+                    {
+                        r = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    }
+                    catch (WebSocketException wsex)
+                    {
+                        Db.Db.DbLogWarn($"WebSocket receive error for client {clientId}: {wsex.Message}");
+                        break;
+                    }
+                    catch (IOException ioex)
+                    {
+                        Db.Db.DbLogWarn($"IO error on WebSocket receive for client {clientId}: {ioex.Message}");
+                        break;
+                    }
 
                     if (r.MessageType == WebSocketMessageType.Close)
                         break;
 
-                    // Optional: Wenn Client neue Tag-Liste sendet -> re-register
-                    else if (r.MessageType == WebSocketMessageType.Text && r.Count > 0)
+                    // Nur Textnachrichten verarbeiten
+                    else if (r.MessageType == WebSocketMessageType.Text)
                     {
-                        // Größenlimit prüfen
-                        if (r.Count > MaxJsonSize)
+                        // Falls Nachricht fragmentiert ist, alle Fragmente sammeln
+                        using var ms = new MemoryStream();
+                        ms.Write(buffer, 0, r.Count);
+
+                        if (!r.EndOfMessage)
                         {
-                            Db.Db.DbLogWarn($"JSON Datei zu groß von Client {clientId}: {r.Count} bytes");
-                            await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Gesendete Datei zu groß", CancellationToken.None);
-                            break;
+                            // weitere Fragmente lesen
+                            while (!r.EndOfMessage)
+                            {
+                                try
+                                {
+                                    r = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                                }
+                                catch (WebSocketException wsex)
+                                {
+                                    Db.Db.DbLogWarn($"WebSocket receive error for client {clientId} while assembling fragments: {wsex.Message}");
+                                    ms.Dispose();
+                                    goto ContinueLoop;
+                                }
+                                catch (IOException ioex)
+                                {
+                                    Db.Db.DbLogWarn($"IO error on WebSocket receive for client {clientId} while assembling fragments: {ioex.Message}");
+                                    ms.Dispose();
+                                    goto ContinueLoop;
+                                }
+
+                                if (r.MessageType == WebSocketMessageType.Close)
+                                {
+                                    ms.Dispose();
+                                    goto ContinueLoop;
+                                }
+
+                                ms.Write(buffer, 0, r.Count);
+
+                                if (ms.Length > MaxJsonSize)
+                                {
+                                    Db.Db.DbLogWarn($"JSON Datei zu groß von Client {clientId}: {ms.Length} bytes");
+                                    await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Gesendete Datei zu groß", CancellationToken.None);
+                                    ms.Dispose();
+                                    break;
+                                }
+                            }
                         }
 
-                        var incoming = Encoding.UTF8.GetString(buffer, 0, r.Count);
-
-                        // Console.WriteLine($"Received from client {clientId}: \r\n" + incoming);
-
+                        // Verarbeite die vollständige Nachricht
                         try
                         {
-                            // Verwende den AOT-freundlichen JsonSerializerContext
-                            var newTags = JsonSerializer.Deserialize(incoming, AppJsonSerializerContext.Default.JsonTagArray);
+                            var incoming = Encoding.UTF8.GetString(ms.ToArray(), 0, (int)ms.Length);
 
-                            if (newTags is not null && newTags.Length <= 500) // Array-Größenlimit
+                            try
+                            {
+                                // Verwende den AOT-freundlichen JsonSerializerContext
+                                var newTags = JsonSerializer.Deserialize(incoming, AppJsonSerializerContext.Default.JsonTagArray);
+
+                                if (newTags is not null && newTags.Length <= 500) // Array-Größenlimit
+                                {
+#if DEBUG
+                                    Console.WriteLine($"Updating tags for client {clientId} on {ip}.");
+#endif
+                                    // Registrierung mit dem GLEICHEN Callback und der NEUEN Tag-Liste
+                                    PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, newTags, sendCallback);
+                                }
+                                else
+                                {
+                                    Db.Db.DbLogWarn($"Ungültige Tag-Anzahl von Client {clientId}: {newTags?.Length ?? 0}");
+                                }
+                            }
+                            catch (JsonException ex)
+                            {
+                                Db.Db.DbLogWarn($"Ungültiges JSON von Client {clientId} {ip}: {ex.Message}");
+                                // Nicht schließen, aber Nachricht ignorieren
+                            }
+                            catch
                             {
 #if DEBUG
-                                Console.WriteLine($"Updating tags for client {clientId} on {ip}.");
+                                Console.WriteLine($"Invalid tag payload from client {clientId} on {ip}.");
+                                // Ignoriere ungültige Payload
 #endif
-                                // Registrierung mit dem GLEICHEN Callback und der NEUEN Tag-Liste
-                                PlcTagManager.Instance.AddOrUpdateClient(clientId, ip, newTags, sendCallback);
-                            }
-                            else
-                            {
-                                Db.Db.DbLogWarn($"Ungültige Tag-Anzahl von Client {clientId}: {newTags?.Length ?? 0}");
                             }
                         }
-                        catch (JsonException ex)
+                        finally
                         {
-                            Db.Db.DbLogWarn($"Ungültiges JSON von Client {clientId} {ip}: {ex.Message}");
-                            // Nicht schließen, aber Nachricht ignorieren
-                        }
-                        catch
-                        {
-#if DEBUG
-                            Console.WriteLine($"Invalid tag payload from client {clientId} on {ip}.");
-                            // Ignoriere ungültige Payload
-#endif
+                            // ms disposed by using
                         }
                     }
-                    else
-                    {
-#if DEBUG
-                        Console.WriteLine($"Websocket Status: " + r.MessageType);
-#endif
-                    }
+
+                ContinueLoop:
+                    continue;
                 }
             }
             // Der 'finally' des ursprünglichen Blocks wird in ReadTagsLoop beibehalten, 
@@ -280,9 +360,9 @@ namespace Gemini.Middleware
             catch (Exception ex)
             {
 #if DEBUG
-                Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\r\n {ex.GetType().Name}: {ex.Message}");
+                Console.WriteLine($"Error processing client messages for {clientId}. Forcing disconnect.\\r\\n {ex.GetType().Name}: {ex.Message}");
 #endif
-                Db.Db.DbLogWarn($"Error processing client messages for {clientId}. Forcing disconnect.\r\n {ex.GetType().Name}: {ex.Message}");
+                Db.Db.DbLogWarn($"Error processing client messages for {clientId}. Forcing disconnect.\\r\\n {ex.GetType().Name}: {ex.Message}");
                 // WICHTIG: Wenn der Loop abbricht, muss die Verbindung entfernt werden.
                 PlcTagManager.Instance.RemoveClient(clientId);
                 throw; // Wir werfen die Ausnahme weiter, damit sie im outer finally (ReadTagsLoop) behandelt wird.
@@ -294,27 +374,50 @@ namespace Gemini.Middleware
             const int MaxInitialPayloadSize = 1024 * 100; // 100 KB
             // Empfang der initialen Tags (Code bleibt unverändert)
             var buffer = new byte[1024 * 8];
-            // 1. Erster Empfang zur Ermittlung der Tags
-            var receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
 
-            if (receiveResult.MessageType != WebSocketMessageType.Text || receiveResult.Count <= 0)
+            // Empfange initiale Nachricht robust (fragmente und Fehler behandeln)
+            using var ms = new MemoryStream();
+            WebSocketReceiveResult receiveResult;
+            try
             {
-#if DEBUG                
-                Console.WriteLine("Received invalid initial message from WebSocket client. Closing connection.");
-#endif
-                await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid initial message", CancellationToken.None);
+                do
+                {
+                    receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                    if (receiveResult.MessageType == WebSocketMessageType.Close)
+                    {
+                        // Client wollte schließen
+                        return;
+                    }
+
+                    ms.Write(buffer, 0, receiveResult.Count);
+
+                    if (ms.Length > MaxInitialPayloadSize)
+                    {
+                        Db.Db.DbLogWarn($"WebSocket Payload zu groß von {ip}: {ms.Length} bytes");
+                        await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Gesendete Datei zu groß", CancellationToken.None);
+                        return;
+                    }
+                }
+                while (!receiveResult.EndOfMessage);
+            }
+            catch (WebSocketException wsex)
+            {
+                Db.Db.DbLogWarn($"WebSocket exception beim initialen Empfang von {ip}: {wsex.Message}");
+                return;
+            }
+            catch (IOException ioex)
+            {
+                Db.Db.DbLogWarn($"IO exception beim initialen Empfang von {ip}: {ioex.Message}");
+                return;
+            }
+            catch (OperationCanceledException)
+            {
                 return;
             }
 
-            // Größenlimit prüfen
-            if (receiveResult.Count > MaxInitialPayloadSize)
-            {
-                Db.Db.DbLogWarn($"WebSocket Payload zu groß von {ip}: {receiveResult.Count} bytes");
-                await webSocket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Gesendete Datei zu groß", CancellationToken.None);
-                return;
-            }
-
-            var jsonString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+            var jsonBytes = ms.ToArray();
+            var jsonString = Encoding.UTF8.GetString(jsonBytes, 0, jsonBytes.Length);
 
             if (jsonString?.Trim().Length == 0)
             {
@@ -328,7 +431,17 @@ namespace Gemini.Middleware
 #if DEBUG
             Console.WriteLine("Initialnachricht: " + jsonString);
 #endif
-            JsonTag[]? clientData = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray);
+            JsonTag[]? clientData;
+            try
+            {
+                clientData = JsonSerializer.Deserialize(jsonString ?? string.Empty, AppJsonSerializerContext.Default.JsonTagArray);
+            }
+            catch (JsonException jex)
+            {
+                Db.Db.DbLogWarn($"Ungültiges JSON in initialer Nachricht von {ip}: {jex.Message}");
+                await webSocket.CloseAsync(WebSocketCloseStatus.InvalidPayloadData, "Invalid initial message", CancellationToken.None);
+                return;
+            }
 
             if (clientData is null || clientData?.Length == 0)
             {

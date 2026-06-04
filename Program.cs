@@ -48,8 +48,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.Name = "KreuAuthCookie";
         options.Cookie.HttpOnly = true; // Wichtig gegen XSS
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Nur über HTTPS senden        
-        options.Cookie.SameSite = SameSiteMode.Strict;
-        //options.Cookie.SameSite = SameSiteMode.None;
+        //options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SameSite = SameSiteMode.None;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(60); //Ticket Lifetime
         options.Cookie.MaxAge = options.ExpireTimeSpan; // Cookie Lifetime
         options.LoginPath = "/";
@@ -76,12 +76,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         var allowed = ApiSettings.AllowedOrigins;// Client-URL explizit nennen!
-        if (false && !builder.Environment.IsDevelopment())
-        {
-            // Produktion: nur HTTPS-Origins akzeptieren
-            allowed = allowed.Where(u => u.StartsWith("https://", StringComparison.OrdinalIgnoreCase)).ToArray();
-        }
-
+      
         policy.WithOrigins(allowed)
             //.AllowAnyOrigin() //mit https nicht möglich
               .AllowAnyMethod()
@@ -90,16 +85,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddAntiforgery();
+//builder.Services.AddAntiforgery();
 //// Antiforgery: Cookie ebenfalls auf SameSite=None setzen und Headername festlegen
-//builder.Services.AddAntiforgery(options =>
-//{
-//    options.Cookie.Name = "XSRF-TOKEN";
-//    options.Cookie.HttpOnly = true; // Token-Cookie muss durch JS lesbar sein, falls Client es liest
-//    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-//    options.Cookie.SameSite = SameSiteMode.None; // <-- passend zu Auth-Cookie
-//    options.HeaderName = "X-CSRF-TOKEN";
-//});
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = "XSRF-TOKEN";
+    options.Cookie.HttpOnly = true; // Token-Cookie muss durch JS lesbar sein, falls Client es liest
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None; // <-- passend zu Auth-Cookie
+    options.HeaderName = "X-CSRF-TOKEN";
+});
 
 builder.Services.AddScoped<Gemini.Db.Db>();
 #endregion

@@ -163,7 +163,6 @@
                 <textarea id="chart2json"></textarea>
                 <button class="myButton" type="button" onclick="exp.itemSelectionToJson('chart2json');">&hookleftarrow; Aus Liste übernehmen</button>
                 <button class="myButton" type="button" onclick="exp.jsonToItemSelection('chart2json');">In Liste &hookrightarrow; übernehmen</button>
-
             </div>
             <button class="delete-btn" type="button" onclick="exp.confDelete(document.getElementById('configId').value);">Löschen</button>
             <button class="myButton" type="button" onclick="exp.confUpdate(-1);">Neu erstellen</button>
@@ -177,6 +176,9 @@
         exp.setDatesToStartOfMonth('start', 'end');
         exp.loadDataListOptions('configs', 'allConfigs', `/chart/config/allnames`);
     </script>   
+    <script>
+
+    </script>
     <style>
         table, th, td {
             border: 1px solid grey;

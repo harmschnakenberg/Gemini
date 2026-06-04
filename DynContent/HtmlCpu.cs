@@ -2,6 +2,7 @@
 using Gemini.Services;
 using S7.Net;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -15,27 +16,89 @@ namespace Gemini.DynContent
         /// IPv6-Adressen werden ignoriert. Falls keine IPv4-Adresse gefunden wird, wird nur der Hostname zurückgegeben.
         /// </summary>
         /// <returns></returns>
+        //public static List<string> GetIPV4()
+        //{
+        //    // Ermittelt den Hostnamen des lokalen Computers
+        //    string hostname = Dns.GetHostName();
+        //    List<string> ipAddresses = [hostname];
+
+        //    // Holt die IP-Adresse(n) für den Hostnamen
+        //    IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
+
+        //    // Durchläuft alle gefundenen IP-Adressen (IPv4 und IPv6)
+        //    foreach (IPAddress ipAddress in hostEntry.AddressList)
+        //    {
+        //        // Prüft, ob es eine IPv4-Adresse ist
+        //        if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
+        //            ipAddresses.Add(ipAddress.ToString());
+        //    }
+
+        //    return ipAddresses;
+        //}
+
+
         public static List<string> GetIPV4()
         {
-            // Ermittelt den Hostnamen des lokalen Computers
-            string hostname = Dns.GetHostName();
-            List<string> ipAddresses = [hostname];
-            
-            // Holt die IP-Adresse(n) für den Hostnamen
-            IPHostEntry hostEntry = Dns.GetHostEntry(hostname);
+            // Kapazität vorab schätzen, um dynamische Array-Vergrößerungen im AOT-Code zu minimieren
+            var reachabilityList = new List<string>(8);
+#if DEBUG
+            // 1. Lokale Standard-Verbindungen (Loopback)
+            reachabilityList.Add("localhost");
+            reachabilityList.Add("127.0.0.1");
+            reachabilityList.Add("[::1]");
+#endif
+            // 2. Computernamen ermitteln
+            string machineName = Environment.MachineName;
+            string dnsHostName = Dns.GetHostName();
 
-            // Durchläuft alle gefundenen IP-Adressen (IPv4 und IPv6)
-            foreach (IPAddress ipAddress in hostEntry.AddressList)
+            reachabilityList.Add(machineName);
+
+            // AOT-sicherer Vergleich ohne .ToLower()
+            if (!string.Equals(machineName, dnsHostName, StringComparison.OrdinalIgnoreCase))
             {
-                // Prüft, ob es eine IPv4-Adresse ist
-                if (ipAddress.AddressFamily == AddressFamily.InterNetwork)
+                reachabilityList.Add(dnsHostName);
+            }
+
+            // 3. Aktive Netzwerkkarten abfragen (Vollständig kompatibel mit Linker/Trimming)
+            foreach (NetworkInterface netInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                // Nur aktive Verbindungen
+                if (netInterface.OperationalStatus != OperationalStatus.Up) continue;
+
+                // Nur echte Hardware (LAN oder WLAN)
+                if (netInterface.NetworkInterfaceType != NetworkInterfaceType.Ethernet &&
+                    netInterface.NetworkInterfaceType != NetworkInterfaceType.Wireless80211) continue;
+
+                // Virtuelle Adapter filtern – OrdinalIgnoreCase ist AOT- & Trimming-sicher!
+                string desc = netInterface.Description;
+                if (desc.Contains("virtual", StringComparison.OrdinalIgnoreCase) ||
+                    desc.Contains("pseudo", StringComparison.OrdinalIgnoreCase) ||
+                    desc.Contains("docker", StringComparison.OrdinalIgnoreCase) ||
+                    desc.Contains("vbox", StringComparison.OrdinalIgnoreCase) ||
+                    desc.Contains("wsl", StringComparison.OrdinalIgnoreCase)) continue;
+
+                IPInterfaceProperties ipProps = netInterface.GetIPProperties();
+                foreach (UnicastIPAddressInformation ip in ipProps.UnicastAddresses)
                 {
-                    ipAddresses.Append(ipAddress.ToString());
+                    // IPv4 Adressen
+                    if (ip.Address.AddressFamily == AddressFamily.InterNetwork)
+                    {
+                        reachabilityList.Add(ip.Address.ToString());
+                    }
+                    // IPv6 Adressen (optional, ohne Link-Local Adressen)
+                    else if (ip.Address.AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        if (!ip.Address.IsIPv6LinkLocal)
+                        {
+                            reachabilityList.Add($"[{ip.Address}]");
+                        }
+                    }
                 }
             }
 
-            return ipAddresses;
+            return reachabilityList;
         }
+
 
 
         internal static async Task<string> ListAllPlcConfigs(bool isReadonly)
@@ -134,9 +197,9 @@ namespace Gemini.DynContent
            sb.AppendLine("<h2>Dieses Gerät</h2>");
 
             sb.AppendLine("<p>Serveradresse: <ul>");
-            var ipAddresses = GetIPV4();
-            foreach (var address in ipAddresses)            
-                sb.AppendLine($"<li><a href='https://{address}' style='color={(ApiSettings.AllowedOrigins.Contains(address) ? "green" : "white")}'>{address}</a></li>");
+            //var ipAddresses = GetIPV4();
+            //foreach (var address in ipAddresses)            
+            //    sb.AppendLine($"<li><a href='https://{address}' style='color={(ApiSettings.AllowedOrigins.Contains(address) ? "green" : "white")}'>{address}</a></li>");
 
             foreach (var orig in ApiSettings.AllowedOrigins)            
                 sb.AppendLine($"<li><a href='{orig}'><i>{orig}</i></a></li>");
